@@ -4,10 +4,13 @@ Session management for ShelterLuv scraper.
 Handles browser lifecycle, login, and session state.
 """
 
+import logging
 from playwright.sync_api import sync_playwright, Page, Browser
 from typing import Optional
 import re
 from errors import ScraperError
+
+logger = logging.getLogger(__name__)
 
 # Login-related selectors
 SELECTORS = {
@@ -125,17 +128,17 @@ class ShelterLuvSession:
             self.page.wait_for_load_state('networkidle')
 
             # Debug: Log all visible text elements to understand current UI
-            print("DEBUG: Looking for navigation elements...")
+            logger.debug("Looking for navigation elements")
             try:
                 # Get all visible links and buttons
                 all_links = self.page.locator('a, button, [role="button"], [role="tab"]').all_text_contents()
-                print(f"DEBUG: Found {len(all_links)} clickable elements:")
+                logger.debug(f"Found {len(all_links)} clickable elements")
                 for i, text in enumerate(all_links[:20]):  # Show first 20
-                    print(f"  {i+1}: '{text}'")
+                    logger.debug(f"  {i+1}: '{text}'")
                 if len(all_links) > 20:
-                    print(f"  ... and {len(all_links) - 20} more")
+                    logger.debug(f"  ... and {len(all_links) - 20} more")
             except Exception as e:
-                print(f"DEBUG: Could not enumerate clickable elements: {e}")
+                logger.debug(f"Could not enumerate clickable elements: {e}")
 
             # Navigate to Animals section
             # Try multiple approaches for "Animals" menu

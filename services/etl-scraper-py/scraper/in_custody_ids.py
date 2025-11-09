@@ -5,9 +5,12 @@ This module provides functions to scrape all Internal IDs currently
 shown in the "In Custody View" table by parsing the web UI directly.
 """
 
+import logging
 from typing import Set, Dict
 from scraper import ShelterLuvScraper
 from errors import ScraperError
+
+logger = logging.getLogger(__name__)
 
 
 def _collect_ids_from_current_page(page) -> Set[str]:
@@ -86,7 +89,7 @@ def scrape_in_custody_ids(username: str, password: str) -> Set[str]:
         ScraperError: If scraping fails
     """
 
-    print("🔍 Scraping in-custody IDs from ShelterLuv web UI...")
+    logger.info("Scraping in-custody IDs from ShelterLuv web UI")
 
     try:
         ids = set()
@@ -95,7 +98,7 @@ def scrape_in_custody_ids(username: str, password: str) -> Set[str]:
             page = scraper.session.page
 
             # Navigate to the animals dashboard
-            print("🏠 Navigating to ShelterLuv animals dashboard...")
+            logger.debug("Navigating to ShelterLuv animals dashboard")
             page.goto("https://new.shelterluv.com/dashboard?tab=animals")
 
             # Wait for the page to load
@@ -103,28 +106,28 @@ def scrape_in_custody_ids(username: str, password: str) -> Set[str]:
             page.wait_for_timeout(3000)  # Extra wait for dynamic content
 
             # Ensure we're in "In Custody View"
-            print("👀 Ensuring 'In Custody View' is active...")
+            logger.debug("Ensuring 'In Custody View' is active")
             try:
                 in_custody_button = page.get_by_text("In Custody View")
                 if in_custody_button.count() > 0:
-                    print("🔘 Clicking 'In Custody View' button...")
+                    logger.debug("Clicking 'In Custody View' button")
                     in_custody_button.first.click()
                     page.wait_for_timeout(2000)
                 else:
-                    print("⚠️ 'In Custody View' button not found - may already be active")
+                    logger.debug("'In Custody View' button not found - may already be active")
             except Exception as e:
-                print(f"⚠️ Could not click In Custody View: {e}")
+                logger.warning(f"Could not click In Custody View: {e}")
 
             # Wait for content to load
             page.wait_for_timeout(2000)
 
             # Parse animals from the DOM using data-cy attributes
-            print("📋 Extracting animal IDs from DOM...")
+            logger.debug("Extracting animal IDs from DOM")
 
             # Find all animal row elements with data-cy attributes
             animal_rows = page.locator('[data-cy^="animal-row-"]')
             animal_count = animal_rows.count()
-            print(f"Found {animal_count} animal rows with data-cy attributes")
+            logger.debug(f"Found {animal_count} animal rows with data-cy attributes")
 
             for i in range(min(animal_count, 100)):  # Limit to 100 for safety
                 try:
@@ -142,7 +145,7 @@ def scrape_in_custody_ids(username: str, password: str) -> Set[str]:
                             if href and '/animal/MVSF-A-' in href:
                                 # Extract Muttville ID from URL
                                 muttville_id = href.split('/animal/')[-1]
-                                print(f"Found in-custody animal: ShelterLuv ID {shelterluv_id} (Muttville: {muttville_id})")
+                                logger.debug(f"Found in-custody animal: ShelterLuv ID {shelterluv_id} (Muttville: {muttville_id})")
                                 ids.add(shelterluv_id)
                         else:
                             # Fallback: try to find MVSF-A- text in the row
@@ -153,15 +156,15 @@ def scrape_in_custody_ids(username: str, password: str) -> Set[str]:
                                     line = line.strip()
                                     if line.startswith('MVSF-A-'):
                                         muttville_id = line
-                                        print(f"Found in-custody animal (text): ShelterLuv ID {shelterluv_id} (Muttville: {muttville_id})")
+                                        logger.debug(f"Found in-custody animal (text): ShelterLuv ID {shelterluv_id} (Muttville: {muttville_id})")
                                         ids.add(shelterluv_id)
                                         break
 
                 except Exception as e:
-                    print(f"Error processing animal row {i}: {e}")
+                    logger.warning(f"Error processing animal row {i}: {e}")
                     continue
 
-            print(f"✅ Successfully scraped {len(ids)} animal IDs from UI")
+            logger.info(f"Successfully scraped {len(ids)} animal IDs from UI")
 
             return ids
 

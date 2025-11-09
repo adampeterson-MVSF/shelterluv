@@ -5,8 +5,11 @@ This module provides functions to use the official ShelterLuv REST API
 to get animals currently in custody.
 """
 
+import logging
 from typing import Set
 from errors import ScraperError
+
+logger = logging.getLogger(__name__)
 
 
 def scrape_in_custody_ids_via_api(username: str, password: str) -> Set[str]:
@@ -35,7 +38,7 @@ def scrape_in_custody_ids_via_api(username: str, password: str) -> Set[str]:
         # Use the official API to get all animals in custody
         animals_in_custody = get_all_animals_in_custody(creds["api_key"])
         ids = {str(animal["Internal-ID"]) for animal in animals_in_custody}
-        print(f"DEBUG: Found {len(ids)} animals in custody via official API")
+        logger.info(f"Found {len(ids)} animals in custody via official API")
         return ids
 
     except Exception as e:

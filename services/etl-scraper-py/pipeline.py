@@ -108,7 +108,7 @@ def run_etl_process(config: EtlConfig, timing_hooks: Dict[str, callable] | None 
 
     # EXTRACT
     hook("extract_start")
-    extract_result = extract(creds, config.animal_limit)
+    extract_result = extract(creds, config.animal_limit, config.dry_run)
     hook("extract_end")
 
     # TRANSFORM & ENRICH

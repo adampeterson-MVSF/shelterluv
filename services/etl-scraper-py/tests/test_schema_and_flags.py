@@ -105,7 +105,8 @@ class TestSchemaValidation:
         expected_fields = [
             "Internal-ID", "ID", "Name", "Status",
             "AgeYears", "AgeDisplay",
-            "IsInCustody", "IsAvailableForAdoption", "IsHospice", "IsEventDog"
+            "IsInCustody", "IsAvailableForAdoption", "IsHospice", "IsEventDog",
+            "PersonalityNotes", "IntakeNotes", "MedicalNotes"
         ]
         assert set(required_fields) == set(expected_fields)
 
@@ -121,7 +122,10 @@ class TestSchemaValidation:
             "IsInCustody": True,
             "IsAvailableForAdoption": True,
             "IsHospice": False,
-            "IsEventDog": False
+            "IsEventDog": False,
+            "PersonalityNotes": "",
+            "IntakeNotes": "",
+            "MedicalNotes": ""
         }
         # Should not raise
         validate_dog_record(dog)

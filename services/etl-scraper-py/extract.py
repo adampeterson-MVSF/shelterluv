@@ -27,7 +27,7 @@ class ExtractResult:
     people_failed: bool = False
 
 
-def extract(creds: Dict[str, str], animal_limit: int | None = None) -> ExtractResult:
+def extract(creds: Dict[str, str], animal_limit: int | None = None, dry_run: bool = False) -> ExtractResult:
     """
     Extract all raw data needed for ETL: in-custody IDs, animals, events, people, and existing metadata.
     This is a pure function that fetches everything we know before any processing.
@@ -100,8 +100,12 @@ def extract(creds: Dict[str, str], animal_limit: int | None = None) -> ExtractRe
 
     # Step 5: Fetch existing metadata for incremental processing
     internal_ids = list(animals_by_id.keys())
-    existing_metadata = db.fetch_existing_metadata(internal_ids) if internal_ids else {}
-    logger.info(f"Fetched existing metadata for {len(existing_metadata)} animals")
+    existing_metadata = {}
+    if internal_ids and not dry_run:
+        existing_metadata = db.fetch_existing_metadata(internal_ids)
+        logger.info(f"Fetched existing metadata for {len(existing_metadata)} animals")
+    else:
+        logger.info("Skipping existing metadata fetch (dry run or no animals)")
 
     return ExtractResult(
         in_custody_ids=in_custody_ids,

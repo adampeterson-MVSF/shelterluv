@@ -1,0 +1,174 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://muttville.org/schemas/dog.json",
+  "title": "Dog",
+  "description": "Schema for dog data collected from ShelterLuv. Frontend renders: Name, Age, Size, Gender, Status, Photos, Description, CaseManager, AdoptionCategory, MedicalCategory, BehaviorCategory. Supports role-based access to foster contact information and structured memo tabs.",
+  "version": "1.3.0",
+  "type": "object",
+  "properties": {
+    "Internal-ID": {
+      "type": "string",
+      "description": "[API] ShelterLuv internal unique identifier - from ShelterLuv API field 'Internal-ID'"
+    },
+    "ID": {
+      "type": "string",
+      "description": "[API] ShelterLuv public animal ID - from ShelterLuv API field 'ID'"
+    },
+    "Name": {
+      "type": "string",
+      "description": "[API] Dog's name - from ShelterLuv API field 'Name'"
+    },
+    "Breed": {
+      "type": "string",
+      "description": "[API] Dog's breed - from ShelterLuv API field 'Breed'"
+    },
+    "AgeYears": {
+      "type": "number",
+      "description": "[DERIVED] Canonical age in years for sorting/filtering (e.g., 3.5 for 3 years 6 months) - computed from ShelterLuv age data"
+    },
+    "AgeDisplay": {
+      "type": "string",
+      "description": "[DERIVED] Human-readable age representation (e.g., '3 years', 'Adult', 'Senior') - computed from ShelterLuv age data"
+    },
+    "Size": {
+      "type": "string",
+      "enum": ["Small", "Medium", "Large", "X-Large", "UNKNOWN"],
+      "description": "[API] Dog's size category - from ShelterLuv API field 'Size'. UNKNOWN indicates size could not be determined."
+    },
+    "Gender": {
+      "type": "string",
+      "enum": ["Male", "Female"],
+      "description": "[API] Dog's gender - from ShelterLuv API field 'Gender'"
+    },
+    "Status": {
+      "type": "string",
+      "enum": ["AVAILABLE", "ADOPTED", "PENDING", "HOLD", "UNKNOWN"],
+      "description": "[API] Current status in shelter system - from ShelterLuv API field 'Status'. UNKNOWN indicates status could not be determined from ShelterLuv data.",
+      "x-terminal-statuses": ["ADOPTED"]
+    },
+    "Description": {
+      "type": "string",
+      "description": "[API] Dog's description/bio - from ShelterLuv API field 'Description'"
+    },
+    "Photos": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri",
+        "description": "[API] URL to dog photo - from ShelterLuv API field 'Photos'"
+      },
+      "description": "[API] Array of photo URLs - from ShelterLuv API field 'Photos'"
+    },
+    "CaseManager": {
+      "type": "string",
+      "description": "[SCRAPED] Assigned case manager name - scraped from ShelterLuv profile section"
+    },
+    "MemosRawHTML": {
+      "type": "string",
+      "description": "[SCRAPED] Raw HTML content of all memos/notes - scraped from ShelterLuv memos page"
+    },
+    "PersonalityNotes": {
+      "type": "string",
+      "description": "[DERIVED] Personality and behavior notes extracted from MemosRawHTML - categorized by ETL based on keywords (personality, behavior, temperament, etc.)"
+    },
+    "IntakeNotes": {
+      "type": "string",
+      "description": "[DERIVED] Intake and background notes extracted from MemosRawHTML - categorized by ETL based on keywords (intake, background, history, etc.)"
+    },
+    "MedicalNotes": {
+      "type": "string",
+      "description": "[DERIVED] Medical notes extracted from MemosRawHTML - categorized by ETL based on keywords (medical, health, vet, treatment, etc.)"
+    },
+    "AdoptionCategory": {
+      "type": "string",
+      "description": "[SCRAPED] Adoption category - scraped from ShelterLuv profile section"
+    },
+    "MedicalCategory": {
+      "type": "string",
+      "description": "[SCRAPED] Medical category - scraped from ShelterLuv profile section"
+    },
+    "BehaviorCategory": {
+      "type": "string",
+      "description": "[SCRAPED] Behavior category - scraped from ShelterLuv profile section"
+    },
+    "FullAnimalProfile": {
+      "type": "string",
+      "description": "[SCRAPED] Full animal profile text - scraped from ShelterLuv profile section"
+    },
+    "Treatments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "treatment": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      },
+      "description": "[DERIVED] Medical treatments history - structured from scraped data"
+    },
+    "IntakeDate": {
+      "type": "string",
+      "format": "date",
+      "description": "[API] Date the dog was taken into custody - from ShelterLuv API field 'IntakeDate'"
+    },
+    "Location": {
+      "type": "string",
+      "description": "[API] Current location in shelter - from ShelterLuv API field 'Location'"
+    },
+    "Stage": {
+      "type": "string",
+      "description": "[API] Current stage in adoption process - from ShelterLuv API field 'Stage'"
+    },
+    "Weight": {
+      "type": ["string", "number"],
+      "description": "[API] Dog's weight in pounds - from ShelterLuv API field 'Weight'"
+    },
+    "FosterName": {
+      "type": "string",
+      "description": "[DERIVED] Name of current foster parent - derived from ShelterLuv events and people data. ROLE RESTRICTED: closers/staff only"
+    },
+    "FosterPhone": {
+      "type": "string",
+      "description": "[DERIVED] Foster parent's phone number - derived from ShelterLuv people data. ROLE RESTRICTED: closers/staff only"
+    },
+    "FosterEmail": {
+      "type": "string",
+      "format": "email",
+      "description": "[DERIVED] Foster parent's email address - derived from ShelterLuv people data. ROLE RESTRICTED: closers/staff only"
+    },
+    "ScrapeError": {
+      "type": "string",
+      "description": "[DERIVED] Error message if scraping dog details failed - shows in UI as warning"
+    },
+    "IsInCustody": {
+      "type": "boolean",
+      "description": "[DERIVED] Dog is currently in Muttville's custody - derived from ETL source (ShelterLuv 'In Custody' view). All animals in Firestore for this ETL run are currently in custody unless ETL is changed."
+    },
+    "IsAvailableForAdoption": {
+      "type": "boolean",
+      "description": "[DERIVED] Dog is currently available for adoption - computed from Status by ETL"
+    },
+    "IsHospice": {
+      "type": "boolean",
+      "description": "[DERIVED] Dog is in hospice care program - computed from MedicalCategory, Stage, and events by ETL"
+    },
+    "IsEventDog": {
+      "type": "boolean",
+      "description": "[DERIVED] Dog participates in public events - computed from event history by ETL"
+    }
+  },
+  "required": [
+    "Internal-ID",
+    "ID",
+    "Name",
+    "Status",
+    "AgeYears",
+    "AgeDisplay",
+    "IsInCustody",
+    "IsAvailableForAdoption",
+    "IsHospice",
+    "IsEventDog"
+  ],
+  "additionalProperties": false
+}

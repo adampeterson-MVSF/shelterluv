@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Authenticated Muttville users can read dogs
+    function isAuthenticated() {
+      return request.auth != null && request.auth.token.email.matches('.*@muttville[.]org$');
+    }
+
+    // Check if user has closer or staff role (can access foster info)
+    // NOTE: Firestore rules are document-level, not field-level.
+    // Sensitive fields (FosterName, FosterPhone, FosterEmail) are protected
+    // by UI-level RoleGuard components that check user roles client-side.
+    // This provides defense in depth but relies on correct client implementation.
+    function hasFosterAccess() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['closer', 'staff'];
+    }
+
+    // Check if user has staff role (full admin access)
+    function isStaff() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff';
+    }
+
+    // Check if this is an admin/service account (for seeding and ETL operations)
+    function isAdminSDK() {
+      return request.auth != null &&
+             (request.auth.token.email.matches('.*@muttville.iam.gserviceaccount.com$') ||
+              request.auth.token.admin == true);
+    }
+
+    // Dogs collection - authenticated users can read all dog documents
+    // Field-level access control is handled client-side via RoleGuard components
+    // TODO: Consider separating sensitive foster data into protected subcollections
+    match /dogs/{dogId} {
+      allow read, list: if isAuthenticated();
+
+      // Allow writes from admin SDK or staff users
+      allow write: if isAdminSDK();
+    }
+
+    // Users collection - A user can read THEIR OWN document
+    match /users/{userId} {
+      // Only allow a user to read their own document
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow writes from admin SDK or staff users
+      allow write: if isAdminSDK();
+    }
+
+    // Deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

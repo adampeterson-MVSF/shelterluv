@@ -1,0 +1,53 @@
+{
+  "name": "webapp-react",
+  "version": "0.1.0",
+  "description": "React frontend for Muttville dog adoption platform",
+  "main": "src/main.jsx",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:auth": "playwright test tests/e2e/auth.spec.js --reporter=list 2>&1 | tee AUTH.txt",
+    "test:e2e:save-auth": "node save-auth-state.js",
+    "test:e2e:mcp": "npx @cloudflare/playwright-mcp",
+    "check:data": "node check_firestore_data.js",
+    "perf": "node performance_test.js",
+    "lint": "eslint src --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "generate:types": "npx json-schema-to-typescript ../../common/schemas/dog.schema.json src/types/Dog.types.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "firebase": "^10.7.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1"
+  },
+  "devDependencies": {
+    "@cloudflare/playwright-mcp": "^0.0.5",
+    "@playwright/test": "^1.56.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.1.1",
+    "@vitest/coverage-v8": "^4.0.7",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "jsdom": "^27.1.0",
+    "json-schema-to-typescript": "^13.1.2",
+    "playwright": "^1.56.1",
+    "typescript": "^5.9.3",
+    "vite": "^5.0.0",
+    "vitest": "^4.0.7"
+  }
+}

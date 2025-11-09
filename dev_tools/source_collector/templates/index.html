@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Source Code Collector - Python</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .file-tree { max-height: 50vh; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8rem; }
+        .file-item { display: flex; align-items: center; padding: 0.2rem 0.4rem; border-radius: 0.2rem; transition: background-color 0.1s; cursor: pointer; }
+        .file-item:hover { background-color: rgba(59, 130, 246, 0.1); }
+        .file-item.selected { background-color: rgba(34, 197, 94, 0.15); }
+        .file-item.unselected .text-file { color: #6b7280; }
+        .text-file { color: #059669; }
+        .stats { position: fixed; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); padding: 0.8rem; border-radius: 0.4rem; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 180px; font-size: 0.85rem; }
+        .combine-btn { background: linear-gradient(45deg, #22c55e, #16a34a); color: white; padding: 0.8rem 1.5rem; border-radius: 0.4rem; font-weight: bold; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3); border: none; cursor: pointer; transition: all 0.2s ease; }
+        .combine-btn:hover:not(:disabled) { transform: scale(1.02); box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
+        .combine-btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+        .loading { display: none; align-items: center; gap: 0.4rem; color: #3b82f6; font-weight: 500; }
+        .spinner { width: 0.8rem; height: 0.8rem; border: 2px solid #e5e7eb; border-top: 2px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) { .stats { position: static; margin-bottom: 1rem; } .file-tree { max-height: 40vh; } }
+    </style>
+</head>
+<body class="bg-white text-black p-4">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-4">
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-file-code text-green-600"></i>
+                Source Code Collector
+                <span class="text-xs font-normal text-gray-500">Python Version</span>
+            </h1>
+            <p class="text-gray-600 mt-1 text-sm">Automatically collects all source code, configuration, and documentation files from your project, excluding system and framework artifacts.</p>
+        </header>
+
+        <div class="stats">
+            <div class="flex justify-between items-center mb-2">
+                <span>Total Size:</span>
+                <span id="totalSize" class="font-mono font-semibold">0 KB</span>
+            </div>
+            <div class="flex justify-between items-center mb-2">
+                <span>Total Lines:</span>
+                <span id="totalLines" class="font-mono font-semibold">0</span>
+            </div>
+            <div class="flex justify-between items-center mb-2">
+                <span>Selected Files:</span>
+                <span id="selectedCount" class="font-mono font-semibold">0</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4 mb-4">
+            <div class="flex flex-wrap gap-3 items-center mb-3">
+                <input type="text" id="directoryInput" placeholder="Enter directory path..." class="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                <button id="scanBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm">
+                    <i class="fas fa-folder-open"></i>
+                    Scan Directory
+                </button>
+                <span id="selectedPath" class="text-gray-600 italic text-sm"></span>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <span id="loadingText" class="text-sm">Processing...</span>
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <input type="text" id="searchInput" placeholder="Search files..." class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent text-sm">
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-3 mb-4">
+            <h2 class="text-base font-semibold mb-2 flex items-center gap-2">
+                <i class="fas fa-sitemap text-blue-600"></i>
+                Project Files
+            </h2>
+            <div id="fileTree" class="file-tree">
+                <div class="text-center text-gray-500 py-6">
+                    <i class="fas fa-folder-open text-3xl mb-2"></i>
+                    <p class="text-sm">Enter a directory path and click "Scan Directory" to get started</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4 mb-4">
+            <h2 class="text-base font-semibold mb-3 flex items-center gap-2">
+                <i class="fas fa-cog text-blue-600"></i>
+                Output Options
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="flex items-center gap-2 mb-1">
+                        <input type="checkbox" id="includeStructure" class="rounded" checked>
+                        <span class="font-medium text-sm">Include File Structure</span>
+                    </label>
+                    <p class="text-xs text-gray-600">Add project structure overview</p>
+                </div>
+                <div>
+                    <label class="flex items-center gap-2 mb-1">
+                        <input type="checkbox" id="includeMetadata" class="rounded" checked>
+                        <span class="font-medium text-sm">Include File Metadata</span>
+                    </label>
+                    <p class="text-xs text-gray-600">Add file sizes and line counts</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <button id="combineBtn" class="combine-btn" disabled>
+                <i class="fas fa-download mr-2"></i>
+                Collect & Download Source Code
+            </button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

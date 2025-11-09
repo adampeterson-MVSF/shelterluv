@@ -1,0 +1,12 @@
+# Development and testing dependencies
+# Install with: pip install -r requirements.txt -r requirements-dev.txt
+#
+# These dependencies are NOT needed for production Cloud Function deployment,
+# only for local development, testing, and performance monitoring.
+
+# For unit and integration testing
+pytest>=7.4.0,<8.0.0
+pytest-cov>=4.1.0,<5.0.0
+
+# For performance testing and memory tracking
+psutil>=5.9.0,<6.0.0

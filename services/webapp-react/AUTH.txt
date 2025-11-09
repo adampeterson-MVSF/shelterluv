@@ -1,0 +1,35 @@
+
+Running 3 tests using 3 workers
+
+(node:74269) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:74270) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:74271) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:74269) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:74270) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:74271) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Skipping navigation test - user not authenticated
+Skipping dog information test - user not authenticated
+  ✓  1 [chromium] › tests/e2e/auth.spec.js:148:7 › Basic Webapp Functionality › authenticated users can navigate between pages (309ms)
+  ✓  3 [chromium] › tests/e2e/auth.spec.js:115:7 › Basic Webapp Functionality › authenticated users can view dog information (309ms)
+Page title: Muttville Dog Adoption
+Body content length: [33m83[39m
+Body content preview: 
+    MuttvilleSign InWelcome to MuttvillePlease sign in to view our dogs.
+    
+  
+
+
+Sign in button visible: [33mtrue[39m
+User info visible: [33mfalse[39m
+Console errors: None
+✅ User needs to authenticate - testing login prompt
+✅ Login prompt working correctly
+  ✓  2 [chromium] › tests/e2e/auth.spec.js:23:7 › Basic Webapp Functionality › app loads and shows appropriate UI based on auth state (3.8s)
+
+  3 passed (4.3s)

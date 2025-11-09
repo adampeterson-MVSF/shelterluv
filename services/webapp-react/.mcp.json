@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@cloudflare/playwright-mcp"
+      ],
+      "env": {
+        "PLAYWRIGHT_BROWSER": "chromium"
+      }
+    }
+  }
+}
+

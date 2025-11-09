@@ -1,0 +1,85 @@
+/* ==================== Dog Details Page ==================== */
+.dog-details-page {
+  max-width: 900px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  color: #0071e3;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.dog-header {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dog-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dog-title h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.photo-gallery {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.dog-photo {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.dog-core-info {
+  margin-bottom: 1.5rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-item label {
+  font-size: 0.85rem;
+  color: #86868b;
+  font-weight: 500;
+}
+
+.info-item span {
+  font-size: 1rem;
+  color: #1d1d1f;
+}
+
+/* Simplified dog details - removed all tabs, foster info, and internal notes */

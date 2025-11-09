@@ -1,0 +1,27 @@
+{
+  "users": [
+    {
+      "email": "dev+test-viewer@example.com",
+      "password": "testpassword123",
+      "displayName": "Test Viewer",
+      "role": "viewer",
+      "description": "Volunteer (viewer): Can view dogs but NOT foster contact info"
+    },
+    {
+      "email": "dev+test-closer@example.com",
+      "password": "testpassword123",
+      "displayName": "Test Closer",
+      "role": "closer",
+      "description": "Closer: Full access including foster contacts"
+    },
+    {
+      "email": "dev+test-staff@example.com",
+      "password": "testpassword123",
+      "displayName": "Test Staff",
+      "role": "staff",
+      "description": "Staff: Full access including foster contacts and admin functions"
+    }
+  ],
+  "allowedDomains": ["example.com"],
+  "schemaVersion": "1.0"
+}

@@ -1,0 +1,48 @@
+/* ==================== Header Component ==================== */
+.app-header {
+  background-color: #fff;
+  border-bottom: 1px solid #d2d2d7;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-title {
+  text-decoration: none;
+  color: inherit;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.sign-in-btn {
+  background-color: #0071e3;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.sign-in-btn:hover {
+  background-color: #0077ed;
+}
+
+/* Simplified header - removed hamburger menu and complex navigation */

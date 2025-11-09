@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Source Code Collector - LLM-Optimized</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .file-tree {
+            max-height: 50vh;
+            overflow-y: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.8rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.2rem;
+            transition: background-color 0.1s;
+        }
+
+        .file-item:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .file-item.selected {
+            background-color: rgba(34, 197, 94, 0.15);
+        }
+
+        .file-item.unselected .text-file {
+            color: #6b7280;
+        }
+
+        .text-file {
+            color: #059669;
+        }
+
+        .stats {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            padding: 0.8rem;
+            border-radius: 0.4rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            min-width: 180px;
+            font-size: 0.85rem;
+        }
+
+        .combine-btn {
+            background: linear-gradient(45deg, #22c55e, #16a34a);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 0.4rem;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .combine-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+
+        .combine-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 0.4rem;
+            color: #3b82f6;
+            font-weight: 500;
+        }
+
+        .spinner {
+            width: 0.8rem;
+            height: 0.8rem;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .stats {
+                position: static;
+                margin-bottom: 1rem;
+            }
+            .file-tree {
+                max-height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body class="bg-white text-black p-4">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-4">
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-file-code text-green-600"></i>
+                Source Code Collector
+                <span class="text-xs font-normal text-gray-500">for LLM Analysis</span>
+            </h1>
+            <p class="text-gray-600 mt-1 text-sm">Automatically collects all source code, configuration, and documentation files from your project, excluding system and framework artifacts.</p>
+        </header>
+
+        <!-- Stats Panel -->
+        <div class="stats">
+            <div class="flex justify-between items-center mb-2">
+                <span>Total Size:</span>
+                <span id="totalSize" class="font-mono font-semibold">0 KB</span>
+            </div>
+            <div class="flex justify-between items-center mb-2">
+                <span>Total Lines:</span>
+                <span id="totalLines" class="font-mono font-semibold">0</span>
+            </div>
+            <div class="flex justify-between items-center mb-2">
+                <span>Selected Files:</span>
+                <span id="selectedCount" class="font-mono font-semibold">0</span>
+            </div>
+            <div id="contextWarning" class="text-xs text-red-600 mt-2 hidden"></div>
+        </div>
+
+        <!-- Main Controls -->
+        <div class="bg-white rounded-lg shadow-sm border p-4 mb-4">
+            <div class="flex flex-wrap gap-3 items-center mb-3">
+                <button id="selectFolder" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm">
+                    <i class="fas fa-folder-open"></i>
+                    Select Project Folder
+                </button>
+                <span id="selectedPath" class="text-gray-600 italic text-sm"></span>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <span id="loadingText" class="text-sm">Processing...</span>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="mb-2">
+                <input type="text" id="searchInput" placeholder="Search files..."
+                       class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent text-sm">
+            </div>
+        </div>
+
+        <!-- File Tree -->
+        <div class="bg-white rounded-lg shadow-sm border p-3 mb-4">
+            <h2 class="text-base font-semibold mb-2 flex items-center gap-2">
+                <i class="fas fa-sitemap text-blue-600"></i>
+                Project Files
+            </h2>
+            <div id="fileTree" class="file-tree">
+                <div class="text-center text-gray-500 py-6">
+                    <i class="fas fa-folder-open text-3xl mb-2"></i>
+                    <p class="text-sm">Select a project folder to get started</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Options -->
+        <div class="bg-white rounded-lg shadow-sm border p-4 mb-4">
+            <h2 class="text-base font-semibold mb-3 flex items-center gap-2">
+                <i class="fas fa-cog text-blue-600"></i>
+                Output Options
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="flex items-center gap-2 mb-1">
+                        <input type="checkbox" id="includeStructure" class="rounded" checked>
+                        <span class="font-medium text-sm">Include File Structure</span>
+                    </label>
+                    <p class="text-xs text-gray-600">Add project structure overview</p>
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 mb-1">
+                        <input type="checkbox" id="includeMetadata" class="rounded" checked>
+                        <span class="font-medium text-sm">Include File Metadata</span>
+                    </label>
+                    <p class="text-xs text-gray-600">Add file sizes and line counts</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Combine Button -->
+        <div class="text-center">
+            <button id="combineBtn" class="combine-btn" disabled>
+                <i class="fas fa-download mr-2"></i>
+                Collect & Download Source Code
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Core application state
+        const state = {
+            files: new Map(),
+            selectedFiles: new Set(),
+            folderHandle: null,
+            ignorePatterns: new Set([
+                // Version control
+                '.git', '.svn', '.hg',
+
+                // Dependencies and virtual environments
+                'node_modules', 'bower_components', '.venv', 'venv', 'env', 'ENV',
+                '__pycache__', '.pytest_cache', '.mypy_cache', '.tox',
+
+                // Build outputs and distributions
+                'dist', 'build', 'out', 'target', 'bin', 'obj', 'lib',
+                '.next', '.nuxt', '.svelte-kit', '.vuepress', '.cache',
+                'coverage', 'htmlcov', '.coverage', 'test-results', 'playwright-report',
+                '*.egg-info', '.eggs', 'dist-info',
+
+                // Framework-specific build artifacts
+                '.next', '.nuxt', '.svelte-kit', '.vuepress', '.docusaurus',
+                '.vercel', '.netlify', '_nuxt', '.output', '.vitepress',
+
+                // Cache and temporary files
+                '.cache', '.parcel-cache', '.eslintcache', '.stylelintcache',
+                '.sass-cache', '.nyc_output', '.webpack', 'tmp', 'temp',
+                '*.log', '*.tmp', '*.temp', '.DS_Store', 'Thumbs.db',
+
+                // Environment and secrets
+                '.env', '.env.local', '.env.development', '.env.production',
+                '.env.test', '.env.staging', '.env.*',
+
+                // IDE and editor files
+                '.vscode', '.idea', '.vs', '.eclipse', '*.swp', '*.swo',
+                '*~', '.project', '.classpath', '.settings',
+
+                // Lock files
+                'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+                'Pipfile.lock', 'poetry.lock', 'Gemfile.lock',
+
+                // Compiled and minified files
+                '*.min.js', '*.min.css', '*.bundle.js', '*.chunk.js',
+                '*.compiled.js', '*.compiled.css',
+                '*.pyc', '*.pyo', '*.pyd', '*.so', '*.dll', '*.exe',
+
+                // Assets and media (keep some config but exclude media)
+                'public/assets', 'static/assets', 'assets/images', 'assets/fonts',
+                '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico', '*.webp',
+                '*.woff', '*.woff2', '*.ttf', '*.eot', '*.mp4', '*.mp3', '*.wav',
+                '*.mov', '*.avi', '*.mkv',
+
+                // Archives and binaries
+                '*.zip', '*.tar.gz', '*.rar', '*.7z', '*.dmg', '*.iso',
+                '*.pdf', '*.doc', '*.docx', '*.xls', '*.xlsx',
+                '*.sqlite', '*.db', '*.sqlite3', '*.mdb',
+
+                // CI/CD and deployment
+                '.github/workflows', '.circleci', '.travis.yml', '.gitlab-ci.yml',
+                'Dockerfile', 'docker-compose*.yml', '.dockerignore',
+
+                // Testing frameworks' outputs
+                'test-results', 'allure-results', 'cypress/videos', 'cypress/screenshots'
+            ])
+        };
+
+        // DOM elements - only reference elements that actually exist
+        const elements = {};
+
+        // Initialize DOM elements safely
+        function initializeElements() {
+            const elementIds = [
+                'selectFolder', 'selectedPath', 'loading', 'loadingText', 'fileTree',
+                'searchInput', 'combineBtn', 'totalSize', 'totalLines', 'selectedCount',
+                'includeStructure', 'includeMetadata'
+            ];
+
+            elementIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    elements[id] = element;
+                } else {
+                    console.warn(`Element with id '${id}' not found`);
+                }
+            });
+        }
+
+        // File type detection - include all source code and config files
+        const textExtensions = new Set([
+            // Programming languages - source files
+            'js', 'ts', 'jsx', 'tsx', 'py', 'java', 'go', 'rs', 'php', 'rb',
+            'cpp', 'c', 'h', 'hpp', 'cs', 'swift', 'kt', 'scala', 'clj', 'hs',
+            'ml', 'fs', 'elm', 'dart', 'lua', 'r', 'm', 'mm', 'vb', 'fsx',
+
+            // Web technologies - source files
+            'html', 'css', 'scss', 'sass', 'less', 'vue', 'svelte', 'astro',
+            'ejs', 'pug', 'jade', 'hbs', 'handlebars',
+
+            // Configuration and data files
+            'json', 'yaml', 'yml', 'toml', 'xml', 'ini', 'conf', 'cfg',
+            'properties', 'env', 'dotenv', 'config', 'settings',
+
+            // Scripts and shell files
+            'sh', 'bash', 'zsh', 'fish', 'ps1', 'bat', 'cmd', 'awk', 'sed',
+            'perl', 'pl', 'tcl', 'expect',
+
+            // Documentation files
+            'md', 'rst', 'txt', 'adoc', 'asciidoc', 'tex', 'latex',
+
+            // Database and queries
+            'sql', 'prisma', 'graphql', 'gql', 'cypher',
+
+            // Build and project files
+            'Dockerfile', 'dockerfile', 'Makefile', 'makefile', 'CMakeLists.txt',
+            'Cargo.toml', 'package.json', 'setup.py', 'requirements.txt',
+            'Pipfile', 'pyproject.toml', 'Cargo.lock', 'go.mod', 'go.sum',
+
+            // Config files
+            'gitignore', 'eslintignore', 'prettierignore', 'editorconfig',
+            'babelrc', 'eslintrc', 'prettierrc', 'tsconfig', 'jsconfig',
+            'webpack.config', 'rollup.config', 'vite.config', 'jest.config'
+        ]);
+
+        function isTextFile(filename) {
+            const ext = filename.split('.').pop();
+            const extLower = ext ? ext.toLowerCase() : '';
+            const filenameLower = filename.toLowerCase();
+
+            // Check for files without extensions that are commonly text
+            const noExtFiles = new Set([
+                'Dockerfile', 'dockerfile', 'Makefile', 'makefile',
+                'CMakeLists.txt', 'Cargo.toml', 'Pipfile', 'pyproject.toml',
+                'requirements.txt', 'setup.py', 'manage.py', 'wsgi.py',
+                'asgi.py', 'README', 'CHANGELOG', 'LICENSE', 'NOTICE',
+                'AUTHORS', 'CONTRIBUTORS', 'CONTRIBUTING', 'CONTRIBUTE',
+                'INSTALL', 'BUILD', 'DEVELOP', 'HACKING'
+            ]);
+
+            return textExtensions.has(extLower) || noExtFiles.has(filename) ||
+                   filename.startsWith('README') || filename.startsWith('CHANGELOG') ||
+                   filename.startsWith('LICENSE') || filename.startsWith('CONTRIBUT') ||
+                   filename.startsWith('INSTALL') || filename.startsWith('BUILD');
+        }
+
+        function getFilePriority(filename, path) {
+            // Priority scoring for sorting (higher = more important for analysis)
+            let priority = 0;
+            const filenameLower = filename.toLowerCase();
+            const pathLower = path.toLowerCase();
+
+            // Core source files get highest priority
+            if (/\.(js|ts|jsx|tsx|py|java|go|rs|cpp|c|php|rb|cs|swift|kt)$/.test(filenameLower)) {
+                priority += 20;
+            }
+
+            // Web source files
+            if (/\.(html|css|scss|sass|vue|svelte|astro)$/.test(filenameLower)) {
+                priority += 18;
+            }
+
+            // Configuration files - high priority
+            if (/\.(json|yaml|yml|toml|xml)$/.test(filenameLower) ||
+                filenameLower.includes('config') || filenameLower.includes('settings')) {
+                priority += 15;
+            }
+
+            // Package/project definition files
+            if (['package.json', 'setup.py', 'requirements.txt', 'Cargo.toml',
+                 'pyproject.toml', 'go.mod', 'composer.json', 'Gemfile'].includes(filenameLower)) {
+                priority += 19;
+            }
+
+            // Build configuration files
+            if (filenameLower.includes('webpack') || filenameLower.includes('babel') ||
+                filenameLower.includes('vite') || filenameLower.includes('rollup') ||
+                filenameLower.includes('tsconfig') || filenameLower.includes('jest')) {
+                priority += 14;
+            }
+
+            // Documentation - medium priority
+            if (filenameLower.startsWith('readme') || pathLower.includes('/docs/') ||
+                pathLower.includes('/documentation/') || /\.(md|rst|txt|adoc)$/.test(filenameLower)) {
+                priority += 10;
+            }
+
+            // Database and API files
+            if (/\.(sql|prisma|graphql|gql)$/.test(filenameLower)) {
+                priority += 12;
+            }
+
+            // Scripts and shell files
+            if (/\.(sh|bash|zsh|ps1|bat|cmd|awk|sed)$/.test(filenameLower)) {
+                priority += 8;
+            }
+
+            // Test files get lower priority
+            if (/\.test\.|\.spec\.|__tests__|test_/.test(filenameLower) ||
+                pathLower.includes('/tests/') || pathLower.includes('/test/') ||
+                pathLower.includes('/spec/')) {
+                priority -= 5;
+            }
+
+            // Generated or build files get lowest priority
+            if (filenameLower.includes('.min.') || filenameLower.includes('.bundle.') ||
+                filenameLower.includes('.chunk.') || filenameLower.includes('.compiled.')) {
+                priority -= 10;
+            }
+
+            return priority;
+        }
+
+        function shouldIgnore(path) {
+            return Array.from(state.ignorePatterns).some(pattern => {
+                if (pattern.includes('*')) {
+                    const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+                    return regex.test(path);
+                }
+                return path.includes(pattern);
+            });
+        }
+
+        // File processing utilities
+        async function processFile(fileHandle, path) {
+            const file = await fileHandle.getFile();
+            const content = await file.text();
+            const lines = content.split('\n').length;
+
+            return {
+                handle: fileHandle,
+                path,
+                name: file.name,
+                size: file.size,
+                lines,
+                content,
+                isText: isTextFile(file.name),
+                priority: getFilePriority(file.name, path)
+            };
+        }
+
+        async function scanDirectory(dirHandle, path = '') {
+            const files = [];
+            
+            for await (const entry of dirHandle.values()) {
+                const entryPath = path ? `${path}/${entry.name}` : entry.name;
+                
+                if (shouldIgnore(entryPath)) continue;
+                
+                if (entry.kind === 'file') {
+                    const fileInfo = await processFile(entry, entryPath);
+                    if (fileInfo.isText) {
+                        files.push(fileInfo);
+                        state.files.set(entryPath, fileInfo);
+                    }
+                } else if (entry.kind === 'directory') {
+                    const subDir = await dirHandle.getDirectoryHandle(entry.name);
+                    const subFiles = await scanDirectory(subDir, entryPath);
+                    files.push(...subFiles);
+                }
+            }
+            
+            return files;
+        }
+
+        // UI rendering
+        function renderFileTree() {
+            if (!elements.fileTree) return;
+
+            const searchInput = elements.searchInput;
+            const searchTerm = (searchInput && searchInput.value) ? searchInput.value.toLowerCase() : '';
+            const files = Array.from(state.files.values())
+                .filter(file => !searchTerm || file.name.toLowerCase().includes(searchTerm) ||
+                               file.path.toLowerCase().includes(searchTerm))
+                .sort((a, b) => b.priority - a.priority || a.path.localeCompare(b.path));
+
+            if (files.length === 0) {
+                elements.fileTree.innerHTML = `
+                    <div class="text-center text-gray-500 py-6">
+                        <i class="fas fa-search text-3xl mb-2"></i>
+                        <p class="text-sm">${searchTerm ? 'No files match your search' : 'No source files found'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = files.map(file => {
+                const isSelected = state.selectedFiles.has(file.path);
+                const selectedClass = isSelected ? 'selected' : 'unselected';
+                const iconClass = isSelected ? 'fas fa-check-circle text-green-500' : 'fas fa-circle text-gray-400';
+                return `
+                <div class="file-item ${selectedClass}" data-path="${file.path}" style="cursor: pointer;">
+                    <span class="text-file">
+                        <i class="${iconClass} mr-2"></i>
+                        ${file.path}
+                        <span class="text-gray-500 text-xs ml-2">
+                            (${(file.size / 1024).toFixed(1)} KB, ${file.lines} lines)
+                        </span>
+                    </span>
+                </div>
+                `;
+            }).join('');
+
+            elements.fileTree.innerHTML = html;
+
+            // Add click handlers to file items
+            const fileItems = elements.fileTree.querySelectorAll('.file-item');
+            fileItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const path = item.dataset.path;
+                    if (state.selectedFiles.has(path)) {
+                        state.selectedFiles.delete(path);
+                    } else {
+                        state.selectedFiles.add(path);
+                    }
+                    renderFileTree();
+                    updateStats();
+                });
+            });
+        }
+
+        function updateStats() {
+            let totalSize = 0;
+            let totalLines = 0;
+            
+            state.selectedFiles.forEach(path => {
+                const file = state.files.get(path);
+                if (file) {
+                    totalSize += file.size;
+                    totalLines += file.lines;
+                }
+            });
+
+            if (elements.totalSize) {
+                elements.totalSize.textContent = `${(totalSize / 1024).toFixed(1)} KB`;
+            }
+            if (elements.totalLines) {
+                elements.totalLines.textContent = totalLines.toLocaleString();
+            }
+            if (elements.selectedCount) {
+                elements.selectedCount.textContent = state.selectedFiles.size;
+            }
+
+            // Context window warnings disabled - selecting all files regardless of size
+
+            if (elements.combineBtn) {
+                elements.combineBtn.disabled = state.selectedFiles.size === 0;
+            }
+        }
+
+        // Auto-select all valid files
+        function selectAllFiles() {
+            state.files.forEach((file, path) => {
+                state.selectedFiles.add(path);
+            });
+            renderFileTree();
+            updateStats();
+        }
+
+        // File processing functions removed - keeping original code intact
+
+        async function combineFiles() {
+            if (state.selectedFiles.size === 0) {
+                alert('No source files found to collect');
+                return;
+            }
+
+            if (elements.loading) {
+                elements.loading.classList.remove('hidden');
+            }
+            if (elements.loadingText) {
+                elements.loadingText.textContent = 'Collecting source code...';
+            }
+
+            try {
+                let selectedFiles = Array.from(state.selectedFiles).map(path => state.files.get(path));
+
+                // Sort by priority for better organization
+                selectedFiles.sort((a, b) => b.priority - a.priority || a.path.localeCompare(b.path));
+
+                let output = '';
+
+                // Add structure overview
+                if (elements.includeStructure && elements.includeStructure.checked) {
+                    output += 'PROJECT STRUCTURE:\n';
+                    output += '==================\n\n';
+
+                    const structure = {};
+                    selectedFiles.forEach(file => {
+                        const parts = file.path.split('/');
+                        let current = structure;
+                        parts.forEach((part, index) => {
+                            if (!current[part]) current[part] = {};
+                            if (index === parts.length - 1) {
+                                current[part] = { __file: true, size: file.size, lines: file.lines };
+                            } else {
+                                current = current[part];
+                            }
+                        });
+                    });
+
+                    function printStructure(obj, prefix = '', isLast = true) {
+                        const keys = Object.keys(obj).filter(k => !k.startsWith('__')).sort();
+                        let lines = [];
+                        keys.forEach((key, index) => {
+                            const val = obj[key];
+                            const last = index === keys.length - 1;
+                            const connector = last ? '└── ' : '├── ';
+
+                            if (val.__file) {
+                                const sizeKB = (val.size / 1024).toFixed(1);
+                                lines.push(`${prefix}${connector}${key} (${sizeKB} KB, ${val.lines} lines)`);
+                            } else {
+                                lines.push(`${prefix}${connector}${key}/`);
+                                const newPrefix = prefix + (last ? '    ' : '│   ');
+                                lines = lines.concat(printStructure(val, newPrefix, last));
+                            }
+                        });
+                        return lines;
+                    }
+
+                    output += printStructure(structure).join('\n') + '\n\n';
+                }
+
+                // Process each file
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    if (elements.loadingText) {
+                        elements.loadingText.textContent = `Processing ${file.name} (${i + 1}/${selectedFiles.length})`;
+                    }
+
+                    const content = file.content;
+
+                    // Add file header
+                    output += `\n${'='.repeat(60)}\n`;
+                    output += `FILE: ${file.path}\n`;
+                    if (elements.includeMetadata && elements.includeMetadata.checked) {
+                        output += `SIZE: ${(file.size / 1024).toFixed(1)} KB | LINES: ${file.lines}\n`;
+                    }
+                    output += `${'='.repeat(60)}\n\n`;
+                    output += content + '\n';
+                }
+
+                // Trigger download
+                const blob = new Blob([output], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `source-code-${(state.folderHandle && state.folderHandle.name) || 'project'}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error('Error collecting source code:', error);
+                alert('Error collecting source code: ' + error.message);
+            } finally {
+                if (elements.loading) {
+                    elements.loading.classList.add('hidden');
+                }
+            }
+        }
+
+        // Event handlers
+        function setupEventListeners() {
+            // Only add event listeners if elements exist
+            if (elements.selectFolder) {
+                elements.selectFolder.addEventListener('click', async () => {
+                    try {
+                        state.folderHandle = await window.showDirectoryPicker();
+                        if (elements.selectedPath) {
+                            elements.selectedPath.textContent = `Selected: ${state.folderHandle.name}`;
+                        }
+
+                        if (elements.loading) {
+                            elements.loading.classList.remove('hidden');
+                        }
+                        if (elements.loadingText) {
+                            elements.loadingText.textContent = 'Scanning project...';
+                        }
+
+                        state.files.clear();
+                        state.selectedFiles.clear();
+
+                        const files = await scanDirectory(state.folderHandle);
+
+                        // Auto-select all valid source files (already filtered by ignore patterns)
+                        Array.from(state.files.values())
+                            .filter(file => file.isText)
+                            .forEach(file => {
+                                state.selectedFiles.add(file.path);
+                            });
+
+                        renderFileTree();
+                        updateStats();
+
+                    } catch (error) {
+                        console.error('Error selecting folder:', error);
+                        if (elements.selectedPath) {
+                            elements.selectedPath.textContent = 'Error selecting folder';
+                        }
+                    } finally {
+                        if (elements.loading) {
+                            elements.loading.classList.add('hidden');
+                        }
+                    }
+                });
+            }
+
+            if (elements.combineBtn) {
+                elements.combineBtn.addEventListener('click', combineFiles);
+            }
+
+            if (elements.searchInput) {
+                elements.searchInput.addEventListener('input', renderFileTree);
+            }
+        }
+
+        // Initialize the application
+        function init() {
+            initializeElements();
+            setupEventListeners();
+            updateStats();
+        }
+
+        // Start the application when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>

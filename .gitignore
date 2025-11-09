@@ -1,0 +1,98 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Google Cloud
+.gcloudignore
+
+# Credentials - never commit service account keys
+*.service_account.json
+muttville-*.json
+*-f937ccef90ca.json
+firebase-admin-key.json
+firebase-admin-*.json
+
+# Performance results - runtime artifacts, not for version control
+performance_results_*.json
+performance_analysis.md
+services/webapp-react/performance_results_*.json
+services/etl-scraper-py/performance_results_*.json
+services/etl-scraper-py/performance_analysis.md
+dev_tools/perf/performance_results_*.json
+
+# Test reports - generated artifacts, not for version control
+artifacts/
+
+# Dev tools - keep source_collector, ignore outputs
+dev_tools/source_collector/static/uploads/
+dev_tools/source_collector/__pycache__/
+.claude/
+
+# Development scripts and utilities
+check_*.js
+create_*.js
+seed_*.js
+test_users.csv
+run_mock_*.py
+
+# Google Cloud SDK - local development tool
+services/webapp-react/gcloud*
+
+# Scratch directory - exploratory artifacts
+scratch/

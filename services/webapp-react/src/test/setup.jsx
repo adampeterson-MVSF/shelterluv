@@ -121,7 +121,7 @@ vi.mock('../contexts/AuthContext', () => ({
     hasAnyRole: vi.fn(),
     isAuthenticated: false
   })),
-  AuthProvider: ({ children }) => children // Default: pass through children without provider
+  AuthProvider: ({ children }) => children, // Default: pass through children without provider
 }));
 
 vi.mock('firebase/auth', () => ({

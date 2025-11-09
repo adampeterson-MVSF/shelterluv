@@ -9,6 +9,7 @@ from pipeline import run_etl_process, compute_stats, ExtractResult, TransformRes
 from extract import extract
 from transform import transform
 from load import load
+from config import EtlConfig
 from errors import ApiError
 
 
@@ -45,7 +46,7 @@ class TestIncrementalScraping:
         # Mock scraper to return data for dog 2 only
         mock_scraper.scrape_profile_only.return_value = {"scraped": "data"}
 
-        with patch('api_client_memos.get_animals_memos_batch', return_value={}), \
+        with patch('api.api_client_memos.get_animals_memos_batch', return_value={}), \
              patch('foster_mapping.build_foster_maps', return_value={}), \
              patch('foster_mapping.build_event_maps', return_value={}), \
              patch('enrichment.build_dog_record') as mock_build_dog:
@@ -89,7 +90,7 @@ class TestIncrementalScraping:
         # Mock scraper to return data
         mock_scraper.scrape_profile_only.return_value = {"scraped": "data"}
 
-        with patch('api_client_memos.get_animals_memos_batch', return_value={}), \
+        with patch('api.api_client_memos.get_animals_memos_batch', return_value={}), \
              patch('foster_mapping.build_foster_maps', return_value={}), \
              patch('foster_mapping.build_event_maps', return_value={}), \
              patch('enrichment.build_dog_record') as mock_build_dog:
@@ -139,7 +140,7 @@ class TestIncrementalScraping:
         creds = {"username": "test", "password": "test"}
         config = TransformConfig(memos_mode="none", max_concurrent_scrapes=2)
 
-        with patch('api_client_memos.get_animals_memos_batch', return_value={}), \
+        with patch('api.api_client_memos.get_animals_memos_batch', return_value={}), \
              patch('foster_mapping.build_foster_maps', return_value={}), \
              patch('foster_mapping.build_event_maps', return_value={}), \
              patch('enrichment.build_dog_record') as mock_build_dog:
@@ -160,7 +161,7 @@ class TestIncrementalScraping:
 class TestPipelineOrchestration:
     """Test the ETL pipeline orchestration."""
 
-    @patch('secret_manager.get_shelterluv_creds')
+    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
@@ -213,11 +214,12 @@ class TestPipelineOrchestration:
         )
 
         # Run the ETL process
-        stats = run_etl_process(dry_run=False)
+        config = EtlConfig.from_env(overrides={'dry_run': False})
+        stats = run_etl_process(config)
 
         # Verify credentials were fetched
-        mock_creds.assert_called_once()
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None)
+        mock_creds.assert_called_once_with(config.secrets)
+        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
 
         # Verify transform was called with correct config
         mock_transform.assert_called_once()
@@ -243,7 +245,7 @@ class TestPipelineOrchestration:
         assert stats["dogs_written"] == 5
         assert stats["dogs_deleted"] == 2
 
-    @patch('secret_manager.get_shelterluv_creds')
+    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.load')
@@ -274,10 +276,11 @@ class TestPipelineOrchestration:
             dogs_deleted=10
         )
 
-        stats = run_etl_process(dry_run=False)
+        config = EtlConfig.from_env(overrides={'dry_run': False})
+        stats = run_etl_process(config)
 
         # Verify extract was called
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None)
+        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
 
         # Verify load was called with empty transform result and no dry_run
         mock_load.assert_called_once()
@@ -293,7 +296,7 @@ class TestPipelineOrchestration:
         assert stats["num_animals_fetched_from_api"] == 0
         assert stats["dogs_deleted"] == 10
 
-    @patch('secret_manager.get_shelterluv_creds')
+    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
@@ -343,10 +346,11 @@ class TestPipelineOrchestration:
             people_fetch_failed=False
         )
 
-        stats = run_etl_process(dry_run=False)
+        config = EtlConfig.from_env(overrides={'dry_run': False})
+        stats = run_etl_process(config)
 
         # Verify extract was called
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None)
+        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
 
         # Verify transform was called with extract result containing failed events
         mock_transform.assert_called_once()
@@ -362,7 +366,7 @@ class TestPipelineOrchestration:
         assert stats["events_fetch_failed"] == True
         assert stats["people_fetch_failed"] == False
 
-    @patch('secret_manager.get_shelterluv_creds')
+    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
@@ -412,10 +416,11 @@ class TestPipelineOrchestration:
             people_fetch_failed=True
         )
 
-        stats = run_etl_process(dry_run=False)
+        config = EtlConfig.from_env(overrides={'dry_run': False})
+        stats = run_etl_process(config)
 
         # Verify extract was called
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None)
+        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
 
         # Verify transform was called with extract result containing failed people
         mock_transform.assert_called_once()
@@ -429,7 +434,7 @@ class TestPipelineOrchestration:
         assert stats["events_fetch_failed"] == False
         assert stats["people_fetch_failed"] == True
 
-    @patch('secret_manager.get_shelterluv_creds')
+    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
@@ -476,12 +481,13 @@ class TestPipelineOrchestration:
         )
 
         # Run with dry_run=True
-        stats = run_etl_process(dry_run=True)
+        config = EtlConfig.from_env(overrides={'dry_run': True})
+        stats = run_etl_process(config)
 
         # Verify load was called with dry_run=True
         mock_load.assert_called_once_with(transform_result, True)
 
-    @patch('secret_manager.get_shelterluv_creds')
+    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
@@ -531,10 +537,11 @@ class TestPipelineOrchestration:
             people_fetch_failed=True
         )
 
-        stats = run_etl_process(dry_run=False)
+        config = EtlConfig.from_env(overrides={'dry_run': False})
+        stats = run_etl_process(config)
 
         # Verify extract was called
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None)
+        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
 
         # Verify transform was called with extract result containing both failures
         mock_transform.assert_called_once()

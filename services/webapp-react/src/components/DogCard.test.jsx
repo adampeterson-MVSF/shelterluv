@@ -44,7 +44,7 @@ describe('DogCard', () => {
       className: 'available'
     });
 
-    renderWithRouter(<DogCard dog={mockDog} />); // eslint-disable-line no-undef
+    renderWithRouter(<DogCard dog={mockDog} />);
 
     // Check main elements
     expect(screen.getByText('Buddy')).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('DogCard', () => {
       className: 'pending'
     });
 
-    renderWithRouter(<DogCard dog={mockDog} />); // eslint-disable-line no-undef
+    renderWithRouter(<DogCard dog={mockDog} />);
 
     const image = screen.getByAltText('Buddy');
     expect(image).toHaveAttribute('src', '/placeholder-dog.png');
@@ -87,7 +87,7 @@ describe('DogCard', () => {
     });
 
     const availableDog = { ...mockDog, Status: 'AVAILABLE' };
-    renderWithRouter(<DogCard dog={availableDog} />); // eslint-disable-line no-undef
+    renderWithRouter(<DogCard dog={availableDog} />);
 
     expect(screen.getByText('Available')).toHaveClass('status-available');
   });
@@ -103,7 +103,7 @@ describe('DogCard', () => {
     });
 
     const adoptedDog = { ...mockDog, Status: 'ADOPTED' };
-    renderWithRouter(<DogCard dog={adoptedDog} />); // eslint-disable-line no-undef
+    renderWithRouter(<DogCard dog={adoptedDog} />);
 
     expect(screen.getByText('Adopted')).toHaveClass('status-adopted');
   });
@@ -119,7 +119,7 @@ describe('DogCard', () => {
     });
 
     const pendingDog = { ...mockDog, Status: 'PENDING' };
-    renderWithRouter(<DogCard dog={pendingDog} />); // eslint-disable-line no-undef
+    renderWithRouter(<DogCard dog={pendingDog} />);
 
     expect(screen.getByText('Pending')).toHaveClass('status-pending');
   });
@@ -135,7 +135,7 @@ describe('DogCard', () => {
     });
 
     const holdDog = { ...mockDog, Status: 'HOLD' };
-    renderWithRouter(<DogCard dog={holdDog} />); // eslint-disable-line no-undef
+    renderWithRouter(<DogCard dog={holdDog} />);
 
     expect(screen.getByText('Hold')).toHaveClass('status-hold');
   });
@@ -151,7 +151,7 @@ describe('DogCard', () => {
     });
 
     const unknownDog = { ...mockDog, Status: 'UNKNOWN' };
-    renderWithRouter(<DogCard dog={unknownDog} />); // eslint-disable-line no-undef
+    renderWithRouter(<DogCard dog={unknownDog} />);
 
     expect(screen.getByText('Unknown')).toHaveClass('status-unknown');
   });

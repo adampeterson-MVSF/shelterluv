@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import { useAuth } from '../contexts/AuthContext';
-import { VALID_ROLES as ROLES } from '@common/userRoles';
 
 /**
  * Guards content based on user roles.
@@ -37,11 +36,11 @@ RoleGuard.propTypes = {
 
 /**
  * Convenience wrapper for staff-only content.
- * Equivalent to <RoleGuard roles={[ROLES.STAFF]}>...</RoleGuard>
+ * Equivalent to <RoleGuard roles={['staff']}>...</RoleGuard>
  */
 export function StaffOnly({ children, fallback = null }) {
   return (
-    <RoleGuard roles={[ROLES.STAFF]} fallback={fallback}>
+    <RoleGuard roles={['staff']} fallback={fallback}>
       {children}
     </RoleGuard>
   );

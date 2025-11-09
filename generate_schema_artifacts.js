@@ -14,7 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { assertSchemaArtifactsInSync, generateSchemaChecksum } = require('./common/schemaArtifacts');
+const { assertSchemaArtifactsInSync, generateSchemaChecksum, getSizeEnum } = require('./common/schemaArtifacts');
 
 // Terminal statuses are now defined in the schema under x-terminal-statuses
 
@@ -80,8 +80,8 @@ export function getAllStatuses() {
 }
 
 function generateSizeConfig(schema, schemaContent) {
-  const sizeEnum = schema.properties.Size.enum;
-  if (!sizeEnum) {
+  const sizeEnum = getSizeEnum();
+  if (!sizeEnum || sizeEnum.length === 0) {
     throw new Error('Size enum not found in schema');
   }
 

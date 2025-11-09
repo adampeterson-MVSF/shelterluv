@@ -109,10 +109,61 @@ function generateSchemaChecksum(schemaContent) {
   return crypto.createHash('md5').update(schemaContent).digest('hex').substring(0, 8);
 }
 
+/**
+ * Get schema checksum for current schema.
+ * @returns {string} 8-character hex checksum
+ */
+function getSchemaChecksum() {
+  const schemaPath = path.join(__dirname, 'schemas', 'dog.schema.json');
+  const schemaContent = fs.readFileSync(schemaPath, 'utf8');
+  return generateSchemaChecksum(schemaContent);
+}
+
+/**
+ * Get status enum values from schema.
+ * @returns {string[]} Array of valid status values
+ */
+function getDogStatusEnum() {
+  const schema = getDogSchema();
+  return schema.properties.Status.enum || [];
+}
+
+/**
+ * Get size enum values from schema.
+ * @returns {string[]} Array of valid size values
+ */
+function getDogSizeEnum() {
+  const schema = getDogSchema();
+  return schema.properties.Size.enum || [];
+}
+
+/**
+ * Get gender enum values from schema.
+ * @returns {string[]} Array of valid gender values
+ */
+function getDogGenderEnum() {
+  const schema = getDogSchema();
+  return schema.properties.Gender.enum || [];
+}
+
+/**
+ * Get size enum values (helper for sizeConfig.js generation).
+ * This is a convenience function that sizeConfig.js can import.
+ * @returns {string[]} Array of valid size values in display order
+ */
+function getSizeEnum() {
+  return getDogSizeEnum();
+}
+
 module.exports = {
   getDogSchema,
+  getSchemaChecksum,
   getRequiredFieldsFromSchema,
   getTerminalStatuses,
+  getDogStatusEnum,
+  getDogSizeEnum,
+  getDogGenderEnum,
+  getSizeEnum,
   assertSchemaArtifactsInSync,
   generateSchemaChecksum
 };

@@ -143,19 +143,19 @@
     },
     "IsInCustody": {
       "type": "boolean",
-      "description": "[DERIVED] Dog is currently in Muttville's custody - derived from ETL source (ShelterLuv 'In Custody' view). All animals in Firestore for this ETL run are currently in custody unless ETL is changed."
+      "description": "[DERIVED] Dog is currently in Muttville's custody. True if dog is actively managed by Muttville (not adopted/returned). Computed from Status and ETL source data - all dogs from ShelterLuv 'In Custody' view are in custody."
     },
     "IsAvailableForAdoption": {
       "type": "boolean",
-      "description": "[DERIVED] Dog is currently available for adoption - computed from Status by ETL"
+      "description": "[DERIVED] Dog is actively available for public adoption. True only when Status is 'AVAILABLE'. Used by frontend to filter adoptable dogs."
     },
     "IsHospice": {
       "type": "boolean",
-      "description": "[DERIVED] Dog is in hospice care program - computed from MedicalCategory, Stage, and events by ETL"
+      "description": "[DERIVED] Dog is in Muttville's hospice care program. Computed from MedicalCategory, Stage, event history, and hospice-related keywords in metadata."
     },
     "IsEventDog": {
       "type": "boolean",
-      "description": "[DERIVED] Dog participates in public events - computed from event history by ETL"
+      "description": "[DERIVED] Dog participates in public events/outreach. Computed from event history, AdoptionCategory, BehaviorCategory, and event-related keywords in description/personality notes."
     }
   },
   "required": [
@@ -168,7 +168,10 @@
     "IsInCustody",
     "IsAvailableForAdoption",
     "IsHospice",
-    "IsEventDog"
+    "IsEventDog",
+    "PersonalityNotes",
+    "IntakeNotes",
+    "MedicalNotes"
   ],
   "additionalProperties": false
 }

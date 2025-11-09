@@ -23,9 +23,11 @@ The ETL pipeline guarantees these fields are always present in Firestore `dogs` 
 - `IsInCustody`, `IsAvailableForAdoption`, `IsHospice`, `IsEventDog` - Boolean flags
 
 **ETL-Computed Fields (always present):**
-- `PersonalityNotes`, `IntakeNotes`, `MedicalNotes` - Categorized memo content
-- `FosterName`, `FosterPhone`, `FosterEmail` - Foster contact info (role-restricted)
-- `IsInCustody` - Whether dog is currently at Muttville
+- `PersonalityNotes`, `IntakeNotes`, `MedicalNotes` - Categorized memo content (empty strings if no memos)
+- `IsInCustody`, `IsAvailableForAdoption`, `IsHospice`, `IsEventDog` - Computed boolean flags
+
+**ETL-Conditional Fields (present when applicable):**
+- `FosterName`, `FosterPhone`, `FosterEmail` - Foster contact info (role-restricted, only when dog is in active foster care)
 
 **Optional Fields (may be undefined):**
 - `Photos`, `Description` - Public display content
@@ -195,8 +197,8 @@ ETL guarantees these fields are always present and schema-compliant in Firestore
 - `IsInCustody`, `IsAvailableForAdoption`, `IsHospice`, `IsEventDog` - Boolean flags
 - `PersonalityNotes`, `IntakeNotes`, `MedicalNotes` - Categorized memo content
 
-**ETL-Computed Fields (always present):**
-- `FosterName`, `FosterPhone`, `FosterEmail` - Foster contact info (role-restricted)
+**ETL-Conditional Fields (may be undefined, no defensive defaults):**
+- `FosterName`, `FosterPhone`, `FosterEmail` - Foster contact info (role-restricted, only when dog is in active foster care)
 
 **Optional Fields (may be undefined, no defensive defaults):**
 - `Photos`, `Description` - Public display content

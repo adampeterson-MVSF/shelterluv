@@ -19,9 +19,13 @@ const REQUIRED_FIREBASE_ADMIN_ENV_VARS = [
   'FIREBASE_PROJECT_ID'  // Core project identifier for admin operations
 ];
 
+// Legacy export - DEPRECATED: Use REQUIRED_FIREBASE_WEB_ENV_VARS explicitly
+// This exists only for backward compatibility and will be removed in future versions
+const REQUIRED_FIREBASE_ENV_VARS = REQUIRED_FIREBASE_WEB_ENV_VARS;
+
 module.exports = {
   REQUIRED_FIREBASE_WEB_ENV_VARS,
   REQUIRED_FIREBASE_ADMIN_ENV_VARS,
-  // Keep legacy export for backward compatibility
-  REQUIRED_FIREBASE_ENV_VARS: REQUIRED_FIREBASE_WEB_ENV_VARS
+  // DEPRECATED: Use REQUIRED_FIREBASE_WEB_ENV_VARS instead
+  REQUIRED_FIREBASE_ENV_VARS
 };

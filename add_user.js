@@ -12,8 +12,9 @@
 
 const { getAdminDb } = require('./common/adminInit');
 const { assertSafeForDestructiveOps } = require('./common/devScriptSafety');
-const { VALID_ROLES } = require('./common/userRoles');
-const { ensureAllowedDomain, ensureValidRole, upsertUser } = require('./common/userAdmin');
+const { VALID_ROLES } = require('./common/userRoles.node.cjs');
+const { validateEmail, validateRole, addOrUpdateUser } = require('./common/userManagement');
+const admin = require('firebase-admin');
 
 async function run({ email, uid, role, dryRun, domain }) {
   try {
@@ -22,22 +23,24 @@ async function run({ email, uid, role, dryRun, domain }) {
 
     // Validate inputs
     const allowedDomains = domain ? [domain] : ['muttville.org'];
-    const validatedEmail = ensureAllowedDomain(email, allowedDomains);
-    const validatedRole = ensureValidRole(role);
+    const emailResult = validateEmail(email, allowedDomains);
+    if (!emailResult.success) {
+      throw new Error(emailResult.error);
+    }
 
-    // Get Firebase Admin DB and Auth
+    const roleResult = validateRole(role);
+    if (!roleResult.success) {
+      throw new Error(roleResult.error);
+    }
+
+    // Get Firebase Admin DB
     const db = getAdminDb();
-    const admin = require('firebase-admin');
 
-    // Upsert user
-    await upsertUser({
-      db,
-      auth: admin.auth(),
-      email: validatedEmail,
-      uid,
-      role: validatedRole,
-      dryRun
-    });
+    // Add/update user using centralized function
+    const result = await addOrUpdateUser(db, admin, emailResult.email, uid, roleResult.role, { dryRun, allowedDomains });
+    if (!result.success) {
+      throw new Error(result.error);
+    }
 
     return { success: true };
   } catch (error) {
@@ -113,7 +116,7 @@ function printUsage() {
   console.log('  node add_user.js adam.peterson@muttville.org 4b3t0J7GGCZMhZv628CMHz8Xwqb2 staff --dry-run');
   console.log('  node add_user.js test@example.com uid123 viewer --domain example.com');
   console.log('');
-  console.log('Valid roles:', Object.values(VALID_ROLES).join(', '));
+  console.log('Valid roles:', VALID_ROLES.join(', '));
 }
 
 // Export parseArgs for testing

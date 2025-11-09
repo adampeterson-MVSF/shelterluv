@@ -5,7 +5,7 @@
 
 const admin = require('firebase-admin');
 const path = require('path');
-const { validateFirebaseEnv, getFirebaseProjectId } = require('./firebaseConfig');
+const { validateFirebaseAdminEnv, getFirebaseProjectId } = require('./firebaseConfig');
 const { assertNotProdProject } = require('./firebaseSafetyConfig');
 
 let initialized = false;
@@ -22,19 +22,17 @@ function getAdminDb() {
     return admin.firestore();
   }
 
-  // Validate environment first
-  validateFirebaseEnv();
-
+  // Validate environment and get project ID
+  validateFirebaseAdminEnv();
   const projectId = getFirebaseProjectId();
-  if (!projectId) {
-    throw new Error('FIREBASE_PROJECT_ID environment variable is required');
-  }
 
   // Safety check
   assertNotProdProject(projectId, 'admin operations');
 
-  // Initialize admin
-  const serviceAccountPath = path.join(__dirname, '..', 'firebase-admin-key.json');
+  // Initialize admin with optional service account path override
+  const defaultKeyPath = path.join(__dirname, '..', 'firebase-admin-key.json');
+  const serviceAccountPath = process.env.FIREBASE_ADMIN_KEY_PATH || defaultKeyPath;
+
   try {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccountPath),

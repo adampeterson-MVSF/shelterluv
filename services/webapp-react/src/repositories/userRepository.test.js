@@ -11,8 +11,8 @@ vi.mock('../app', () => ({
 }));
 
 // Mock userRoles validation
-vi.mock('@common/userRoles', () => ({
-  VALID_ROLE_VALUES: ['viewer', 'closer', 'staff']
+vi.mock('../../../../common/userRoles.node.cjs', () => ({
+  VALID_ROLES: ['viewer', 'closer', 'staff']
 }));
 
 import { doc, getDoc } from 'firebase/firestore';

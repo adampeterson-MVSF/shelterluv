@@ -21,18 +21,6 @@ export function useDogs(authState) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Check for test data override (for e2e testing)
-  const testDogs = (typeof window !== 'undefined' && window.TEST_DOG_DATA) ||
-                   (typeof localStorage !== 'undefined' && localStorage.getItem('TEST_DOG_DATA') && JSON.parse(localStorage.getItem('TEST_DOG_DATA')));
-  if (testDogs) {
-    return {
-      allDogs: testDogs,
-      loading: false,
-      error: null,
-      refetch: () => {}
-    };
-  }
-
   const fetchDogs = useCallback(async () => {
     setLoading(true);
     setError(null);

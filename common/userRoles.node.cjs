@@ -3,13 +3,7 @@
  * Duplicated from the ES module version for compatibility.
  */
 
-const VALID_ROLES = {
-  VIEWER: 'viewer',
-  CLOSER: 'closer',
-  STAFF: 'staff'
-};
-
-const VALID_ROLE_VALUES = Object.values(VALID_ROLES);
+const VALID_ROLES = ['viewer', 'closer', 'staff'];
 
 /**
  * Assert that a role is valid, throwing an error if not.
@@ -17,7 +11,7 @@ const VALID_ROLE_VALUES = Object.values(VALID_ROLES);
  * @throws {Error} If role is invalid
  */
 function assertValidRole(role) {
-  if (!VALID_ROLE_VALUES.includes(role)) {
+  if (!VALID_ROLES.includes(role)) {
     throw new Error(`Invalid role: ${role}`);
   }
 }
@@ -28,7 +22,7 @@ function assertValidRole(role) {
  * @returns {boolean} True if valid, false otherwise
  */
 function isValidRole(role) {
-  return VALID_ROLE_VALUES.includes(role);
+  return VALID_ROLES.includes(role);
 }
 
 /**
@@ -36,7 +30,7 @@ function isValidRole(role) {
  * @returns {string[]} Array of valid role strings
  */
 function getValidRoles() {
-  return [...VALID_ROLE_VALUES];
+  return [...VALID_ROLES];
 }
 
 /**
@@ -45,7 +39,7 @@ function getValidRoles() {
  * @returns {boolean} True if the role has staff privileges
  */
 function isStaff(role) {
-  return role === VALID_ROLES.STAFF;
+  return role === 'staff';
 }
 
 /**
@@ -59,7 +53,6 @@ function isAdmin(role) {
 
 module.exports = {
   VALID_ROLES,
-  VALID_ROLE_VALUES,
   assertValidRole,
   isValidRole,
   getValidRoles,

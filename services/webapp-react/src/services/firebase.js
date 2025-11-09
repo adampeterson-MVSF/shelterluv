@@ -2,10 +2,10 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth';
-import { REQUIRED_FIREBASE_ENV_VARS } from '../../../../common/firebaseEnvVars.mjs';
+import { getWebFirebaseConfigFromEnv } from '../../../../common/firebaseConfig.js';
 
-// Pure function to get Firebase environment variable with VITE_ prefix
-export function getFirebaseEnvVar(varName) {
+// Webapp-specific environment variable getter (Vite requires VITE_ prefix)
+function getViteEnvVar(varName) {
   // In Vite, only VITE_ prefixed vars are available in browser
   const vitePrefixed = import.meta.env[`VITE_${varName}`];
 
@@ -14,23 +14,9 @@ export function getFirebaseEnvVar(varName) {
   throw new Error(`Missing required environment variable: VITE_${varName} (Vite requires VITE_ prefix for browser access)`);
 }
 
-// Pure function to build Firebase config object
+// Pure function to build Firebase config object using centralized helper
 export function buildFirebaseConfig() {
-  const requiredEnvVars = REQUIRED_FIREBASE_ENV_VARS;
-
-  // Validate all required variables are present - fail fast
-  for (const envVar of requiredEnvVars) {
-    getFirebaseEnvVar(envVar);
-  }
-
-  return {
-    apiKey: getFirebaseEnvVar('FIREBASE_API_KEY'),
-    authDomain: getFirebaseEnvVar('FIREBASE_AUTH_DOMAIN'),
-    projectId: getFirebaseEnvVar('FIREBASE_PROJECT_ID'),
-    storageBucket: getFirebaseEnvVar('FIREBASE_STORAGE_BUCKET'),
-    messagingSenderId: getFirebaseEnvVar('FIREBASE_MESSAGING_SENDER_ID'),
-    appId: getFirebaseEnvVar('FIREBASE_APP_ID')
-  };
+  return getWebFirebaseConfigFromEnv(getViteEnvVar);
 }
 
 // Pure function to create Firebase app and services

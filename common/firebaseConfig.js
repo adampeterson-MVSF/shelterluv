@@ -3,14 +3,17 @@
  * Provides separate functions for webapp (VITE_*) and admin (FIREBASE_*) configurations.
  */
 
-const { REQUIRED_FIREBASE_ENV_VARS } = require('./firebaseEnvVars');
+const {
+  REQUIRED_FIREBASE_WEB_ENV_VARS,
+  REQUIRED_FIREBASE_ADMIN_ENV_VARS,
+} = require('./firebaseEnvVars');
 
 /**
  * Validate that all required Firebase admin environment variables are present.
  * Throws an Error if any are missing. No other side effects.
  * @throws {Error} If any required admin env vars are missing
  */
-function validateFirebaseEnv() {
+function validateFirebaseAdminEnv() {
   for (const envVar of REQUIRED_FIREBASE_ADMIN_ENV_VARS) {
     if (!process.env[envVar]) {
       throw new Error(`Missing required environment variable: ${envVar}`);
@@ -21,10 +24,15 @@ function validateFirebaseEnv() {
 /**
  * Get Firebase project ID from environment variables.
  * Uses FIREBASE_PROJECT_ID for admin operations.
- * @returns {string} Project ID or empty string if not set
+ * @returns {string} Project ID
+ * @throws {Error} If FIREBASE_PROJECT_ID is not set
  */
 function getFirebaseProjectId() {
-  return process.env.FIREBASE_PROJECT_ID || '';
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  if (!projectId) {
+    throw new Error('Missing required environment variable: FIREBASE_PROJECT_ID');
+  }
+  return projectId;
 }
 
 /**
@@ -33,7 +41,7 @@ function getFirebaseProjectId() {
  * @returns {Object} Initialized Firebase admin app
  */
 function initializeFirebaseApp() {
-  validateFirebaseEnv();
+  validateFirebaseAdminEnv();
   const admin = require('firebase-admin');
   const projectId = getFirebaseProjectId();
 
@@ -46,15 +54,16 @@ function initializeFirebaseApp() {
  * Get Firebase configuration for webapp from VITE_ environment variables.
  * Throws on missing keys; no silent fallbacks.
  * Used only by webapp build/runtime (not admin scripts).
+ * @param {Function} getEnv - Function to get environment variables (defaults to process.env)
  * @returns {Object} Firebase config object with VITE_ validated env vars
  * @throws {Error} If any required VITE_FIREBASE_* variables are missing
  */
-function getWebFirebaseConfig() {
+function getWebFirebaseConfigFromEnv(getEnv = (k) => process.env[k]) {
   const config = {};
 
-  for (const envVar of REQUIRED_FIREBASE_ENV_VARS) {
+  for (const envVar of REQUIRED_FIREBASE_WEB_ENV_VARS) {
     const viteVar = `VITE_${envVar}`;
-    const value = process.env[viteVar];
+    const value = getEnv(viteVar);
     if (!value) {
       throw new Error(`Missing required environment variable: ${viteVar}`);
     }
@@ -65,8 +74,8 @@ function getWebFirebaseConfig() {
 }
 
 module.exports = {
-  validateFirebaseEnv,
+  validateFirebaseAdminEnv,
   getFirebaseProjectId,
   initializeFirebaseApp,
-  getWebFirebaseConfig
+  getWebFirebaseConfigFromEnv
 };

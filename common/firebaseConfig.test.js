@@ -2,13 +2,17 @@
  * Tests for firebaseConfig.js
  */
 
-const { validateFirebaseEnv } = require('./firebaseConfig');
+const {
+  validateFirebaseAdminEnv,
+  getFirebaseProjectId,
+  getWebFirebaseConfigFromEnv
+} = require('./firebaseConfig');
 const { isProdProjectId, assertNotProdProject, ALLOWED_PROJECT_IDS } = require('./firebaseSafetyConfig');
 
 // Mock process.env for testing
 const originalEnv = { ...process.env };
 
-describe('validateFirebaseEnv', () => {
+describe('validateFirebaseAdminEnv', () => {
   beforeEach(() => {
     // Reset process.env before each test
     process.env = { ...originalEnv };
@@ -21,12 +25,88 @@ describe('validateFirebaseEnv', () => {
 
   test('throws on missing FIREBASE_PROJECT_ID', () => {
     delete process.env.FIREBASE_PROJECT_ID;
-    expect(() => validateFirebaseEnv()).toThrow('Missing required environment variable: FIREBASE_PROJECT_ID');
+    expect(() => validateFirebaseAdminEnv()).toThrow('Missing required environment variable: FIREBASE_PROJECT_ID');
   });
 
   test('passes when FIREBASE_PROJECT_ID is present', () => {
     process.env.FIREBASE_PROJECT_ID = 'test-project';
-    expect(() => validateFirebaseEnv()).not.toThrow();
+    expect(() => validateFirebaseAdminEnv()).not.toThrow();
+  });
+});
+
+describe('getFirebaseProjectId', () => {
+  beforeEach(() => {
+    // Reset process.env before each test
+    process.env = { ...originalEnv };
+  });
+
+  afterEach(() => {
+    // Restore original process.env after each test
+    process.env = originalEnv;
+  });
+
+  test('returns project ID when present', () => {
+    process.env.FIREBASE_PROJECT_ID = 'test-project';
+    expect(getFirebaseProjectId()).toBe('test-project');
+  });
+
+  test('throws when FIREBASE_PROJECT_ID is missing', () => {
+    delete process.env.FIREBASE_PROJECT_ID;
+    expect(() => getFirebaseProjectId()).toThrow('Missing required environment variable: FIREBASE_PROJECT_ID');
+  });
+});
+
+describe('getWebFirebaseConfigFromEnv', () => {
+  test('returns config object with all required VITE_ vars', () => {
+    const mockEnv = {
+      'VITE_FIREBASE_API_KEY': 'test-api-key',
+      'VITE_FIREBASE_AUTH_DOMAIN': 'test.firebaseapp.com',
+      'VITE_FIREBASE_PROJECT_ID': 'test-project',
+      'VITE_FIREBASE_STORAGE_BUCKET': 'test.appspot.com',
+      'VITE_FIREBASE_MESSAGING_SENDER_ID': '123456789',
+      'VITE_FIREBASE_APP_ID': '1:123456789:web:abcdef'
+    };
+
+    const config = getWebFirebaseConfigFromEnv((key) => mockEnv[key]);
+
+    expect(config).toEqual({
+      firebase_api_key: 'test-api-key',
+      firebase_auth_domain: 'test.firebaseapp.com',
+      firebase_project_id: 'test-project',
+      firebase_storage_bucket: 'test.appspot.com',
+      firebase_messaging_sender_id: '123456789',
+      firebase_app_id: '1:123456789:web:abcdef'
+    });
+  });
+
+  test('throws on missing VITE_FIREBASE_API_KEY', () => {
+    const mockEnv = {
+      'VITE_FIREBASE_AUTH_DOMAIN': 'test.firebaseapp.com',
+      // Missing VITE_FIREBASE_API_KEY
+    };
+
+    expect(() => getWebFirebaseConfigFromEnv((key) => mockEnv[key]))
+      .toThrow('Missing required environment variable: VITE_FIREBASE_API_KEY');
+  });
+
+  test('uses process.env by default', () => {
+    const originalEnv = { ...process.env };
+    try {
+      // Mock process.env
+      process.env.VITE_FIREBASE_API_KEY = 'test-api-key';
+      process.env.VITE_FIREBASE_AUTH_DOMAIN = 'test.firebaseapp.com';
+      process.env.VITE_FIREBASE_PROJECT_ID = 'test-project';
+      process.env.VITE_FIREBASE_STORAGE_BUCKET = 'test.appspot.com';
+      process.env.VITE_FIREBASE_MESSAGING_SENDER_ID = '123456789';
+      process.env.VITE_FIREBASE_APP_ID = '1:123456789:web:abcdef';
+
+      const config = getWebFirebaseConfigFromEnv();
+
+      expect(config.firebase_api_key).toBe('test-api-key');
+      expect(config.firebase_project_id).toBe('test-project');
+    } finally {
+      process.env = originalEnv;
+    }
   });
 });
 

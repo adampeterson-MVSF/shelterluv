@@ -151,7 +151,7 @@ async function checkUsers(db) {
     results.totalUsers = usersSnapshot.size;
 
     // Initialize role counts
-    Object.values(VALID_ROLES).forEach(role => {
+    VALID_ROLES.forEach(role => {
       results.roleCounts[role] = 0;
     });
     results.roleCounts.unknown = 0;
@@ -170,7 +170,7 @@ async function checkUsers(db) {
     });
 
     // Create summary
-    const validRoles = Object.values(VALID_ROLES);
+    const validRoles = VALID_ROLES;
     const invalidCount = results.roleCounts.unknown;
 
     results.summary = `Total: ${results.totalUsers}, Valid roles: ${validRoles.map(r => `${r}=${results.roleCounts[r]}`).join(' ')}, Invalid: ${invalidCount}`;
@@ -216,11 +216,11 @@ async function seedTestUsers(db, admin, options = {}) {
 
     // Validate that all roles in testUsers are valid
     const usedRoles = testUsers.map(u => u.role);
-    const invalidRoles = usedRoles.filter(role => !Object.values(VALID_ROLES).includes(role));
+    const invalidRoles = usedRoles.filter(role => !VALID_ROLES.includes(role));
     if (invalidRoles.length > 0) {
       return {
         success: false,
-        error: `Invalid roles found in testUsers: ${invalidRoles.join(', ')}. Valid roles are: ${Object.values(VALID_ROLES).join(', ')}`
+        error: `Invalid roles found in testUsers: ${invalidRoles.join(', ')}. Valid roles are: ${VALID_ROLES.join(', ')}`
       };
     }
 

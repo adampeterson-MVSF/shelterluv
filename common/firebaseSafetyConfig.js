@@ -3,7 +3,8 @@
  * Defines allowed/unsafe project IDs for all dev scripts.
  */
 
-const ALLOWED_PROJECT_IDS = [
+// Default allowed project IDs - can be overridden via FIREBASE_ALLOWED_PROJECTS env var
+const DEFAULT_ALLOWED_PROJECT_IDS = [
   'dev-muttville',
   'staging-muttville',
   'muttville-demo'
@@ -13,6 +14,11 @@ const PRODUCTION_PROJECT_IDS = [
   'muttville-prod',
   'muttville-production'
 ];
+
+// Allow environment override for testing/CI flexibility
+const ALLOWED_PROJECT_IDS = process.env.FIREBASE_ALLOWED_PROJECTS
+  ? process.env.FIREBASE_ALLOWED_PROJECTS.split(',').map(id => id.trim())
+  : DEFAULT_ALLOWED_PROJECT_IDS;
 
 /**
  * Check if a project ID is a production project.
@@ -51,6 +57,7 @@ function assertNotProdProject(projectId, purpose = 'operation') {
 }
 
 module.exports = {
+  DEFAULT_ALLOWED_PROJECT_IDS,
   ALLOWED_PROJECT_IDS,
   PRODUCTION_PROJECT_IDS,
   isProdProjectId,

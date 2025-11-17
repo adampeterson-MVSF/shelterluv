@@ -12,6 +12,7 @@ from api import get_animal_events, get_animals_by_ids, get_people
 from api.api_client_memos import get_animals_memos_batch
 from errors import ApiError
 from scraper import ShelterLuvScraper
+from scraper.in_custody_api import scrape_in_custody_ids_via_api
 from scraper.in_custody_ids import scrape_in_custody_data, scrape_in_custody_ids
 
 MemosMode = Literal["none", "api"]

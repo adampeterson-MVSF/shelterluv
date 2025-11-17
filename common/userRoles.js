@@ -5,7 +5,7 @@
  * Loads roles from common/config.json via configData.
  */
 
-const { getRoles } = require('./configData');
+const { getRoles } = require('./configArtifact');
 
 const ROLES = getRoles();
 

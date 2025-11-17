@@ -66,9 +66,74 @@ function enumerateSizes(schema) {
   return schema.properties.Size.enum || [];
 }
 
+/**
+ * Get required fields from schema.
+ * @param {object} schema - Parsed JSON schema object
+ * @returns {string[]} Array of required field names
+ */
+function enumerateRequiredFields(schema) {
+  return schema.required || [];
+}
+
+/**
+ * Enumerate field ownership metadata from schema.
+ * @param {object} schema - Parsed JSON schema object
+ * @returns {object} Object mapping field names to ownership info { ownership: string, group: string }
+ */
+function enumerateFieldOwnership(schema) {
+  const ownership = {};
+  for (const [fieldName, fieldDef] of Object.entries(schema.properties)) {
+    ownership[fieldName] = {
+      ownership: fieldDef['x-ownership'] || 'unknown',
+      group: fieldDef['x-group'] || 'unknown'
+    };
+  }
+  return ownership;
+}
+
+/**
+ * Get terminal statuses from schema.
+ * @param {object} schema - Parsed JSON schema object
+ * @returns {string[]} Array of terminal status values
+ */
+function enumerateTerminalStatuses(schema) {
+  return schema.properties.Status['x-terminal-statuses'] || [];
+}
+
+/**
+ * Get size ordering constant from schema.
+ * @param {object} schema - Parsed JSON schema object
+ * @returns {string[]} Array of size values in canonical order
+ */
+function getSizeOrdering(schema) {
+  // This should match the DEFAULT_SIZE_ORDER in transformSchema.js
+  return ['Small', 'Medium', 'Large', 'X-Large', 'UNKNOWN'];
+}
+
+/**
+ * Extract comprehensive schema metadata for artifact generation.
+ * @param {object} schema - Parsed JSON schema object
+ * @returns {object} Schema metadata object
+ */
+function extractSchemaMetadata(schema) {
+  return {
+    requiredFields: enumerateRequiredFields(schema),
+    statuses: enumerateStatuses(schema),
+    sizes: enumerateSizes(schema),
+    terminalStatuses: enumerateTerminalStatuses(schema),
+    sizeOrdering: getSizeOrdering(schema),
+    fieldOwnership: enumerateFieldOwnership(schema)
+  };
+}
+
 module.exports = {
   generateSchemaChecksum,
   assertSchemaStructure,
   enumerateStatuses,
-  enumerateSizes
+  enumerateSizes,
+  enumerateRequiredFields,
+  enumerateFieldOwnership,
+  enumerateTerminalStatuses,
+  getSizeOrdering,
+  extractSchemaMetadata
 };

@@ -7,21 +7,17 @@
  */
 
 const { getProjectId } = require('./firebaseConfig');
-const { getNormalizedProfileMap } = require('./configData');
+const { getProjectSafetyMap } = require('./configArtifact');
 
 /**
  * Check if a project ID is safe for development operations.
- * Uses the normalized profile map as single source of truth.
+ * Uses the project safety map as single source of truth.
  * @param {string} projectId - The Firebase project ID to check
  * @returns {boolean} True if the project is safe for dev operations
  */
 function isSafeProject(projectId) {
-  const profileMap = getNormalizedProfileMap();
-
-  // Find any profile that maps to this project ID and is safe
-  return Object.values(profileMap).some(profile =>
-    profile.gcp_project === projectId && profile.is_safe
-  );
+  const projectMap = getProjectSafetyMap();
+  return projectMap[projectId]?.is_safe || false;
 }
 
 /**

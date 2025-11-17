@@ -1,155 +1,186 @@
 """
-Basic profile information parsing functions for ShelterLuv scraper.
+Basic information parsing functions for ShelterLuv scraper.
 
-Functions for scraping overview, sex/weight, size/age, and intake/outcome fields.
+Handles extraction of fundamental animal information like microchip,
+weight, and basic profile data.
 """
 
-from typing import Dict
+from typing import Any, Dict
 
 from .navigation import SELECTORS
+from .parsers_fields import extract_text_by_selector, extract_text_by_selectors, normalize_weight_string, extract_table_rows_by_xpath
 
 
-def scrape_profile_main_content(page) -> str:
-    """Scrape the main profile content, including categories section."""
-    # First try to get the case manager section
-    main_content = page.locator(SELECTORS["case_manager_section"])
-    if main_content.count() > 0:
-        case_manager_text = main_content.first.inner_text(timeout=5000)  # type: ignore
-    else:
-        case_manager_text = ""
+def _extract_microchip_info(page, result: Dict[str, Any]) -> None:
+    """Extract microchip information from the page."""
+    try:
+        # Microchip number
+        microchip_selectors = [
+            SELECTORS.microchip_number,
+            ".microchip-number",
+            "[data-microchip]",
+            ".chip-number"
+        ]
+        result["MicrochipNumber"] = extract_text_by_selectors(page, microchip_selectors, "")
 
-    # Also try to get the categories section which might be separate
-    # Look for the div containing the Categories header
-    categories_content = page.locator('div:has-text("Categories")')
-    if categories_content.count() > 0:
-        # Only get the inner text, not the full HTML to avoid size issues
-        categories_text = categories_content.first.inner_text(timeout=3000)  # type: ignore
-    else:
-        categories_text = ""
+        # Microchip issuer
+        issuer_selectors = [
+            SELECTORS.microchip_issuer,
+            ".microchip-issuer",
+            ".chip-issuer"
+        ]
+        result["MicrochipIssuer"] = extract_text_by_selectors(page, issuer_selectors, "")
 
-    # Combine both sections
-    full_text = f"{case_manager_text}\n\n{categories_text}".strip()
-    return full_text
+        # Microchip implant date
+        implant_selectors = [
+            SELECTORS.microchip_implant_date,
+            ".microchip-implant-date",
+            ".chip-implant-date"
+        ]
+        result["MicrochipImplantDate"] = extract_text_by_selectors(page, implant_selectors, "")
 
-
-def scrape_overview_fields(page, navigation) -> Dict[str, str]:
-    """Scrape overview section fields using robust XPath selectors: Species, Breed, Color, Pattern, Distinguishing Marks, Adoption Price."""
-    result = {}
-
-    # Field mappings: label text -> schema field name
-    field_mappings = {
-        "Species": "Species",
-        "Breed": "Breed",  # Already handled by API, but keep for consistency
-        "Color": "Color",
-        "Pattern": "Pattern",
-        "Distinguishing Marks": "DistinguishingMarks",
-        "Adoption Price": "AdoptionPrice",
-    }
-
-    for label_text, field_name in field_mappings.items():
-        try:
-            # Use robust XPath selector: find fieldset with label, then get button/input/textarea content
-            xpath_selector = f'//fieldset[label[normalize-space()="{label_text}"]]//button | //fieldset[label[normalize-space()="{label_text}"]]//input'
-
-            elements = page.locator(f"xpath={xpath_selector}")
-            if elements.count() > 0:
-                # Get text from first matching element
-                value = elements.first.inner_text(timeout=1000).strip()
-                if value:
-                    result[field_name] = value
-        except Exception:
-            continue
-
-    return result
+    except Exception as e:
+        print(f"Error extracting microchip info: {e}")
 
 
-def scrape_sex_weight_fields(page, navigation) -> Dict[str, str]:
-    """Scrape sex and weight fields using robust XPath selectors, plus altered status."""
-    result = {}
+def _extract_weight_info(page, result: Dict[str, Any]) -> None:
+    """Extract weight information and normalize it."""
+    try:
+        weight_selectors = [
+            SELECTORS.weight,
+            ".weight",
+            ".animal-weight",
+            "[data-weight]"
+        ]
+        weight_text = extract_text_by_selectors(page, weight_selectors, "")
 
-    # Field mappings: label text -> schema field name
-    field_mappings = {
-        "Sex": "Gender",  # Already handled by API, but keep for consistency
-        "Weight": "Weight",  # Already handled by API, but keep for consistency
-        "Altered Before Arrival": "AlteredBeforeArrival",
-        "Altered In Care": "AlteredInCare",
-    }
+        if weight_text:
+            weight_lbs, original = normalize_weight_string(weight_text)
+            result["Weight"] = weight_lbs if weight_lbs is not None else weight_text
 
-    for label_text, field_name in field_mappings.items():
-        try:
-            # Use robust XPath selector: find fieldset with label, then get button content
-            xpath_selector = f'//fieldset[label[normalize-space()="{label_text}"]]//button'
-
-            elements = page.locator(f"xpath={xpath_selector}")
-            if elements.count() > 0:
-                # Get text from first matching element
-                value = elements.first.inner_text(timeout=1000).strip()
-                if value:
-                    result[field_name] = value
-        except Exception:
-            continue
-
-    return result
+    except Exception as e:
+        print(f"Error extracting weight info: {e}")
 
 
-def scrape_size_age_fields(page, navigation) -> Dict[str, str]:
-    """Scrape size group, age group, and estimated birthdate using robust XPath selectors."""
-    result = {}
+def _extract_previous_shelter_info(page, result: Dict[str, Any]) -> None:
+    """Extract previous shelter information."""
+    try:
+        # Previous shelter ID
+        prev_id_selectors = [
+            SELECTORS.previous_shelter_id,
+            ".previous-shelter-id",
+            ".prev-shelter-id"
+        ]
+        result["PreviousShelterId"] = extract_text_by_selectors(page, prev_id_selectors, "")
 
-    # Field mappings: label text -> schema field name
-    field_mappings = {
-        "Size Group": "Size",  # Map to existing Size field
-        "Age Group": "AgeGroup",
-        "Est. Birthdate": "EstBirthdate",
-        "Estimated Birthdate": "EstBirthdate",
-    }
+        # Previous shelter type
+        prev_type_selectors = [
+            SELECTORS.previous_shelter_type,
+            ".previous-shelter-type",
+            ".prev-shelter-type"
+        ]
+        result["PreviousShelterType"] = extract_text_by_selectors(page, prev_type_selectors, "")
 
-    for label_text, field_name in field_mappings.items():
-        try:
-            # Use robust XPath selector: find fieldset with label, then get button content
-            xpath_selector = f'//fieldset[label[normalize-space()="{label_text}"]]//button'
+        # Previous shelter issuer
+        prev_issuer_selectors = [
+            SELECTORS.previous_shelter_issuer,
+            ".previous-shelter-issuer",
+            ".prev-shelter-issuer"
+        ]
+        result["PreviousShelterIssuer"] = extract_text_by_selectors(page, prev_issuer_selectors, "")
 
-            elements = page.locator(f"xpath={xpath_selector}")
-            if elements.count() > 0:
-                # Get text from first matching element
-                value = elements.first.inner_text(timeout=1000).strip()
-                if value:
-                    result[field_name] = value
-        except Exception:
-            continue
-
-    return result
+    except Exception as e:
+        print(f"Error extracting previous shelter info: {e}")
 
 
-def scrape_intake_outcome_fields(page, navigation) -> Dict[str, str]:
-    """Scrape intake/outcome fields using robust XPath selectors: types, dates, subtypes, Asilomar, condition, jurisdiction."""
-    result = {}
+def _extract_age_panel(page, result: Dict[str, Any]) -> None:
+    """Extract age-related information from the age panel."""
+    try:
+        # Look for age information in various formats
+        age_selectors = [
+            ".age-display",
+            "[data-age]",
+            ".animal-age"
+        ]
 
-    # Field mappings: label text -> schema field name
-    field_mappings = {
-        "Intake Type": "IntakeType",
-        "Intake Subtype": "IntakeSubtype",
-        "Intake Date": "IntakeDate",
-        "Intake Condition": "IntakeCondition",
-        "Outcome Type": "OutcomeType",
-        "Outcome Subtype": "OutcomeSubtype",
-        "Outcome Date": "OutcomeDate",
-        "Jurisdiction": "Jurisdiction",
-        "Asilomar Status": "AsilomarStatus",
-    }
+        for selector in age_selectors:
+            try:
+                age_elem = page.locator(selector)
+                if age_elem.count() > 0:
+                    age_text = age_elem.first.inner_text(timeout=1000).strip()
+                    if age_text:
+                        # Try to extract numeric age
+                        import re
+                        age_match = re.search(r'(\d+(?:\.\d+)?)\s*years?', age_text, re.IGNORECASE)
+                        if age_match:
+                            result["AgeYears"] = float(age_match.group(1))
 
-    for label_text, field_name in field_mappings.items():
-        try:
-            # Use robust XPath selector: find fieldset with label, then get button content
-            xpath_selector = f'//fieldset[label[normalize-space()="{label_text}"]]//button'
+                            # Generate display string
+                            years = int(float(age_match.group(1)))
+                            months = int((float(age_match.group(1)) - years) * 12)
+                            if months == 0:
+                                result["AgeDisplay"] = f"{years} year{'s' if years != 1 else ''}"
+                            else:
+                                result["AgeDisplay"] = f"{years} year{'s' if years != 1 else ''} {months} month{'s' if months != 1 else ''}"
+                        else:
+                            result["AgeDisplay"] = age_text
+                        break
+            except Exception:
+                continue
 
-            elements = page.locator(f"xpath={xpath_selector}")
-            if elements.count() > 0:
-                # Get text from first matching element
-                value = elements.first.inner_text(timeout=1000).strip()
-                if value:
-                    result[field_name] = value
-        except Exception:
-            continue
+    except Exception as e:
+        print(f"Error extracting age panel: {e}")
 
-    return result
+
+def _extract_microchip_info_from_medical_history(page, result: Dict[str, Any]) -> None:
+    """Extract microchip information from ID Numbers table in medical history."""
+    try:
+        microchip_xpath = "//h1[normalize-space()='Complete Medical History']/following::h2[normalize-space()='ID Numbers']/following::table[1]"
+        rows = extract_table_rows_by_xpath(page, microchip_xpath, min_cols=3, max_rows=5)
+
+        if rows:
+            # First row should contain microchip data
+            first_row = rows[0]
+            if len(first_row) >= 3:
+                result["MicrochipNumber"] = first_row[0]
+                result["MicrochipImplantDate"] = first_row[1]
+                result["MicrochipIssuer"] = first_row[2]
+
+    except Exception as e:
+        print(f"Error extracting microchip info from medical history: {e}")
+
+
+def _extract_previous_shelter_info_from_medical_history(page, result: Dict[str, Any]) -> None:
+    """Extract previous shelter information from ID Numbers table in medical history."""
+    try:
+        prev_shelter_xpath = "//h1[normalize-space()='Complete Medical History']/following::h2[normalize-space()='ID Numbers']/following::table[2]"
+        rows = extract_table_rows_by_xpath(page, prev_shelter_xpath, min_cols=3, max_rows=5)
+
+        if rows:
+            # First row should contain previous shelter data
+            first_row = rows[0]
+            if len(first_row) >= 3:
+                result["PreviousShelterId"] = first_row[0]
+                result["PreviousShelterType"] = first_row[1]
+                result["PreviousShelterIssuer"] = first_row[2]
+
+    except Exception as e:
+        print(f"Error extracting previous shelter info from medical history: {e}")
+
+
+def _extract_weight_info_from_medical_history(page, result: Dict[str, Any]) -> None:
+    """Extract current weight from Weight table in medical history."""
+    try:
+        weight_xpath = "//h1[normalize-space()='Complete Medical History']/following::h2[normalize-space()='Weight']/following::table[1]"
+        rows = extract_table_rows_by_xpath(page, weight_xpath, min_cols=2, max_rows=5)
+
+        if rows:
+            # First row should contain current weight
+            first_row = rows[0]
+            if len(first_row) >= 1 and first_row[0]:
+                weight_text = first_row[0]
+                weight_lbs, original = normalize_weight_string(weight_text)
+                result["Weight"] = weight_lbs if weight_lbs is not None else weight_text
+
+    except Exception as e:
+        print(f"Error extracting weight info from medical history: {e}")

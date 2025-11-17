@@ -3,8 +3,8 @@
  * High-level functions for generating and bundling artifacts.
  */
 
-const { assertSchemaStructure, generateSchemaChecksum, enumerateStatuses, enumerateSizes } = require('./loadConfig');
-const { generateStatusMapping, generateSizeConfig, generateDogTypesHeader, generatePythonDogTypes } = require('./transformSchema');
+const { assertSchemaStructure, generateSchemaChecksum, enumerateStatuses, enumerateSizes, enumerateRequiredFields, enumerateFieldOwnership, enumerateTerminalStatuses, getSizeOrdering, extractSchemaMetadata } = require('./loadConfig');
+const { generateStatusMapping, generateSizeConfig, generateDogTypesHeader, generatePythonDogTypes, generateConfigArtifact, generatePythonConfigArtifactFromConfig, generateSchemaArtifact, generatePythonSchemaArtifact } = require('./transformSchema');
 
 /**
  * Generate all schema artifacts from a single schema load.
@@ -34,6 +34,50 @@ function generateAllArtifacts(schemaContent, options = {}) {
     dogTypesHeader: generateDogTypesHeader(schemaContent, options),
     pythonDogTypes: generatePythonDogTypes(schema, schemaContent)
   };
+}
+
+/**
+ * Generate config artifact from config.json.
+ * Pure function - validates config and generates normalized artifact.
+ * @param {string} configContent - Raw JSON config file content
+ * @param {object} options - Options object
+ * @param {string} [options.configPath='common/config.json'] - Path to config file for error messages
+ * @returns {string} Generated config artifact content
+ * @throws {Error} If config is invalid
+ */
+function generateConfigArtifactFromContent(configContent, options = {}) {
+  const { configPath = 'common/config.json' } = options;
+
+  let config;
+  try {
+    config = JSON.parse(configContent);
+  } catch (error) {
+    throw new Error(`Failed to parse config JSON (${configPath}): ${error.message}`);
+  }
+
+  return generateConfigArtifact(config, configContent, options);
+}
+
+/**
+ * Generate Python config artifact from config.json.
+ * Pure function - validates config and generates Python module.
+ * @param {string} configContent - Raw JSON config file content
+ * @param {object} options - Options object
+ * @param {string} [options.configPath='common/config.json'] - Path to config file for error messages
+ * @returns {string} Generated Python config artifact content
+ * @throws {Error} If config is invalid
+ */
+function generatePythonConfigArtifact(configContent, options = {}) {
+  const { configPath = 'common/config.json' } = options;
+
+  let config;
+  try {
+    config = JSON.parse(configContent);
+  } catch (error) {
+    throw new Error(`Failed to parse config JSON (${configPath}): ${error.message}`);
+  }
+
+  return generatePythonConfigArtifactFromConfig(config, configContent, options);
 }
 
 /**
@@ -100,6 +144,8 @@ function writeArtifactsToDisk(options = {}) {
     configPath = 'common/config.json',
     statusMappingPath = 'common/statusMapping.js',
     sizeConfigPath = 'common/sizeConfig.js',
+    schemaArtifactPath = 'common/schemaArtifact.js',
+    pythonSchemaArtifactPath = 'services/etl_scraper_py/schema_artifact.py',
     configArtifactPath = 'common/configArtifact.js',
     pythonConfigArtifactPath = 'services/etl_scraper_py/config_artifact.py',
     dogTypesPath = 'services/webapp-react/src/types/Dog.types.ts',
@@ -129,13 +175,37 @@ function writeArtifactsToDisk(options = {}) {
     generatorFileName: path.basename(__filename)
   });
 
+  // Generate schema artifacts
+  const schemaArtifact = generateSchemaArtifact(JSON.parse(schemaContent), schemaContent, {
+    generatorFileName: path.basename(__filename)
+  });
+
+  // Generate config artifact
+  const configArtifact = generateConfigArtifactFromContent(configContent, {
+    configPath,
+    generatorFileName: path.basename(__filename)
+  });
+
   log('Generating schema and config artifacts...');
 
-  // Skip config artifacts for now - they may not be needed
-
   // Write schema artifacts
+  writeFile(schemaArtifactPath, schemaArtifact);
   writeFile(statusMappingPath, artifacts.statusMapping);
   writeFile(sizeConfigPath, artifacts.sizeConfig);
+
+  // Write Python schema artifact
+  writeFile(pythonSchemaArtifactPath, generatePythonSchemaArtifact(JSON.parse(schemaContent), schemaContent, {
+    generatorFileName: path.basename(__filename)
+  }));
+
+  // Write config artifacts
+  writeFile(configArtifactPath, configArtifact);
+
+  // Write Python config artifact
+  writeFile(pythonConfigArtifactPath, generatePythonConfigArtifact(configContent, {
+    configPath,
+    generatorFileName: path.basename(__filename)
+  }));
 
   // Update TypeScript types with new header
   updateTypescriptTypesHeader(dogTypesPath, schemaContent, { writeFile, readFile });
@@ -218,8 +288,20 @@ function checkArtifactsSync(options = {}) {
     // Generate expected artifacts
     const artifacts = generateAllArtifacts(schemaContent, { schemaPath });
 
+    // Generate schema artifacts
+    const schemaArtifact = generateSchemaArtifact(JSON.parse(schemaContent), schemaContent);
+    const pythonSchemaArtifact = generatePythonSchemaArtifact(JSON.parse(schemaContent), schemaContent);
+
+    // Generate config artifacts
+    const configArtifact = generateConfigArtifactFromContent(configContent, { configPath });
+    const pythonConfigArtifact = generatePythonConfigArtifact(configContent, { configPath });
+
     // Check each artifact file
     const checks = [
+      { path: 'common/schemaArtifact.js', expected: schemaArtifact },
+      { path: 'services/etl_scraper_py/schema_artifact.py', expected: pythonSchemaArtifact },
+      { path: 'common/configArtifact.js', expected: configArtifact },
+      { path: 'services/etl_scraper_py/config_artifact.py', expected: pythonConfigArtifact },
       { path: 'common/statusMapping.js', expected: artifacts.statusMapping },
       { path: 'common/sizeConfig.js', expected: artifacts.sizeConfig },
       { path: 'services/etl_scraper_py/dog_types.py', expected: artifacts.pythonDogTypes }
@@ -256,6 +338,8 @@ function checkArtifactsSync(options = {}) {
 module.exports = {
   generateAllArtifacts,
   generateArtifactBundle,
+  generateConfigArtifactFromContent,
+  generatePythonConfigArtifact,
   writeArtifactsToDisk,
   updateTypescriptTypesHeader,
   checkArtifactsSync

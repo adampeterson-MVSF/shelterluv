@@ -1,30 +1,20 @@
 """
-Load configuration from common/config.json.
+Load configuration from generated config artifact.
 Provides Python access to unified configuration metadata.
-Validates consistency with EnvProfile enum.
+Delegates to generated artifact for validated, normalized data.
 """
 
-import json
-import os
-from pathlib import Path
 from typing import Any, Dict, List
 
+try:
+    # Try relative import (when used as package)
+    from .config_artifact import CONFIG_ARTIFACT, get_env_profiles, get_safe_profiles, get_roles, get_profile_safety_map, get_project_safety_map, is_profile_safe, is_project_safe
+except ImportError:
+    # Fall back to absolute import (when run as script)
+    from config_artifact import CONFIG_ARTIFACT, get_env_profiles, get_safe_profiles, get_roles, get_profile_safety_map, get_project_safety_map, is_profile_safe, is_project_safe
 
-def _load_config() -> Dict[str, Any]:
-    """Load config.json from common directory."""
-    # Find common/config.json relative to this file
-    # This file is in services/etl_scraper_py/, so go up two levels
-    repo_root = Path(__file__).parent.parent.parent
-    config_path = repo_root / "common" / "config.json"
-
-    if not config_path.exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-
-    with open(config_path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-_CONFIG = _load_config()
+# For backward compatibility, expose the raw artifact as _CONFIG
+_CONFIG = CONFIG_ARTIFACT
 
 # Cache for validation result to avoid repeated checks
 _config_validated = False
@@ -32,7 +22,7 @@ _config_validated = False
 
 def _validate_config_consistency() -> None:
     """
-    Validate that config.json python_env_profiles keys match EnvProfile enum.
+    Validate that generated artifact profile keys match EnvProfile enum.
     Called lazily on first access to fail fast if there's a mismatch.
     """
     global _config_validated
@@ -47,23 +37,25 @@ def _validate_config_consistency() -> None:
         # without requiring the full package structure
         return
 
-    config_profiles = set(_CONFIG["python_env_profiles"].keys())
+    artifact_profiles = set(CONFIG_ARTIFACT["profile_safety_map"].keys())
     enum_profiles = {e.value for e in EnvProfile}
 
-    # Check for profiles in config that aren't in enum
-    extra_in_config = config_profiles - enum_profiles
-    if extra_in_config:
+    # Check for profiles in artifact that aren't in enum
+    extra_in_artifact = artifact_profiles - enum_profiles
+    if extra_in_artifact:
         raise ValueError(
-            f"config.json python_env_profiles contains profiles not in EnvProfile enum: {extra_in_config}. "
-            f"Valid enum values: {sorted(enum_profiles)}"
+            f"Generated config artifact contains profiles not in EnvProfile enum: {extra_in_artifact}. "
+            f"Valid enum values: {sorted(enum_profiles)}. "
+            f"Run 'npm run schema:gen' to regenerate artifacts."
         )
 
-    # Check for profiles in enum that aren't in config
-    missing_in_config = enum_profiles - config_profiles
-    if missing_in_config:
+    # Check for profiles in enum that aren't in artifact
+    missing_in_artifact = enum_profiles - artifact_profiles
+    if missing_in_artifact:
         raise ValueError(
-            f"EnvProfile enum contains profiles not in config.json python_env_profiles: {missing_in_config}. "
-            f"Config profiles: {sorted(config_profiles)}"
+            f"EnvProfile enum contains profiles not in generated config artifact: {missing_in_artifact}. "
+            f"Artifact profiles: {sorted(artifact_profiles)}. "
+            f"Run 'npm run schema:gen' to regenerate artifacts."
         )
 
     _config_validated = True
@@ -72,22 +64,26 @@ def _validate_config_consistency() -> None:
 def get_python_env_profiles() -> Dict[str, Dict[str, str]]:
     """Get Python-specific environment profiles (GCP project mappings)."""
     _validate_config_consistency()
-    return _CONFIG["python_env_profiles"]
+    # Canonical way to get env profile -> GCP project mappings from artifact
+    result = {}
+    for profile_name, profile_data in CONFIG_ARTIFACT["profile_safety_map"].items():
+        result[profile_name] = {"gcp_project": profile_data["gcp_project"]}
+    return result
 
 
 def get_env_profiles() -> Dict[str, Dict[str, List[str]]]:
     """Get environment variable profiles from config."""
-    return _CONFIG["env_profiles"]
+    return CONFIG_ARTIFACT["env_profiles"]
 
 
 def get_safe_profiles() -> List[str]:
     """Get list of safe (non-production) profile names."""
-    return _CONFIG["safe_profiles"]
+    return CONFIG_ARTIFACT["safe_profiles"]
 
 
 def get_roles() -> List[str]:
     """Get list of valid user roles."""
-    return _CONFIG["roles"]
+    return CONFIG_ARTIFACT["roles"]
 
 
 def get_normalized_profile_map() -> Dict[str, Dict[str, Any]]:
@@ -97,18 +93,7 @@ def get_normalized_profile_map() -> Dict[str, Dict[str, Any]]:
     Mirrors JS getNormalizedProfileMap() for cross-language consistency.
     """
     _validate_config_consistency()
-    profile_map = {}
-
-    python_profiles = _CONFIG["python_env_profiles"]
-    safe_profiles = set(_CONFIG["safe_profiles"])
-
-    for profile_name, profile_config in python_profiles.items():
-        profile_map[profile_name] = {
-            "gcp_project": profile_config["gcp_project"],
-            "is_safe": profile_name in safe_profiles
-        }
-
-    return profile_map
+    return get_profile_safety_map()
 
 
 def get_project_safety() -> Dict[str, Dict[str, Any]]:
@@ -119,19 +104,4 @@ def get_project_safety() -> Dict[str, Dict[str, Any]]:
     A project is safe if ANY profile that maps to it is safe.
     """
     _validate_config_consistency()
-    safety_map = {}
-
-    python_profiles = _CONFIG["python_env_profiles"]
-    safe_profiles = set(_CONFIG["safe_profiles"])
-
-    for profile_name, profile_config in python_profiles.items():
-        project_id = profile_config["gcp_project"]
-        is_safe = profile_name in safe_profiles
-
-        if project_id not in safety_map:
-            safety_map[project_id] = {"is_safe": is_safe}
-        else:
-            # If any profile mapping to this project is safe, the project is safe
-            safety_map[project_id]["is_safe"] = safety_map[project_id]["is_safe"] or is_safe
-
-    return safety_map
+    return get_project_safety_map()

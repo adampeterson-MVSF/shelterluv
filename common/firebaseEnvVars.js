@@ -8,7 +8,7 @@
  * This module is pure configuration - no validation logic (that's in firebaseConfig.js).
  */
 
-const { getEnvProfiles } = require('./configData');
+const { getEnvProfiles } = require('./configArtifact');
 
 const makeFrozenArray = (items) => Object.freeze([...items]);
 

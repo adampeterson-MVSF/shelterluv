@@ -3,6 +3,7 @@
  */
 
 import { createMissingRequiredFieldError, createMissingETLFieldsError } from './dogErrors';
+import { getStatusDisplay } from '../statusMapping.js';
 
 /**
  * Normalization functions for Dog objects
@@ -31,7 +32,7 @@ function validateETLContract(doc, data) {
 
 function buildNormalizedDogObject(doc, data) {
   // All fields passed through from ETL - no transformation needed
-  return {
+  const dog = {
     id: doc.id,
     "Internal-ID": data["Internal-ID"], "ID": data["ID"], "Name": data["Name"],
     "Status": data["Status"], "AgeYears": data["AgeYears"], "AgeDisplay": data["AgeDisplay"],
@@ -63,6 +64,12 @@ function buildNormalizedDogObject(doc, data) {
     "PreviousShelterId": data["PreviousShelterId"], "PreviousShelterType": data["PreviousShelterType"],
     "PreviousShelterIssuer": data["PreviousShelterIssuer"]
   };
+
+  // Add computed display fields to make components completely dumb
+  dog.primaryPhotoUrl = getPrimaryPhoto(dog);
+  dog.statusDisplay = getStatusDisplay(dog.Status);
+
+  return dog;
 }
 
 /**
@@ -95,5 +102,5 @@ export function normalizeDog(doc) {
  * @returns {string|null} Primary photo URL or null if no photos
  */
 export function getPrimaryPhoto(dog) {
-  return dog.Photos[0] || null;
+  return (dog.Photos && dog.Photos[0]) || null;
 }

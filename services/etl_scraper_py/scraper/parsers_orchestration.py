@@ -8,19 +8,16 @@ that coordinate parsing across multiple domains.
 from typing import Any, Dict
 
 # Import all the domain-specific parsers
-from .parsers_basic_info import (
-    scrape_overview_fields, scrape_sex_weight_fields, scrape_size_age_fields,
-    scrape_intake_outcome_fields
-)
+from .parsers_profile import scrape_overview_fields, scrape_sex_weight_fields, scrape_size_age_fields
+from .parsers_history import scrape_intake_outcome_fields
+from .parsers_basic_info import _extract_age_panel
 from .parsers_profile import (
-    _extract_header_profile_block, _extract_status_from_page
+    _extract_header_profile_block, _extract_status_from_page, _extract_case_manager_from_categories
 )
 from .parsers_media import _extract_photos_documents
 from .parsers_attributes import _extract_attributes_disclaimers, _derive_categories_from_attributes
 from .parsers_memos import _extract_memos_section
-from .parsers_medical_detailed import _extract_medical_history
-from .parsers_medical import _extract_age_panel
-from .parsers_profile import _extract_case_manager_from_categories
+from .parsers_medical_history import _extract_medical_history
 
 
 def scrape_animal_record_summary_comprehensive(page, internal_id: str) -> Dict[str, Any]:

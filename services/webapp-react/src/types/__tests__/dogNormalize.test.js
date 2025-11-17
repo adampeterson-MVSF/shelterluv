@@ -50,6 +50,12 @@ describe('normalizeDog', () => {
       'Treatments': []
     });
     expect(result.MedicalHistory).toBeNull();
+    // Check computed display fields
+    expect(result.primaryPhotoUrl).toBeNull();
+    expect(result.statusDisplay).toMatchObject({
+      text: 'Available',
+      className: 'status-available'
+    });
   });
 
   it('should throw error for missing Internal-ID in all environments', () => {

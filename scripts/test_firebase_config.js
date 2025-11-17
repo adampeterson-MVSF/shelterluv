@@ -8,13 +8,13 @@
 const { createAdminApp } = require('../common/firebaseAdmin');
 const { getWebFirebaseConfigFromEnv } = require('../common/firebaseConfig');
 const { getAdminProjectId } = require('../common/firebaseConfig');
-const { getNormalizedProfileMap } = require('../common/configData');
+const { getProfileSafetyMap } = require('../common/configArtifact');
 
 function validateConfigConsistency() {
   console.log('\n🔍 Validating Firebase Config Consistency...');
 
   try {
-    const profileMap = getNormalizedProfileMap();
+    const profileMap = getProfileSafetyMap();
     const adminProjectId = getAdminProjectId();
 
     console.log('✅ Config loaded successfully');
@@ -23,7 +23,7 @@ function validateConfigConsistency() {
     // Check that admin project ID exists in normalized profile map
     const adminProfile = Object.values(profileMap).find(profile => profile.gcp_project === adminProjectId);
     if (!adminProfile) {
-      console.error(`❌ Admin project ID ${adminProjectId} not found in configData profile map`);
+      console.error(`❌ Admin project ID ${adminProjectId} not found in configArtifact profile map`);
       return false;
     }
 

@@ -18,8 +18,8 @@ export function DogCard({ dog }) {
     return null; // Don't render card without ID
   }
 
-  const photoUrl = getPrimaryPhoto(dog) || '/placeholder-dog.png';
-  const statusDisplay = getStatusDisplay(dog.Status);
+  const photoUrl = dog.primaryPhotoUrl || getPrimaryPhoto(dog) || '/placeholder-dog.png';
+  const statusDisplay = dog.statusDisplay || getStatusDisplay(dog.Status);
 
   return (
     <Link to={`/dog/${dog.id}`} className="dog-card">
@@ -60,6 +60,11 @@ DogCard.propTypes = {
     Size: PropTypes.string,
     Gender: PropTypes.string,
     Weight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    Status: PropTypes.string
+    Status: PropTypes.string,
+    primaryPhotoUrl: PropTypes.string,
+    statusDisplay: PropTypes.shape({
+      text: PropTypes.string,
+      className: PropTypes.string
+    })
   }).isRequired
 };

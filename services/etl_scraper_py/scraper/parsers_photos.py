@@ -82,195 +82,107 @@ def scrape_attributes_from_page(page, navigation) -> Dict[str, List[str]]:
     Returns:
         Dict with 'behavioral' and 'physical' keys containing attribute lists.
     """
-    from .parsers_behavior import parse_behavioral_attributes
+    from .parsers_fields import categorize_attributes, clean_attribute_text
 
-    # Define behavioral keywords outside try block
-    behavioral_keywords = [
-        "compatibility",
-        "energy level",
-        "events",
-        "stairs",
-        "bio",
-        "intake notes",
-        "kid",
-        "cat",
-        "dog",
-        "has bio",
-        "has intake",
-    ]
-
-    # Look for elements with wire:key starting with "behave-attr" or "phys-attr"
     try:
-        # Wait a bit for dynamic content to load
+        # Wait for dynamic content to load
         page.wait_for_timeout(2000)
 
-        # Get both behavioral and physical attributes
-        behave_elements = page.locator('[wire\\:key^="behave-attr-"]')
-        phys_elements = page.locator('[wire\\:key^="phys-attr-"]')
+        # Try to get attributes from wire:key elements first
+        attributes = _extract_attributes_from_wire_keys(page)
 
-        all_elements = []
-        # Add behavioral attributes
-        for i in range(behave_elements.count()):
-            all_elements.append(behave_elements.nth(i))
-        # Add physical attributes
-        for i in range(phys_elements.count()):
-            all_elements.append(phys_elements.nth(i))
+        # If no wire:key elements found, try fallback extraction
+        if not attributes:
+            attributes = _scrape_attributes_fallback(page, navigation)
 
-        # If no wire:key elements found, try fallback immediately
-        if not all_elements:
-            fallback_result = _scrape_attributes_fallback(page, navigation)
-            # Categorize the fallback results
-            behavioral = []
-            physical = []
-            for attr in fallback_result:
-                attr_lower = attr.lower()
-                if any(keyword in attr_lower for keyword in behavioral_keywords):
-                    behavioral.append(attr)
-                else:
-                    physical.append(attr)
-            return {"behavioral": list(set(behavioral)), "physical": list(set(physical))}
+        # Clean and categorize the attributes
+        cleaned_attributes = [clean_attribute_text(attr) for attr in attributes if attr]
+        return categorize_attributes(cleaned_attributes)
 
-        if all_elements:
-            values = []
-            for elem in all_elements:
-                try:
-                    # Get the text from the p tag inside the badge
-                    p_tag = elem.locator("p")
-                    if p_tag.count() > 0:
-                        txt = p_tag.inner_text(timeout=500).strip()
-                        if txt and len(txt) > 3:  # Attributes should be meaningful text
-                            values.append(txt)
-                except Exception:
-                    continue
-
-            if values:
-                # Clean up the attributes (remove numbering and duplicates)
-                cleaned_values = []
-                for val in values:
-                    # Remove the "1. " prefix if present
-                    if val.startswith("1. "):
-                        val = val[3:]
-                    # Remove the "2. " prefix if present (for medical attributes)
-                    if val.startswith("2. "):
-                        val = val[3:]
-                    cleaned_values.append(val.strip())
-
-                # Remove duplicates and return
-                unique_values = list(set(cleaned_values))
-                # Classify attributes into behavioral and physical
-                behavioral = []
-                physical = []
-                for attr in unique_values:
-                    attr_lower = attr.lower()
-                    if any(keyword in attr_lower for keyword in behavioral_keywords):
-                        behavioral.append(attr)
-                    else:
-                        physical.append(attr)
-                return {"behavioral": behavioral, "physical": physical}
     except Exception as e:
-        print(f"Error scraping attributes with wire:key: {e}")
+        print(f"Error scraping attributes from page: {e}")
+        return {"behavioral": [], "physical": []}
 
-    # Fallback: look for the Attributes section and extract from there
-    try:
-        # Find the attributes section by looking for the header "Attributes"
-        attributes_header = page.locator('p:has-text("Attributes")')
-        if attributes_header.count() > 0:
-            # Get the parent div that contains the attributes section
-            attributes_section = attributes_header.locator(
-                'xpath=ancestor::div[contains(@class, "rounded-lg")]'
-            )
-            if attributes_section.count() > 0:
-                # Look for badge-like elements within this section
-                badge_elements = attributes_section.locator('div[class*="inline-flex"]').all()
-                values = []
-                for elem in badge_elements:
-                    try:
-                        p_tag = elem.locator("p")
-                        if p_tag.count() > 0:
-                            txt = p_tag.inner_text(timeout=500).strip()
-                            if txt and len(txt) > 3 and not txt.startswith("This will"):
-                                values.append(txt)
-                    except Exception:
-                        continue
 
-                # Remove duplicates and return
-                unique_values = list(set(values))
-                if unique_values:
-                    # Classify attributes into behavioral and physical
-                    behavioral = []
-                    physical = []
-                    for attr in unique_values:
-                        attr_lower = attr.lower()
-                        if any(keyword in attr_lower for keyword in behavioral_keywords):
-                            behavioral.append(attr)
-                        else:
-                            physical.append(attr)
-                    return {"behavioral": behavioral, "physical": physical}
-    except Exception as e:
-        print(f"Error scraping attributes from section: {e}")
+def _extract_attributes_from_wire_keys(page) -> List[str]:
+    """
+    Extract attributes from elements with wire:key selectors.
 
-    # Always return the expected dictionary format
-    return {"behavioral": [], "physical": []}
+    Returns:
+        List of raw attribute text strings
+    """
+    attributes = []
+
+    # Get both behavioral and physical attribute elements
+    behave_elements = page.locator('[wire\\:key^="behave-attr-"]')
+    phys_elements = page.locator('[wire\\:key^="phys-attr-"]')
+
+    all_elements = []
+    # Collect all elements
+    for i in range(behave_elements.count()):
+        all_elements.append(behave_elements.nth(i))
+    for i in range(phys_elements.count()):
+        all_elements.append(phys_elements.nth(i))
+
+    # Extract text from each element
+    for elem in all_elements:
+        try:
+            p_tag = elem.locator("p")
+            if p_tag.count() > 0:
+                txt = p_tag.inner_text(timeout=500).strip()
+                if txt and len(txt) > 3:  # Attributes should be meaningful text
+                    attributes.append(txt)
+        except Exception:
+            continue
+
+    return attributes
 
 
 def _scrape_attributes_fallback(page, navigation) -> List[str]:
-    """Fallback method to scrape all attributes as a flat list."""
-    # Try multiple approaches to find attributes
+    """
+    Fallback method to scrape attributes when wire:key elements are not found.
+
+    Args:
+        page: Playwright page object
+        navigation: Navigation helper instance
+
+    Returns:
+        List of raw attribute text strings
+    """
     try:
-        # First, look for any elements with badge/chip classes anywhere on the page
-        badge_selectors = [
-            '[class*="badge"]',
-            '[class*="chip"]',
-            'span[class*="inline-flex"]',
-            'div[class*="inline-flex"]',
-        ]
+        # Find the attributes section by looking for the header "Attributes"
+        attributes_header = page.locator('p:has-text("Attributes")')
+        if attributes_header.count() == 0:
+            return []
 
-        for selector in badge_selectors:
-            badges = page.locator(selector)
-            count = badges.count()
-            if count > 0 and count < 50:  # Reasonable number
-                values = []
-                for i in range(count):
-                    try:
-                        txt = badges.nth(i).inner_text(timeout=1000).strip()
-                        if txt and len(txt) > 2 and len(txt) < 100:
-                            # Clean up numbering and filter
-                            if txt.startswith("1. ") or txt.startswith("2. "):
-                                txt = txt[3:]
-                            if not txt.startswith("This will") and "will be included" not in txt:
-                                values.append(txt.strip())
-                    except Exception:
-                        continue
+        # Get the parent div that contains the attributes section
+        attributes_section = attributes_header.locator(
+            'xpath=ancestor::div[contains(@class, "rounded-lg")]'
+        )
+        if attributes_section.count() == 0:
+            return []
 
-                if values:
-                    # If fallback returns a list, categorize it
-                    behavioral_keywords = [
-                        "compatibility",
-                        "energy level",
-                        "events",
-                        "stairs",
-                        "bio",
-                        "intake notes",
-                        "kid",
-                        "cat",
-                        "dog",
-                        "has bio",
-                        "has intake",
-                    ]
-                    behavioral = []
-                    physical = []
-                    for attr in list(set(values)):
-                        attr_lower = attr.lower()
-                        if any(keyword in attr_lower for keyword in behavioral_keywords):
-                            behavioral.append(attr)
-                        else:
-                            physical.append(attr)
-                    return behavioral + physical
+        # Look for badge-like elements within this section
+        badge_elements = attributes_section.locator('div[class*="inline-flex"]')
+        values = []
+
+        for i in range(badge_elements.count()):
+            try:
+                elem = badge_elements.nth(i)
+                p_tag = elem.locator("p")
+                if p_tag.count() > 0:
+                    txt = p_tag.inner_text(timeout=500).strip()
+                    if txt and len(txt) > 3 and not txt.startswith("This will"):
+                        values.append(txt)
+            except Exception:
+                continue
+
+        return values
 
     except Exception as e:
-        print(f"Error in fallback scraping: {e}")
+        print(f"Error in attributes fallback scraping: {e}")
+        return []
 
-    return []
 
 
 def scrape_files_table(navigation) -> List[Dict[str, str]]:

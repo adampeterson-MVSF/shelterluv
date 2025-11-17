@@ -40,6 +40,9 @@ from .parsers_profile import (
     extract_age_panel,
 )
 
+# Import shared helpers (keeping original clean_memo_html for compatibility)
+# from .parsers_fields import clean_html_text, split_text_into_sections
+
 # Keyword sets for memo categorization (pattern-driven)
 PERSONALITY_KEYWORDS = [
     "personality",
@@ -89,9 +92,9 @@ def parse_memos_by_type_pure(memos_html: str) -> Dict[str, str]:
     Parse raw HTML memos into categorized notes by type.
     Returns dict with PersonalityNotes, IntakeNotes, MedicalNotes.
 
-    Pure function that wires together clean_memo_html, split_memo_into_sections,
+    Pure function that wires together clean_html_text, split_text_into_sections,
     and categorize_section building blocks.
-    
+
     Also recognizes "Kennel Card / Website Memo" headers and categorizes them as personality notes.
     """
     text = clean_memo_html(memos_html)

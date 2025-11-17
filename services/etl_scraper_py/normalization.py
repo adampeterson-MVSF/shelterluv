@@ -127,35 +127,33 @@ def _build_age_display(age_years: float) -> str:
         return f"{years} years"
 
 
+# Size normalization mapping (data-driven)
+SIZE_MAPPING = {
+    "Small": ["small", "x-small", "extra small"],
+    "Medium": ["medium"],
+    "Large": ["large"],
+    "X-Large": ["x-large", "extra large", "xxl"]
+}
+
 def _normalize_size(size_str: str = None) -> str:
     """
-    Normalize size string to schema enum values.
+    Normalize size string to schema enum values using data-driven mapping.
 
     Args:
         size_str: Raw size string from API/scraping
 
     Returns:
-        Normalized size or original if no mapping found
+        Normalized size or "UNKNOWN" if no mapping found
     """
     if not size_str or not isinstance(size_str, str):
         return "UNKNOWN"
 
     size_lower = size_str.lower().strip()
 
-    # Map ShelterLuv formats to schema formats
-    # Handle new format like "SMALL (0-24)" and legacy formats
-    if "small" in size_lower:
-        if "x-small" in size_lower or "extra small" in size_lower:
-            return "Small"  # Schema doesn't have XS, map to Small
-        else:
-            return "Small"
-    elif "medium" in size_lower:
-        return "Medium"
-    elif "large" in size_lower:
-        if "x-large" in size_lower or "extra large" in size_lower or "xxl" in size_lower:
-            return "X-Large"
-        else:
-            return "Large"
+    # Check each size category for matches
+    for normalized_size, keywords in SIZE_MAPPING.items():
+        if any(keyword in size_lower for keyword in keywords):
+            return normalized_size
 
     # If no match, indicate unknown rather than guessing
     return "UNKNOWN"

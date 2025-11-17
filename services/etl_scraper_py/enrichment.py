@@ -62,6 +62,18 @@ def _merge_data_sources(
 ) -> Dict[str, Any]:
     """Merge all data sources into a single dict."""
     merged = {**api_animal, **scraped, **(foster_info or {}), **(event_info or {})}
+
+    # For critical fields, prefer valid scraped values over invalid API values
+    critical_fields = ["Status", "Name", "ID"]
+    for field in critical_fields:
+        api_value = api_animal.get(field, "")
+        scraped_value = scraped.get(field, "")
+
+        # If API value is empty/invalid and scraped value is valid, use scraped value
+        if (not api_value or api_value == "" or api_value == "UNKNOWN") and scraped_value and scraped_value != "":
+            merged[field] = scraped_value
+
+
     if memo_html:
         merged["MemosRawHTML"] = memo_html
     return merged
@@ -100,19 +112,45 @@ def _validate_and_filter(normalized: Dict[str, Any]) -> Dict[str, Any]:
             f"Internal ETL bug: AgeYears missing after normalization for dog {normalized.get('Internal-ID')}"
         )
 
+    # Handle null values for all fields before validation
+    schema_properties = _get_dog_schema()["properties"]
 
-    # Handle null values for required fields before validation
+    for field_name, field_value in filtered.items():
+        if field_value is None:
+            field_type = schema_properties.get(field_name, {}).get("type")
+            if field_type == "string":
+                filtered[field_name] = ""  # Convert null strings to empty strings
+            elif field_type == "boolean":
+                filtered[field_name] = False  # Convert null booleans to false
+            elif field_type == "number":
+                filtered[field_name] = 0  # Convert null numbers to 0
+
+    # Special handling for Status field - ensure it's always valid
+    if "Status" in filtered:
+        status_value = filtered["Status"]
+        if not status_value or status_value not in ["AVAILABLE", "ADOPTED", "PENDING", "HOLD", "UNKNOWN"]:
+            # If Status is empty, invalid, or missing, default to AVAILABLE for in-custody dogs
+            filtered["Status"] = "AVAILABLE"
+
+    # Special handling for Gender field - handle invalid enum values
+    if "Gender" in filtered:
+        gender_value = filtered["Gender"]
+        if gender_value and gender_value not in ["Male", "Female"]:
+            # If Gender is invalid (like "Unknown"), remove it since it's not required
+            del filtered["Gender"]
+
+    # Ensure all required fields exist
     from schema import get_required_fields
     required_fields = get_required_fields()
     for field in required_fields:
-        if field in filtered and filtered[field] is None:
-            field_type = _get_dog_schema()["properties"].get(field, {}).get("type")
+        if field not in filtered:
+            field_type = schema_properties.get(field, {}).get("type")
             if field_type == "string":
-                filtered[field] = ""  # Convert null strings to empty strings
+                filtered[field] = ""  # Default missing strings to empty
             elif field_type == "boolean":
-                filtered[field] = False  # Default boolean fields to false
+                filtered[field] = False  # Default missing booleans to false
             elif field_type == "number":
-                filtered[field] = 0  # Default number fields to 0
+                filtered[field] = 0  # Default missing numbers to 0
 
     # Validate
     validate_dog_record(filtered)
@@ -140,4 +178,3 @@ def _validate_and_filter(normalized: Dict[str, Any]) -> Dict[str, Any]:
                 )
 
     return filtered
-

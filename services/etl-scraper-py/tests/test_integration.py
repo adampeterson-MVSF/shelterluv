@@ -4,61 +4,23 @@ Tests internal component integration with mocked external dependencies.
 """
 
 import pytest
-import os
 from unittest.mock import patch, Mock
 import pipeline
 from extract import ExtractResult
 from errors import ApiError
-from config import EtlConfig, SecretsConfig, SecretsMode, EnvProfile
 
 
 class TestETLIntegration:
     """Integration tests for ETL pipeline components with mocked external dependencies."""
 
-    @classmethod
-    def setup_class(cls):
-        """Set up test environment."""
-        # Set test environment to avoid using production data
-        os.environ["FIRESTORE_TEST_MODE"] = "true"
-
-    @classmethod
-    def teardown_class(cls):
-        """Clean up test environment."""
-        pass
-
-    def setup_method(self):
-        """Set up before each test."""
-        pass
-
-    def _create_test_config(self, dry_run=False, animal_limit=None):
-        """Create a test EtlConfig for testing."""
-        return EtlConfig(
-            env_profile=EnvProfile.DEV,
-            project_id="test-project",
-            collection_name="dogs_test",
-            secrets=SecretsConfig(mode=SecretsMode.ENV, project_id="test-project"),
-            memos_mode="api",
-            max_concurrent_scrapes=2,
-            dry_run=dry_run,
-            animal_limit=animal_limit
-        )
-
-    @patch('secret_manager.get_shelterluv_creds')
     @patch('api.api_client_events.get_animal_events')
     @patch('api.api_client_people.get_people')
     @patch('scraper.ShelterLuvScraper.scrape_profile_only')
     @patch('db.write_dogs')
     @patch('db.purge_stale_dogs')
     @patch('db.get_db')
-    def test_full_etl_pipeline_integration(self, mock_get_db, mock_purge_stale, mock_write_dogs, mock_scrape_details, mock_get_people, mock_get_events, mock_creds):
+    def test_full_etl_pipeline_integration(self, mock_get_db, mock_purge_stale, mock_write_dogs, mock_scrape_details, mock_get_people, mock_get_events, mock_creds_patch, test_config, test_extract_result, test_transform_result, test_load_result):
         """Test the complete ETL pipeline with Firestore emulator."""
-
-        # Setup mocks
-        mock_creds.return_value = {
-            "api_key": "test_key",
-            "username": "test_user",
-            "password": "test_pass"
-        }
 
         # Mock database operations
         mock_write_dogs.return_value = {"dogs_written": 2, "dogs_invalid": 0}
@@ -85,7 +47,7 @@ class TestETLIntegration:
 
         # Mock scraping results
         mock_scrape_details.return_value = {
-            "FullAnimalProfile": "Headquarters Available - Friendly dog", # <-- ADD THIS
+            "FullAnimalProfile": "Headquarters Available - Friendly dog",
             "AdoptionCategory": "Adult",
             "MedicalCategory": "Healthy",
             "BehaviorCategory": "Good with kids",
@@ -96,43 +58,14 @@ class TestETLIntegration:
             "IsEventDog": False
         }
 
-        # Mock the animal extraction to return test data
-        test_animals_by_id = {
-            "1": {
-                "Internal-ID": "1",
-                "ID": "A1",
-                "Name": "Buddy",
-                "Status": "AVAILABLE",
-                "Age": "3 years",
-                "Size": "Medium",
-                "Breed": "Golden Retriever"
-            },
-            "2": {
-                "Internal-ID": "2",
-                "ID": "A2",
-                "Name": "Max",
-                "Status": "PENDING",
-                "Age": "2 years",
-                "Size": "Large",
-                "Breed": "Labrador"
-            }
-        }
-
-        test_extract_result = ExtractResult(
-            in_custody_ids={"1", "2"},
-            animals_by_id=test_animals_by_id,
-            events=[{"ID": "1", "Type": "Intake", "Date": "2024-01-01"}],
-            people=[{"ID": "1", "Name": "John Doe"}],
-            existing_metadata={}
-        )
-
         with patch('pipeline.extract', return_value=test_extract_result):
             # Run the ETL process (dry run to avoid database operations)
-            config = self._create_test_config(dry_run=True, animal_limit=3)
-            stats = pipeline.run_etl_process(config)
+            test_config.dry_run = True
+            test_config.animal_limit = 3
+            stats = pipeline.run_etl_process(test_config, mock_creds_patch.return_value)
 
             # Verify stats
-            assert stats["total_animals_fetched"] == 2
+            assert stats["num_animals_fetched_from_api"] == 2
             assert stats["total_events_fetched"] == 1
             assert stats["total_people_fetched"] == 1
             assert stats["dogs_processed"] == 2
@@ -177,6 +110,8 @@ class TestETLIntegration:
             events=[],  # Will be overridden by API error
             people=[],  # Will be overridden by API error
             existing_metadata={},
+            memos_data={"1": "<html>test memo</html>"},
+            scraped_map={"1": {"profile": "scraped data"}},
             events_failed=True,  # Simulate events API failure
             people_failed=True   # Simulate people API failure
         )
@@ -197,10 +132,11 @@ class TestETLIntegration:
              }):
             # Run ETL process (dry run)
             config = self._create_test_config(dry_run=True)
-            stats = pipeline.run_etl_process(config)
+            creds = {"api_key": "test_key", "username": "test", "password": "test"}
+            stats = pipeline.run_etl_process(config, creds)
 
             # Should still process the dog despite API failures
-            assert stats["total_animals_fetched"] == 1
+            assert stats["num_animals_fetched_from_api"] == 1
             assert stats["total_events_fetched"] == 0  # API failed
             assert stats["total_people_fetched"] == 0  # API failed
             assert stats["dogs_processed"] == 1
@@ -238,10 +174,11 @@ class TestETLIntegration:
 
         with patch('pipeline.extract', return_value=empty_extract_result):
             config = self._create_test_config(dry_run=True)
-            stats = pipeline.run_etl_process(config)
+            creds = {"api_key": "test_key", "username": "test", "password": "test"}
+            stats = pipeline.run_etl_process(config, creds)
 
             # Should exit early
-            assert stats["total_animals_fetched"] == 0
+            assert stats["num_animals_fetched_from_api"] == 0
             assert stats["dogs_deleted"] == 0  # Dry run, so no actual deletes
             assert stats["dogs_processed"] == 0
             assert stats["dogs_written"] == 0

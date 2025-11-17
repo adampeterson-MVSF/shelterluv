@@ -2,60 +2,11 @@ import PropTypes from 'prop-types';
 import { useDogs } from '../hooks/useDogs';
 import { useAuth } from '../contexts/AuthContext';
 import { DogCard } from '../components/DogCard';
-
-function LoadingState() {
-  return (
-    <div className="page-container">
-      <div className="loading">Loading...</div>
-    </div>
-  );
-}
-
-function AnonymousState() {
-  return (
-    <div className="page-container">
-      <div className="login-prompt">
-        <h2>Welcome to Muttville</h2>
-        <p>Please sign in to view our dogs.</p>
-      </div>
-    </div>
-  );
-}
-
-function ForbiddenState() {
-  return (
-    <div className="page-container">
-      <div className="error-message">
-        <h2>Access Denied</h2>
-        <p>Only @muttville.org accounts are permitted to access this application.</p>
-      </div>
-    </div>
-  );
-}
-
-function LoadingDogsState() {
-  return (
-    <div className="page-container">
-      <div className="loading">Loading dogs...</div>
-    </div>
-  );
-}
-
-function ErrorState({ error }) {
-  return (
-    <div className="page-container">
-      <div className="error-message">
-        <h2>Error Loading Dogs</h2>
-        <p>{error}</p>
-        <p>Please try refreshing the page.</p>
-      </div>
-    </div>
-  );
-}
-
-ErrorState.propTypes = {
-  error: PropTypes.string.isRequired
-};
+import { AuthGate } from '../components/AuthGate';
+import {
+  LoadingDogsState,
+  ErrorState
+} from '../components/PageStates';
 
 function DogList({ allDogs }) {
   return (
@@ -93,7 +44,7 @@ function Home() {
   if (authState.kind === 'forbidden') return <ForbiddenState />;
 
   // Show error state instead of throwing
-  if (error) return <ErrorState error={error} />;
+  if (error) return <ErrorState error={error} title="Error Loading Dogs" backText="Try refreshing" />;
 
   if (loading) return <LoadingDogsState />;
 

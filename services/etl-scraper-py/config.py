@@ -19,12 +19,21 @@ class SecretsMode(Enum):
 
 
 class EnvProfile(Enum):
-    """Environment profile for the ETL run."""
+    """Environment profile for the ETL run.
+    Values loaded from common/config.json python_env_profiles.
+    """
     DEV = "dev"
     STAGING = "staging"
     E2E = "e2e"
     DEMO = "demo"
     PROD = "prod"
+    
+    @classmethod
+    def get_safe_profiles(cls) -> List["EnvProfile"]:
+        """Get list of safe (non-production) profiles from config."""
+        from config_loader import get_safe_profiles
+        safe_names = get_safe_profiles()
+        return [cls(name) for name in safe_names if name in [e.value for e in cls]]
 
 
 @dataclass
@@ -66,6 +75,7 @@ class EtlConfig:
     max_concurrent_scrapes: int
     dry_run: bool
     animal_limit: Optional[int]
+    skip_events_people: bool  # Skip events and people fetching for testing
 
     @classmethod
     def from_env(cls, overrides: Optional[dict] = None) -> "EtlConfig":
@@ -97,6 +107,7 @@ class EtlConfig:
         max_concurrent_scrapes = overrides.get("max_concurrent_scrapes") or int(os.environ.get("MAX_CONCURRENT_SCRAPES", "2"))
         dry_run = overrides.get("dry_run", False)
         animal_limit = overrides.get("animal_limit")
+        skip_events_people = overrides.get("skip_events_people", os.environ.get("SKIP_EVENTS_PEOPLE", "").lower() in ("true", "1", "yes"))
 
         return cls(
             env_profile=env_profile,
@@ -107,6 +118,7 @@ class EtlConfig:
             max_concurrent_scrapes=max_concurrent_scrapes,
             dry_run=dry_run,
             animal_limit=animal_limit,
+            skip_events_people=skip_events_people,
         )
 
     def is_prod(self) -> bool:
@@ -126,11 +138,15 @@ def assert_dev_safe_config(config: EtlConfig, operation: str) -> None:
                       f"Allowed profiles: {[p.value for p in EnvProfile if p != EnvProfile.PROD]}")
 
 
-# Load dotenv files for local development (only if available)
-try:
-    from dotenv import load_dotenv
-    load_dotenv('.env')
-    load_dotenv('.env.local')
-except ImportError:
-    # dotenv not available, continue with existing env vars
-    pass
+def load_dotenv_files() -> None:
+    """
+    Load dotenv files for local development.
+    Call this function explicitly to load .env and .env.local files.
+    """
+    try:
+        from dotenv import load_dotenv
+        load_dotenv('.env')
+        load_dotenv('.env.local')
+    except ImportError:
+        # dotenv not available, continue with existing env vars
+        pass

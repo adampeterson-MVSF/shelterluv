@@ -7,8 +7,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from .api_client_base import _make_api_request, BASE_URL, _validate_animal_records
 from errors import ApiError
 
-MAX_ANIMALS = 1000
-
 def _filter_animals_in_custody(animals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Filter animals to only include those that might be in custody."""
     excluded_statuses = {"Transferred Out", "Serviced Out", "ADOPTED", "Deceased"}
@@ -17,13 +15,14 @@ def _filter_animals_in_custody(animals: List[Dict[str, Any]]) -> List[Dict[str, 
         if animal.get("Status", "") not in excluded_statuses
     ]
 
-def get_all_animals_in_custody(api_key: str) -> List[Dict[str, Any]]:
+def get_all_animals_in_custody(api_key: str, max_animals: int = 1000) -> List[Dict[str, Any]]:
     """
     Fetches all animals that might be in custody from the ShelterLuv API.
     Applies minimal API-level filtering to include animals for scraping.
 
     Args:
         api_key: ShelterLuv API key
+        max_animals: Maximum number of animals to fetch
 
     Returns:
         List of animal dictionaries with basic info
@@ -50,8 +49,8 @@ def get_all_animals_in_custody(api_key: str) -> List[Dict[str, Any]]:
         all_animals.extend(animals)
 
         # Safety cap to prevent infinite loops
-        if len(all_animals) >= MAX_ANIMALS:
-            raise ApiError(f"Hit {MAX_ANIMALS}-animal cap")
+        if len(all_animals) >= max_animals:
+            raise ApiError(f"Hit {max_animals}-animal cap")
 
         # Check if there are more pages
         if len(animals) < 100:
@@ -108,19 +107,34 @@ def get_animals_by_ids(internal_ids: Collection[str], api_key: str, max_workers:
     def fetch_animal(internal_id: str) -> tuple[str, Dict[str, Any]]:
         try:
             data = _make_api_request(f"{BASE_URL}/animals/{internal_id}", headers)
-            return internal_id, data
+            # API returns animal data directly (not wrapped in {"animal": {...}})
+            # Check if response has animal fields (like "Internal-ID" or "ID")
+            animal = data if data.get("Internal-ID") or data.get("ID") else data.get("animal", {})
+            # Add SourceUpdatedAt timestamp (RFC 3339 UTC with Z) for incremental processing
+            # Use current timestamp since API doesn't provide an "Updated" field
+            from datetime import datetime, UTC
+            if animal and (animal.get("Internal-ID") or animal.get("ID")):
+                animal["SourceUpdatedAt"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+                return internal_id, animal
+            # If no animal in response, log warning with response structure for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"No animal data in API response for {internal_id}, response keys: {list(data.keys())}")
+            return internal_id, {}
         except ApiError as e:
-            # Log warning but continue with other animals
-            print(f"Warning: Failed to fetch animal {internal_id}: {e}")
+            # Log the error but continue with other animals
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"API error fetching animal {internal_id}: {e}")
             return internal_id, {}
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(fetch_animal, internal_id) for internal_id in internal_ids]
 
         for future in as_completed(futures):
-            internal_id, animal_data = future.result()
-            if animal_data:
-                results[internal_id] = animal_data
+            internal_id, animal = future.result()
+            if animal:
+                results[internal_id] = animal
 
     return results
 

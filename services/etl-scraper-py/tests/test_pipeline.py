@@ -9,23 +9,17 @@ from pipeline import run_etl_process, compute_stats, ExtractResult, TransformRes
 from extract import extract
 from transform import transform
 from load import load
-from config import EtlConfig
+from config import EtlConfig, EnvProfile, SecretsConfig, SecretsMode
+from extract import ExtractConfig
 from errors import ApiError
 
 
 class TestIncrementalScraping:
     """Test incremental ETL functionality within transform."""
 
-    @patch('transform.ShelterLuvScraper')
-    def test_transform_skips_unchanged_dogs(self, mock_scraper_class):
-        """Test that transform skips dogs that haven't changed."""
-        mock_scraper = Mock()
-        mock_scraper.scrape_profile_only.return_value = {"scraped": "data"}
-        mock_scraper.__enter__ = Mock(return_value=mock_scraper)
-        mock_scraper.__exit__ = Mock(return_value=None)
-        mock_scraper_class.return_value = mock_scraper
-
-        # Setup extract result with existing metadata
+    def test_transform_processes_scraped_data(self):
+        """Test that transform processes data that was scraped in extract phase."""
+        # Setup extract result with scraped data (simulating what extract phase would produce)
         extract_result = ExtractResult(
             in_custody_ids={"1", "2"},
             animals_by_id={
@@ -37,17 +31,19 @@ class TestIncrementalScraping:
             existing_metadata={
                 "1": {"source_updated_at": "2024-01-01T10:00:00Z"},  # Same timestamp - unchanged
                 "2": {"source_updated_at": "2024-01-01T09:00:00Z"}   # Older timestamp - changed
+            },
+            memos_data={},
+            # Scraped data for both dogs (extract phase would filter based on changes)
+            scraped_map={
+                "1": {"scraped": "unchanged_data"},  # Would be skipped in real extract
+                "2": {"scraped": "changed_data"}     # Would be scraped in real extract
             }
         )
 
         creds = {"username": "test", "password": "test"}
-        config = TransformConfig(memos_mode="none", max_concurrent_scrapes=1)
+        config = TransformConfig()
 
-        # Mock scraper to return data for dog 2 only
-        mock_scraper.scrape_profile_only.return_value = {"scraped": "data"}
-
-        with patch('api.api_client_memos.get_animals_memos_batch', return_value={}), \
-             patch('foster_mapping.build_foster_maps', return_value={}), \
+        with patch('foster_mapping.build_foster_maps', return_value={}), \
              patch('foster_mapping.build_event_maps', return_value={}), \
              patch('enrichment.build_dog_record') as mock_build_dog:
 
@@ -55,24 +51,14 @@ class TestIncrementalScraping:
 
             result = transform(extract_result, creds, config)
 
-            # Should only scrape dog 2 (the changed one), but process both dogs
-            assert result.scraped_count == 1
-            assert result.skipped_count == 1
+            # Transform processes all scraped data provided by extract
+            assert result.scraped_count == 2  # Both dogs have scraped data
+            assert result.skipped_count == 0  # No skipping in transform - that's extract's job
             assert len(result.dogs) == 2  # Both dogs are processed
 
-            # Verify scraper was called once for dog 2
-            mock_scraper.scrape_profile_only.assert_called_once_with("A2")
-
-    @patch('transform.ShelterLuvScraper')
-    def test_transform_scrapes_all_when_no_metadata(self, mock_scraper_class):
-        """Test that transform scrapes all dogs when no existing metadata."""
-        mock_scraper = Mock()
-        mock_scraper.scrape_profile_only.return_value = {"scraped": "data"}
-        mock_scraper.__enter__ = Mock(return_value=mock_scraper)
-        mock_scraper.__exit__ = Mock(return_value=None)
-        mock_scraper_class.return_value = mock_scraper
-
-        # Setup extract result with no existing metadata
+    def test_transform_processes_all_scraped_data(self):
+        """Test that transform processes all scraped data provided by extract phase."""
+        # Setup extract result with scraped data for all dogs (simulating extract phase with no metadata)
         extract_result = ExtractResult(
             in_custody_ids={"1", "2"},
             animals_by_id={
@@ -81,17 +67,18 @@ class TestIncrementalScraping:
             },
             events=[],
             people=[],
-            existing_metadata={}  # No existing metadata
+            existing_metadata={},  # No existing metadata
+            memos_data={},
+            scraped_map={
+                "1": {"scraped": "data1"},
+                "2": {"scraped": "data2"}
+            }
         )
 
         creds = {"username": "test", "password": "test"}
-        config = TransformConfig(memos_mode="none", max_concurrent_scrapes=1)
+        config = TransformConfig()
 
-        # Mock scraper to return data
-        mock_scraper.scrape_profile_only.return_value = {"scraped": "data"}
-
-        with patch('api.api_client_memos.get_animals_memos_batch', return_value={}), \
-             patch('foster_mapping.build_foster_maps', return_value={}), \
+        with patch('foster_mapping.build_foster_maps', return_value={}), \
              patch('foster_mapping.build_event_maps', return_value={}), \
              patch('enrichment.build_dog_record') as mock_build_dog:
 
@@ -99,31 +86,14 @@ class TestIncrementalScraping:
 
             result = transform(extract_result, creds, config)
 
-            # Should scrape both dogs when no metadata
+            # Transform processes all scraped data provided by extract
             assert result.scraped_count == 2
             assert result.skipped_count == 0
             assert len(result.dogs) == 2  # Both dogs are processed
 
-            # Verify scraper was called twice
-            assert mock_scraper.scrape_profile_only.call_count == 2
-
-    @patch('transform.ShelterLuvScraper')
-    def test_transform_concurrent_mode(self, mock_scraper_class):
-        """Test that transform uses concurrent scraping when max_concurrent_scrapes > 1."""
-        # Create mock scraper instances that support context manager protocol
-        scraper_instances = []
-        for i in range(2):  # Need exactly 2 scrapers for 2 concurrent chunks
-            mock_scraper = Mock()
-            mock_scraper.scrape_profile_only.return_value = {"scraped": f"data_{i}"}
-            # Make it a proper context manager
-            mock_scraper.__enter__ = Mock(return_value=mock_scraper)
-            mock_scraper.__exit__ = Mock(return_value=None)
-            scraper_instances.append(mock_scraper)
-
-        # Return different scraper instances for each call
-        mock_scraper_class.side_effect = scraper_instances
-
-        # Setup extract result with 4 dogs to trigger concurrent processing
+    def test_transform_processes_many_dogs(self):
+        """Test that transform can process many dogs with scraped data."""
+        # Setup extract result with 4 dogs and their scraped data
         extract_result = ExtractResult(
             in_custody_ids={"1", "2", "3", "4"},
             animals_by_id={
@@ -134,14 +104,21 @@ class TestIncrementalScraping:
             },
             events=[],
             people=[],
-            existing_metadata={}  # No existing metadata
+            existing_metadata={},  # No existing metadata
+            memos_data={},
+            scraped_map={
+                "1": {"scraped": "data1"},
+                "2": {"scraped": "data2"},
+                "3": {"scraped": "data3"},
+                "4": {"scraped": "data4"}
+            }
         )
 
         creds = {"username": "test", "password": "test"}
-        config = TransformConfig(memos_mode="none", max_concurrent_scrapes=2)
+        config = TransformConfig()
 
-        with patch('api.api_client_memos.get_animals_memos_batch', return_value={}), \
-             patch('foster_mapping.build_foster_maps', return_value={}), \
+
+        with patch('foster_mapping.build_foster_maps', return_value={}), \
              patch('foster_mapping.build_event_maps', return_value={}), \
              patch('enrichment.build_dog_record') as mock_build_dog:
 
@@ -149,28 +126,23 @@ class TestIncrementalScraping:
 
             result = transform(extract_result, creds, config)
 
-            # Should scrape all 4 dogs concurrently (2 chunks of 2 each)
+            # Should use all 4 scraped dogs from extract result
             assert result.scraped_count == 4
             assert result.skipped_count == 0
             assert len(result.dogs) == 4  # All dogs are processed
 
-            # Should have created 2 scraper instances for concurrent chunks
-            assert mock_scraper_class.call_count == 2
+            # Scraping is now done in extract phase, not transform
 
 
 class TestPipelineOrchestration:
     """Test the ETL pipeline orchestration."""
 
-    @patch('pipeline.get_shelterluv_creds')
-    @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
     @patch('pipeline.load')
     @patch('pipeline.compute_stats')
-    def test_run_etl_process_full_flow_success(self, mock_compute_stats, mock_load, mock_transform, mock_extract, mock_get_db, mock_creds):
+    def test_run_etl_process_full_flow_success(self, mock_compute_stats, mock_load, mock_transform, mock_extract):
         """Test successful full ETL process execution."""
-        # Setup mocks
-        mock_creds.return_value = {"api_key": "test_key", "username": "test", "password": "test"}
 
         # Mock extract result
         extract_result = ExtractResult(
@@ -181,7 +153,9 @@ class TestPipelineOrchestration:
             },
             events=[{"event": "test"}],
             people=[{"person": "test"}],
-            existing_metadata={}
+            existing_metadata={},
+            memos_data={},
+            scraped_map={}
         )
         mock_extract.return_value = extract_result
 
@@ -214,20 +188,36 @@ class TestPipelineOrchestration:
         )
 
         # Run the ETL process
-        config = EtlConfig.from_env(overrides={'dry_run': False})
-        stats = run_etl_process(config)
+        config = EtlConfig(
+            env_profile=EnvProfile.DEV,
+            project_id="test-project",
+            collection_name="dogs_test",
+            secrets=SecretsConfig(mode=SecretsMode.ENV, project_id="test-project"),
+            memos_mode="api",
+            max_concurrent_scrapes=2,
+            dry_run=False,
+            animal_limit=None,
+            skip_events_people=False
+        )
+        creds = {"api_key": "test_key", "username": "test", "password": "test"}
+        stats = run_etl_process(config, creds)
+        
+        # Verify extract was called with correct 2-arg signature
+        mock_extract.assert_called_once()
+        (actual_creds, actual_cfg), _ = mock_extract.call_args
+        assert actual_creds == creds
+        assert isinstance(actual_cfg, ExtractConfig)
+        assert actual_cfg.memos_mode == "api"
+        assert actual_cfg.max_concurrent_scrapes == 2
+        assert actual_cfg.dry_run == config.dry_run
+        assert actual_cfg.skip_events_people == config.skip_events_people
 
-        # Verify credentials were fetched
-        mock_creds.assert_called_once_with(config.secrets)
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
-
-        # Verify transform was called with correct config
+        # Verify transform was called with correct arguments
         mock_transform.assert_called_once()
         args, kwargs = mock_transform.call_args
         assert args[0] == extract_result
         assert args[1] == {"api_key": "test_key", "username": "test", "password": "test"}
-        assert args[2].memos_mode == "api"
-        assert args[2].max_concurrent_scrapes == 2
+        assert isinstance(args[2], TransformConfig)
 
         # Verify load was called
         mock_load.assert_called_once_with(transform_result, False)
@@ -245,15 +235,11 @@ class TestPipelineOrchestration:
         assert stats["dogs_written"] == 5
         assert stats["dogs_deleted"] == 2
 
-    @patch('pipeline.get_shelterluv_creds')
-    @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.load')
     @patch('pipeline.compute_stats')
-    def test_run_etl_process_no_animals_early_exit(self, mock_compute_stats, mock_load, mock_extract, mock_get_db, mock_creds):
+    def test_run_etl_process_no_animals_early_exit(self, mock_compute_stats, mock_load, mock_extract):
         """Test ETL process exits early when no animals are in custody."""
-        # Setup mocks
-        mock_creds.return_value = {"api_key": "test_key", "username": "test", "password": "test"}
 
         # Mock extract result with no animals
         extract_result = ExtractResult(
@@ -261,7 +247,9 @@ class TestPipelineOrchestration:
             animals_by_id={},
             events=[],
             people=[],
-            existing_metadata={}
+            existing_metadata={},
+            memos_data={},
+            scraped_map={}
         )
         mock_extract.return_value = extract_result
 
@@ -276,11 +264,27 @@ class TestPipelineOrchestration:
             dogs_deleted=10
         )
 
-        config = EtlConfig.from_env(overrides={'dry_run': False})
-        stats = run_etl_process(config)
+        config = EtlConfig(
+            env_profile=EnvProfile.DEV,
+            project_id="test-project",
+            collection_name="dogs_test",
+            secrets=SecretsConfig(mode=SecretsMode.ENV, project_id="test-project"),
+            memos_mode="api",
+            max_concurrent_scrapes=2,
+            dry_run=False,
+            animal_limit=None,
+            skip_events_people=False
+        )
+        creds = {"api_key": "test_key", "username": "test", "password": "test"}
+        stats = run_etl_process(config, creds)
 
-        # Verify extract was called
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
+        # Verify extract was called with correct 2-arg signature
+        mock_extract.assert_called_once()
+        (actual_creds, actual_cfg), _ = mock_extract.call_args
+        assert actual_creds == creds
+        assert isinstance(actual_cfg, ExtractConfig)
+        assert actual_cfg.memos_mode == "api"
+        assert actual_cfg.max_concurrent_scrapes == 2
 
         # Verify load was called with empty transform result and no dry_run
         mock_load.assert_called_once()
@@ -296,16 +300,14 @@ class TestPipelineOrchestration:
         assert stats["num_animals_fetched_from_api"] == 0
         assert stats["dogs_deleted"] == 10
 
-    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
     @patch('pipeline.load')
     @patch('pipeline.compute_stats')
-    def test_run_etl_process_events_fetch_failure(self, mock_compute_stats, mock_load, mock_transform, mock_extract, mock_get_db, mock_creds):
+    def test_run_etl_process_events_fetch_failure(self, mock_compute_stats, mock_load, mock_transform, mock_extract, mock_get_db):
         """Test ETL process handles events API failure gracefully."""
         # Setup mocks
-        mock_creds.return_value = {"api_key": "test_key", "username": "test", "password": "test"}
 
         # Mock extract result with events failure
         extract_result = ExtractResult(
@@ -314,6 +316,8 @@ class TestPipelineOrchestration:
             events=[],  # Empty due to failure
             people=[{"person": "test"}],  # People succeeded
             existing_metadata={},
+            memos_data={},
+            scraped_map={},
             events_failed=True,  # Events failed
             people_failed=False
         )
@@ -346,11 +350,27 @@ class TestPipelineOrchestration:
             people_fetch_failed=False
         )
 
-        config = EtlConfig.from_env(overrides={'dry_run': False})
-        stats = run_etl_process(config)
+        config = EtlConfig(
+            env_profile=EnvProfile.DEV,
+            project_id="test-project",
+            collection_name="dogs_test",
+            secrets=SecretsConfig(mode=SecretsMode.ENV, project_id="test-project"),
+            memos_mode="api",
+            max_concurrent_scrapes=2,
+            dry_run=False,
+            animal_limit=None,
+            skip_events_people=False
+        )
+        creds = {"api_key": "test_key", "username": "test", "password": "test"}
+        stats = run_etl_process(config, creds)
 
-        # Verify extract was called
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
+        # Verify extract was called with correct 2-arg signature
+        mock_extract.assert_called_once()
+        (actual_creds, actual_cfg), _ = mock_extract.call_args
+        assert actual_creds == creds
+        assert isinstance(actual_cfg, ExtractConfig)
+        assert actual_cfg.memos_mode == "api"
+        assert actual_cfg.max_concurrent_scrapes == 2
 
         # Verify transform was called with extract result containing failed events
         mock_transform.assert_called_once()
@@ -366,16 +386,14 @@ class TestPipelineOrchestration:
         assert stats["events_fetch_failed"] == True
         assert stats["people_fetch_failed"] == False
 
-    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
     @patch('pipeline.load')
     @patch('pipeline.compute_stats')
-    def test_run_etl_process_people_fetch_failure(self, mock_compute_stats, mock_load, mock_transform, mock_extract, mock_get_db, mock_creds):
+    def test_run_etl_process_people_fetch_failure(self, mock_compute_stats, mock_load, mock_transform, mock_extract, mock_get_db):
         """Test ETL process handles people API failure gracefully."""
         # Setup mocks
-        mock_creds.return_value = {"api_key": "test_key", "username": "test", "password": "test"}
 
         # Mock extract result with people failure
         extract_result = ExtractResult(
@@ -384,6 +402,8 @@ class TestPipelineOrchestration:
             events=[{"event": "test"}],  # Events succeeded
             people=[],  # Empty due to failure
             existing_metadata={},
+            memos_data={},
+            scraped_map={},
             events_failed=False,
             people_failed=True  # People failed
         )
@@ -416,11 +436,27 @@ class TestPipelineOrchestration:
             people_fetch_failed=True
         )
 
-        config = EtlConfig.from_env(overrides={'dry_run': False})
-        stats = run_etl_process(config)
+        config = EtlConfig(
+            env_profile=EnvProfile.DEV,
+            project_id="test-project",
+            collection_name="dogs_test",
+            secrets=SecretsConfig(mode=SecretsMode.ENV, project_id="test-project"),
+            memos_mode="api",
+            max_concurrent_scrapes=2,
+            dry_run=False,
+            animal_limit=None,
+            skip_events_people=False
+        )
+        creds = {"api_key": "test_key", "username": "test", "password": "test"}
+        stats = run_etl_process(config, creds)
 
-        # Verify extract was called
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
+        # Verify extract was called with correct 2-arg signature
+        mock_extract.assert_called_once()
+        (actual_creds, actual_cfg), _ = mock_extract.call_args
+        assert actual_creds == creds
+        assert isinstance(actual_cfg, ExtractConfig)
+        assert actual_cfg.memos_mode == "api"
+        assert actual_cfg.max_concurrent_scrapes == 2
 
         # Verify transform was called with extract result containing failed people
         mock_transform.assert_called_once()
@@ -434,16 +470,14 @@ class TestPipelineOrchestration:
         assert stats["events_fetch_failed"] == False
         assert stats["people_fetch_failed"] == True
 
-    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
     @patch('pipeline.load')
     @patch('pipeline.compute_stats')
-    def test_run_etl_process_dry_run_flag(self, mock_compute_stats, mock_load, mock_transform, mock_extract, mock_get_db, mock_creds):
+    def test_run_etl_process_dry_run_flag(self, mock_compute_stats, mock_load, mock_transform, mock_extract, mock_get_db):
         """Test that dry_run flag is properly passed through to load function."""
         # Setup mocks
-        mock_creds.return_value = {"api_key": "test_key", "username": "test", "password": "test"}
 
         # Mock extract result
         extract_result = ExtractResult(
@@ -451,7 +485,9 @@ class TestPipelineOrchestration:
             animals_by_id={"1": {"Internal-ID": "1", "ID": "A1", "Name": "Dog 1"}},
             events=[],
             people=[],
-            existing_metadata={}
+            existing_metadata={},
+            memos_data={},
+            scraped_map={}
         )
         mock_extract.return_value = extract_result
 
@@ -481,22 +517,31 @@ class TestPipelineOrchestration:
         )
 
         # Run with dry_run=True
-        config = EtlConfig.from_env(overrides={'dry_run': True})
-        stats = run_etl_process(config)
+        config = EtlConfig(
+            env_profile=EnvProfile.DEV,
+            project_id="test-project",
+            collection_name="dogs_test",
+            secrets=SecretsConfig(mode=SecretsMode.ENV, project_id="test-project"),
+            memos_mode="api",
+            max_concurrent_scrapes=2,
+            dry_run=True,
+            animal_limit=None,
+            skip_events_people=False
+        )
+        creds = {"api_key": "test_key", "username": "test", "password": "test"}
+        stats = run_etl_process(config, creds)
 
         # Verify load was called with dry_run=True
         mock_load.assert_called_once_with(transform_result, True)
 
-    @patch('pipeline.get_shelterluv_creds')
     @patch('db.get_db')
     @patch('pipeline.extract')
     @patch('pipeline.transform')
     @patch('pipeline.load')
     @patch('pipeline.compute_stats')
-    def test_run_etl_process_both_api_failures(self, mock_compute_stats, mock_load, mock_transform, mock_extract, mock_get_db, mock_creds):
+    def test_run_etl_process_both_api_failures(self, mock_compute_stats, mock_load, mock_transform, mock_extract, mock_get_db):
         """Test ETL process handles both API failures gracefully."""
         # Setup mocks
-        mock_creds.return_value = {"api_key": "test_key", "username": "test", "password": "test"}
 
         # Mock extract result with both failures
         extract_result = ExtractResult(
@@ -505,6 +550,8 @@ class TestPipelineOrchestration:
             events=[],  # Empty due to failure
             people=[],  # Empty due to failure
             existing_metadata={},
+            memos_data={},
+            scraped_map={},
             events_failed=True,  # Events failed
             people_failed=True   # People failed
         )
@@ -537,11 +584,27 @@ class TestPipelineOrchestration:
             people_fetch_failed=True
         )
 
-        config = EtlConfig.from_env(overrides={'dry_run': False})
-        stats = run_etl_process(config)
+        config = EtlConfig(
+            env_profile=EnvProfile.DEV,
+            project_id="test-project",
+            collection_name="dogs_test",
+            secrets=SecretsConfig(mode=SecretsMode.ENV, project_id="test-project"),
+            memos_mode="api",
+            max_concurrent_scrapes=2,
+            dry_run=False,
+            animal_limit=None,
+            skip_events_people=False
+        )
+        creds = {"api_key": "test_key", "username": "test", "password": "test"}
+        stats = run_etl_process(config, creds)
 
-        # Verify extract was called
-        mock_extract.assert_called_once_with({"api_key": "test_key", "username": "test", "password": "test"}, None, False)
+        # Verify extract was called with correct 2-arg signature
+        mock_extract.assert_called_once()
+        (actual_creds, actual_cfg), _ = mock_extract.call_args
+        assert actual_creds == creds
+        assert isinstance(actual_cfg, ExtractConfig)
+        assert actual_cfg.memos_mode == "api"
+        assert actual_cfg.max_concurrent_scrapes == 2
 
         # Verify transform was called with extract result containing both failures
         mock_transform.assert_called_once()

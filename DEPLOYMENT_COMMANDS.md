@@ -16,7 +16,16 @@ node generate_test_report.js
 # Should exit with code 0 (all tests pass)
 ```
 
-### 2. Verify Schema Artifacts
+### 2. Run Performance Tests
+```bash
+# Run performance tests with staging environment
+FIREBASE_PROJECT_ID=staging-muttville GOOGLE_CLOUD_PROJECT=staging-muttville node scripts/run_performance_tests.js
+
+# Should exit with code 0 (all metrics within thresholds)
+# See PERFORMANCE_README.md for threshold details
+```
+
+### 3. Verify Schema Artifacts
 ```bash
 # Regenerate and verify schema artifacts are current
 npm run schema:gen && npm run schema:check
@@ -32,6 +41,7 @@ cd services/etl-scraper-py
 python run_etl_local.py --limit 3 --dry-run
 
 # Should complete without errors
+# Note: Assumes ETL stats use current fields (no total_animals_fetched alias)
 ```
 
 ### 4. Environment Verification

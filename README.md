@@ -1,133 +1,320 @@
 # Muttville App Monorepo
 
-A polyglot monorepo containing services for Muttville's dog adoption platform.
+Polyglot monorepo for Muttville's dog adoption platform.
 
-## Source of Truth
+## System Diagram
 
-All services derive their data contracts and business logic from these canonical sources:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ShelterLuv API/Scraping                     │
+└────────────────────────────┬──────────────────────────────────┘
+                              │
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│              services/etl_scraper_py/ (Python ETL)              │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ config.py → config_loader.py → common/config.json       │  │
+│  │ schema.py → common/schemas/dog.schema.json              │  │
+│  │ dog_types.py (generated from schema)                    │  │
+│  │                                                           │  │
+│  │ extract.py → transform.py → load.py                      │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└────────────────────────────┬──────────────────────────────────┘
+                              │
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    Firestore (GCP)                              │
+│  ┌──────────────────────┐  ┌──────────────────────┐           │
+│  │  dogs collection     │  │  users collection    │           │
+│  │  (validated schema)  │  │  (role-based auth)   │           │
+│  └──────────────────────┘  └──────────────────────┘           │
+└────────────────────────────┬──────────────────────────────────┘
+                              │
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│          services/webapp-react/ (React Frontend)                │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ src/types/Dog.types.ts (generated from schema)           │  │
+│  │ src/statusMapping.js (re-exports common/statusMapping.js)│  │
+│  │ src/repositories/dogRepository.js                         │  │
+│  │ src/hooks/useDogs.js                                      │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-- **Dog Schema**: `common/schemas/dog.schema.json` - Complete JSON Schema for dog data structures
-- **Status Semantics**: `common/statusMapping.js` - Status display logic and terminal status definitions
-- **User Roles**: `common/userRoles.js` - Valid roles and role validation logic
+**Data Flow**: ShelterLuv → ETL → Firestore → Webapp
 
-All dog data in ETL + webapp must conform to `common/schemas/dog.schema.json`.
+**Configuration Flow**: `common/config.json` → `config.py` (Python) / `firebaseConfig.js` (Node)
 
-## Dog Data Runtime Contract
+**Schema Flow**: `common/schemas/dog.schema.json` → Generated artifacts → ETL + Webapp
 
-The ETL pipeline guarantees these fields are always present in Firestore `dogs` collection:
+**Exact file locations:**
+- Schema: `common/schemas/dog.schema.json`
+- Config: `common/config.json` → `services/etl_scraper_py/config.py` (via `config_loader.py`)
+- Generated artifacts: `common/statusMapping.js`, `common/sizeConfig.js`, `services/webapp-react/src/types/Dog.types.ts`
+- Generator: `generate_schema_artifacts.js` → `schemaArtifactsCore.js` → `schemaArtifactsCli.js`
 
-**Required Fields (always present):**
-- `Internal-ID`, `ID`, `Name` - ShelterLuv identifiers
-- `Status` - Current adoption status
-- `AgeYears`, `AgeDisplay` - Age in canonical numeric/string format
-- `IsInCustody`, `IsAvailableForAdoption`, `IsHospice`, `IsEventDog` - Boolean flags
+**Breaking Changes Policy**: Breaking changes are allowed until first production user. No backward compatibility required. Internal APIs can change freely as long as tests and schema stay in sync.
 
-**ETL-Computed Fields (always present):**
-- `PersonalityNotes`, `IntakeNotes`, `MedicalNotes` - Categorized memo content (empty strings if no memos)
-- `IsInCustody`, `IsAvailableForAdoption`, `IsHospice`, `IsEventDog` - Computed boolean flags
+## Architecture
 
-**ETL-Conditional Fields (present when applicable):**
-- `FosterName`, `FosterPhone`, `FosterEmail` - Foster contact info (role-restricted, only when dog is in active foster care)
+**`common/`** - Shared configuration and generated artifacts
+- `schemas/dog.schema.json` - Canonical JSON Schema
+- `config.json` - Environment profiles, safe projects, roles
+- `statusMapping.js`, `sizeConfig.js` - Generated from schema
+- `firebaseConfig.js`, `devScriptSafety.js`, `userRoles.js` - Shared utilities
 
-**Optional Fields (may be undefined):**
-- `Photos`, `Description` - Public display content
-- `CaseManager`, `AdoptionCategory`, `MedicalCategory`, `BehaviorCategory` - ShelterLuv profile data
-- `Treatments` - Medical treatment history
-- `ScrapeError` - Error message if scraping failed
+**`services/etl_scraper_py/`** - Python ETL pipeline
+- Extracts from ShelterLuv API + scraping
+- Normalizes, enriches, validates against schema
+- Loads into Firestore `dogs` collection
+- Entry point: `run_etl_local.py` (dev) or `main.py` (production)
 
-## Contracts
+**`services/webapp-react/`** - React frontend
+- Firebase-authenticated Vite app
+- Reads from Firestore `dogs` collection
+- Uses generated TypeScript types from schema
+- Entry point: `npm run dev` (dev) or `npm run build` (production)
 
-**Dog Shape**: Defined in `common/schemas/dog.schema.json` (JSON Schema Draft 7). All dog data must conform to this schema with `"additionalProperties": false`.
+## Configuration
 
-**Status Enums**: `["AVAILABLE", "ADOPTED", "PENDING", "HOLD", "UNKNOWN"]` - Owned by schema, mapped to UI display in `common/statusMapping.js`.
+**Single source**: `common/config.json` defines:
+- `env_profiles`: Required/optional env vars per profile (`web`, `admin`, `etl`, `dev`)
+- `python_env_profiles`: GCP project mappings (`dev`, `staging`, `e2e`, `demo`, `prod`)
+- `safe_profiles`: Profiles allowed for dev operations
+- `roles`: Valid user roles (`viewer`, `closer`, `staff`)
 
-**Size Enums**: `["Small", "Medium", "Large", "X-Large", "UNKNOWN"]` - Owned by schema, ordered for display in `common/sizeConfig.js`.
+All scripts use `common/devScriptSafety.js` for safety checks. Never hardcode project IDs.
 
-**User Roles**: `["viewer", "closer", "staff"]` - Owned by `common/userRoles.js`, enforced in AuthContext and repositories.
+## Quick Start
 
-## Generated Files - DO NOT EDIT
+### Schema Generation
 
-These files are auto-generated from `common/schemas/dog.schema.json` via `npm run schema:gen`:
+```bash
+npm run schema:gen    # Generate artifacts from schema
+npm run schema:check  # Verify artifacts are in sync
+```
 
-- `services/webapp-react/src/types/Dog.types.ts` - TypeScript type definitions
-- `common/statusMapping.js` - Status display mappings and terminal status logic
-- `common/sizeConfig.js` - Size category ordering and display logic
+**To change schema:**
+1. Edit `common/schemas/dog.schema.json`
+2. Run `npm run schema:gen`
+3. Update ETL/webapp code to handle changes
+4. Run `npm run schema:check` and tests
 
-Edit the JSON schema and regenerate; never modify these files directly.
+**Generator path**: `generate_schema_artifacts.js` → `schemaArtifactsCore.js` → `schemaArtifactsCli.js`. Never edit generated files.
 
-## Services
+### Run ETL Locally
 
-### `/services/webapp-react`
-React frontend application with Google SSO authentication for dog browsing.
+```bash
+cd services/etl_scraper_py
+python3 run_etl_local.py
+```
 
-**Entrypoints:**
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm test` - Run unit tests
-- `npm run test:e2e` - Run E2E tests
+Uses env vars from `common/config.json` `etl` profile. See `services/etl_scraper_py/README.md`.
 
-See [services/webapp-react/README.md](services/webapp-react/README.md) for setup, features, and development.
+### Run Webapp Locally
 
-### `/services/etl-scraper-py`
-Python ETL pipeline that extracts dog data from ShelterLuv API (including memos), processes with concurrent scraping, and loads into Firestore.
+```bash
+cd services/webapp-react
+npm run dev   # http://localhost:5173
+```
 
-**Entrypoints:**
-- `python run_etl_local.py` - Run ETL locally (development)
-- `python clear_and_run_etl.py` - Clear existing data and run full ETL (development)
-- `python main.py` - CLI interface for production deployments
+Uses `VITE_`-prefixed env vars from `common/config.json` `web` profile. See `services/webapp-react/README.md`.
 
-See [services/etl-scraper-py/README.md](services/etl-scraper-py/README.md) for ETL pipeline details and development.
+## Safety Model
 
-## Common
+**Single source of truth**: `common/config.json` defines `safe_profiles` list. All safety checks use this file via `common/devScriptSafety.js` (Node) or `services/etl_scraper_py/config.py` (Python).
 
-### `/common/schemas`
-Language-neutral JSON Schema definitions for data validation across services. The single source of truth for all dog data structures.
+### Safety Layers
 
-### `/scratch`
-Development artifacts not used by any service (e.g., `muttville_exploration.json`).
+1. **Environment Variable Check**: `DEV_SCRIPTS_ENABLED=1` must be set for destructive operations
+2. **Project ID Validation**: Project must be in `common/config.json` `safe_profiles` list
+3. **Profile Matching**: Python `EnvProfile` enum must match `safe_profiles` (validated on import)
 
-## Security
+### Safe Profiles
 
-**Authentication**: Google SSO with @muttville.org domain restriction. Firestore read access requires authentication.
+Defined in `common/config.json`:
+- `dev` - Development environment
+- `staging` - Staging environment  
+- `e2e` - End-to-end testing
+- `demo` - Demo environment
 
-**Data Security**: ETL pipeline (admin SDK only) writes to Firestore. Client apps are read-only. All ShelterLuv credentials via GCP Secret Manager.
+**Blocked profiles**: Production projects (`muttville-prod`, `muttville-production`) are never in `safe_profiles` and will fail safety checks.
 
-**Validation**: All dog data validated against `common/schemas/dog.schema.json` (JSON Schema Draft 7) with strict `"additionalProperties": false`.
+### Implementation Files
 
-**Repository Policy**: No secrets in source. Debug scripts must use `.env` or Secret Manager. Never run ETL debug scripts against prod.
+- **Node.js**: `common/devScriptSafety.js` - Exports `assertSafe()`, `isSafeProject()`, `assertDevScriptsEnabled()`
+- **Python**: `services/etl_scraper_py/config.py` - `EnvProfile.get_safe_profiles()` validates against config.json
+- **Config Loader**: `common/configData.js` - Single loader for `common/config.json` with validation
 
-**Debug scripts**: Python/Node debug scripts are manual/local-only tools, not CI. Do not commit real credentials into these scripts.
+**Usage**: All scripts that perform destructive operations (user seeding, data deletion, etc.) must call `assertSafe()` before execution. See `scripts/firebase_cli_tool.js` for examples.
 
-## Schema Contract
-
-**Single source of truth**: ETL must produce docs matching `common/schemas/dog.schema.json`. Webapp's `normalizeDog` will **throw** on schema violations.
-
-**Enforcement tools**: `check_firestore_data.js` + `common/firestoreChecks.js` are the tools to enforce this contract.
-
-**ETL owns semantics**: ETL produces complete, schema-compliant data. Webapp trusts ETL and will **hard-fail** on schema violations.
-
-## 🚀 Quick Start
-
-Choose your development path in **[QUICK_START.md](QUICK_START.md)**:
-
-- **Webapp Development Only**: Frontend work without ETL access
-- **ETL Development Only**: Backend pipeline development
-- **Full Stack Development**: Both frontend and backend
-
-### Setup Overview
-
-1. Clone this repository
-2. Follow the appropriate path in **[QUICK_START.md](QUICK_START.md)**
-3. Configure Google Cloud Project and Firebase
-4. Deploy services (see **[DEPLOYMENT_COMMANDS.md](DEPLOYMENT_COMMANDS.md)**)
-
-See [PERFORMANCE_README.md](PERFORMANCE_README.md) for performance testing and monitoring.
 
 ## Testing
 
-- **ETL**: pytest in `services/etl-scraper-py/tests/`
-- **Frontend**: Vitest (unit) + Playwright (E2E) in `services/webapp-react/`
-- **Coverage**: Schema validation, auth flows, component rendering, ETL pipeline phases
+**Unified test runner**: `node generate_test_report.js` runs all tests and generates artifacts.
+
+**Test types:**
+- Unit tests: Pure functions, no I/O (run in CI always)
+- Integration tests: Mocked I/O (run in CI always)
+- E2E tests: Live DB/APIs (run manually/on-demand only)
+
+See [Testing & CI](#testing--ci) section below.
+
+## Data Contracts
+
+**Dog Schema**: `common/schemas/dog.schema.json` (JSON Schema Draft 7). All dog data must conform with `"additionalProperties": false`.
+
+**Required fields** (ETL guarantees): `Internal-ID`, `ID`, `Name`, `Status`, `AgeYears`, `AgeDisplay`, `IsInCustody`, `IsAvailableForAdoption`, `IsHospice`, `IsEventDog`, `PersonalityNotes`, `IntakeNotes`, `MedicalNotes`.
+
+**Status enums**: `["AVAILABLE", "ADOPTED", "PENDING", "HOLD", "UNKNOWN"]` - from schema, mapped in `common/statusMapping.js`.
+
+**Size enums**: `["Small", "Medium", "Large", "X-Large", "UNKNOWN"]` - from schema, ordered in `common/sizeConfig.js`.
+
+**User roles**: `["viewer", "closer", "staff"]` - from `common/userRoles.js`.
+
+## Deployment
+
+**Pre-deploy checks** (required):
+1. `npm run schema:gen && npm run schema:check` - Schema artifacts in sync
+2. `node generate_test_report.js` - All tests pass
+3. `node scripts/firebase_cli_tool.js check-data` - Firestore data integrity
+4. `node scripts/firebase_cli_tool.js check-users` - User data integrity
+
+**⚠️ PRODUCTION SAFETY**: Production projects (`muttville-prod`, `muttville-production`) require explicit safety checks. Never deploy without completing pre-deploy checks.
+
+### Pre-Deploy Checks (Required)
+
+**FAIL FAST**: If any check fails, STOP and fix before deploying.
+
+#### Schema & Tests (FAIL = STOP)
+```bash
+# Generate fresh schema artifacts and verify no drift
+npm run schema:gen && npm run schema:check
+# If fails: Commit schema changes or fix drift
+
+# Run full test suite and generate report
+node generate_test_report.js
+# If fails: Fix tests before deploying
+```
+
+#### Environment Safety (FAIL = STOP)
+```bash
+# Validate Firestore data integrity
+node scripts/firebase_cli_tool.js check-data
+
+# Validate user data integrity
+node scripts/firebase_cli_tool.js check-users
+
+# Verify environment variables are safe
+# FIREBASE_PROJECT_ID should be: dev-muttville, staging-muttville, muttville-demo
+# NEVER: muttville-prod, muttville-production
+```
+
+#### Build Verification (FAIL = STOP)
+```bash
+# Webapp builds successfully
+cd services/webapp-react && npm run build
+
+# ETL deploys successfully (dry run)
+cd services/etl_scraper_py && python run_etl_local.py --limit 3 --dry-run
+```
+
+### Deploy to Staging
+
+**Environment**: `staging-muttville`
+
+```bash
+# Set staging environment
+export FIREBASE_PROJECT_ID=staging-muttville
+export GCP_PROJECT_ID=staging-muttville
+
+# Deploy ETL Cloud Function
+cd services/etl_scraper_py
+gcloud functions deploy etl-scraper \
+  --project="$GCP_PROJECT_ID" \
+  --runtime python312 \
+  --trigger-http \
+  --allow-unauthenticated=false \
+  --entry-point main \
+  --source=. \
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=$GCP_PROJECT_ID" \
+  --memory=512MB \
+  --timeout=540s
+
+# Deploy Webapp
+cd ../webapp-react
+firebase use "$FIREBASE_PROJECT_ID"
+npm run build
+firebase deploy --only hosting --project="$FIREBASE_PROJECT_ID"
+
+# Trigger ETL to populate data
+FUNCTION_URL=$(gcloud functions describe etl-scraper \
+  --project="$GCP_PROJECT_ID" --format="value(httpsTrigger.url)")
+curl -X POST "$FUNCTION_URL" \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)"
+```
+
+### Deploy to Production
+
+**Environment**: `muttville-prod`
+
+```bash
+# Set production environment
+export FIREBASE_PROJECT_ID=muttville-prod
+export GCP_PROJECT_ID=muttville-prod
+
+# Deploy ETL Cloud Function
+cd services/etl_scraper_py
+gcloud functions deploy etl-scraper \
+  --project="$GCP_PROJECT_ID" \
+  --runtime python312 \
+  --trigger-http \
+  --allow-unauthenticated=false \
+  --entry-point main \
+  --source=. \
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=$GCP_PROJECT_ID" \
+  --memory=512MB \
+  --timeout=540s
+
+# Deploy Webapp
+cd ../webapp-react
+firebase use "$FIREBASE_PROJECT_ID"
+npm run build
+firebase deploy --only hosting --project="$FIREBASE_PROJECT_ID"
+
+# Trigger ETL to populate data
+FUNCTION_URL=$(gcloud functions describe etl-scraper \
+  --project="$GCP_PROJECT_ID" --format="value(httpsTrigger.url)")
+curl -X POST "$FUNCTION_URL" \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)"
+```
+
+### Emergency Operations (Use Only When Required)
+
+#### Rollback Webapp
+```bash
+firebase hosting:rollback --project="$FIREBASE_PROJECT_ID"
+```
+
+#### Check ETL Logs
+```bash
+gcloud logging read \
+  "resource.type=cloud_function AND resource.labels.function_name=etl-scraper" \
+  --project="$GCP_PROJECT_ID" --limit=10
+```
+
+#### 🚨 EMERGENCY: Stop ETL Function
+```bash
+# Only if ETL is malfunctioning and cannot be stopped otherwise
+gcloud functions delete etl-scraper --project="$GCP_PROJECT_ID"
+```
+
+#### 🚨 EMERGENCY: Wipe All Data
+```bash
+# Only if data is hopelessly corrupted and you have backups
+firebase firestore:bulkdelete --all-collections --project="$GCP_PROJECT_ID" --yes
+```
 
 ### Testing & CI
 
@@ -141,73 +328,20 @@ See [PERFORMANCE_README.md](PERFORMANCE_README.md) for performance testing and m
 
 **Live DB Tests**: Real Firestore/ShelterLuv APIs. Run manually/on-demand only.
 - ETL: e2e tests marked with `@pytest.mark.live_db`
-- Webapp: Playwright E2E tests with real Firebase project
+- Webapp: Playwright E2E tests with real Firebase project (authenticated tests skip gracefully when auth state missing)
+
+**Test Infrastructure**:
+- ETL tests use shared fixtures from `tests/conftest.py` (including `parser` fixture for memo parsing)
+- ETL mocks patch functions at point of use (e.g., `main.pipeline.run_etl_process`)
+- E2E tests filter harmless 404s (favicon, manifest) and skip authenticated tests when auth state unavailable
 
 Run `node generate_test_report.js` for unified test execution and reporting.
 
-## Architecture in One Page
+## Performance Testing
 
-```
-ETL (Python) → Firestore (dogs/users collections) → React Webapp
-     ↓              ↓                              ↓
-ShelterLuv API  Dog Schema Contract          Authenticated UI
-(normalize +    (required/optional fields,   (trusts ETL and will
- enrich + scrape) status/size enums)          **hard-fail** on schema violations)
-```
+See [PERFORMANCE_README.md](PERFORMANCE_README.md) for performance testing entry points:
+- ETL: `services/etl_scraper_py/perf/pipeline_performance_test.py`
+- Webapp: `services/webapp-react/perf/performance_test.js`
+- Orchestrator: `scripts/run_performance_tests.js`
 
-**ETL owns semantics; webapp trusts ETL and will **hard-fail** on schema violations.**
-
-**Schema is SSoT - All status/size semantics flow from `common/schemas/dog.schema.json`.**
-
-### Data Flow Contract
-
-- **ETL Pipeline**: Python extract/transform/load pipeline with concurrent ShelterLuv scraping. Owns all dog data semantics and guarantees Firestore contract compliance.
-- **Data Store**: Firebase Firestore (dogs collection + users collection) - single source of truth for runtime data
-- **Frontend**: React app with Firebase Auth (Google SSO) consuming Firestore data (read-only). Trusts ETL to provide complete, schema-compliant data without defensive defaults.
-- **Data Definition**: JSON Schema in `/common/schemas` (single source of truth for all services)
-- **Schema Artifacts**: Auto-generated TypeScript types and UI mappings from schema via `npm run schema:gen`
-- **Validation**: Runtime schema validation in ETL and React components with `"additionalProperties": false`
-- **Hosting**: Firebase Hosting serves built React app
-
-### Environment Variables
-
-**Webapp/Browser (Vite):**
-- `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`
-- **Note:** Vite requires `VITE_` prefix for variables accessible in browser code
-
-**Admin/Node scripts:**
-- `FIREBASE_PROJECT_ID` - Core project identifier for admin operations
-- `DEV_SCRIPTS_ENABLED=1` - Required for destructive dev operations
-
-**ETL Pipeline (Python):**
-- `SHELTERLUV_USER`, `SHELTERLUV_PASS`, `SHELTERLUV_API_KEY` - ShelterLuv API credentials
-- `GCP_PROJECT` - Google Cloud project ID
-- `DOGS_COLLECTION` - Firestore collection name
-- `E2E_LIVE_DB` - Use live database for E2E tests
-- `DISABLE_SECRET_MANAGER` - Skip GCP Secret Manager for local development
-
-### Firestore Contract - Hard Requirements
-
-ETL guarantees these fields are always present and schema-compliant in Firestore `dogs` docs:
-
-**Required Fields (always present, no defensive defaults):**
-- `Internal-ID`, `ID`, `Name` - ShelterLuv identifiers
-- `Status` - Current adoption status
-- `AgeYears`, `AgeDisplay` - Age in canonical numeric/string format
-- `IsInCustody`, `IsAvailableForAdoption`, `IsHospice`, `IsEventDog` - Boolean flags
-- `PersonalityNotes`, `IntakeNotes`, `MedicalNotes` - Categorized memo content
-
-**ETL-Conditional Fields (may be undefined, no defensive defaults):**
-- `FosterName`, `FosterPhone`, `FosterEmail` - Foster contact info (role-restricted, only when dog is in active foster care)
-
-**Optional Fields (may be undefined, no defensive defaults):**
-- `Photos`, `Description` - Public display content
-- `CaseManager`, `AdoptionCategory`, `MedicalCategory`, `BehaviorCategory` - ShelterLuv profile data
-- `Treatments` - Medical treatment history
-- `ScrapeError` - Error message if scraping failed
-
-### How Dog Data Flows
-
-ShelterLuv API (animals, events, people, memos) → ETL Extract → Transform (normalize + enrich + scrape) → Load to Firestore → React Components (authenticated access)
-
-**Status**: ✅ **Production-ready** - ETL pipeline successfully tested with real ShelterLuv data.
+All perf tests use `common/devScriptSafety.js` for safety checks. No second config system.

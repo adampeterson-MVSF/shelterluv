@@ -5,7 +5,7 @@ Tests for secret_manager.py - Google Secret Manager integration.
 import pytest
 import os
 from unittest.mock import patch, Mock
-from secret_manager import get_shelterluv_creds, _get_secret, _get_secret_client
+from secret_manager import get_shelterluv_creds, get_secret, _get_gcp_secret_client
 from errors import EtlError
 
 
@@ -13,7 +13,7 @@ class TestSecretManager:
     """Test secret manager functionality."""
 
     def test_get_secret_client_caching(self):
-        """Test that _get_secret_client is properly cached."""
+        """Test that _get_gcp_secret_client is properly cached."""
         with patch('secret_manager._ensure_google_cloud_imported') as mock_ensure_import:
             # Mock the secretmanager module after import
             from unittest.mock import MagicMock
@@ -24,9 +24,9 @@ class TestSecretManager:
                 mock_secretmanager.SecretManagerServiceClient.return_value = mock_client_instance
 
                 # First call
-                client1 = _get_secret_client()
+                client1 = _get_gcp_secret_client()
                 # Second call - should return cached instance
-                client2 = _get_secret_client()
+                client2 = _get_gcp_secret_client()
 
                 # Should be the same instance (cached)
                 assert client1 is client2

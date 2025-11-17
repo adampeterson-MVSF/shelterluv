@@ -8,47 +8,67 @@
   "properties": {
     "Internal-ID": {
       "type": "string",
-      "description": "[API] ShelterLuv internal unique identifier - from ShelterLuv API field 'Internal-ID'"
+      "description": "[API] ShelterLuv internal unique identifier - from ShelterLuv API field 'Internal-ID'",
+      "x-group": "identity",
+      "x-ownership": "api"
     },
     "ID": {
       "type": "string",
-      "description": "[API] ShelterLuv public animal ID - from ShelterLuv API field 'ID'"
+      "description": "[API] ShelterLuv public animal ID - from ShelterLuv API field 'ID'",
+      "x-group": "identity",
+      "x-ownership": "api"
     },
     "Name": {
       "type": "string",
-      "description": "[API] Dog's name - from ShelterLuv API field 'Name'"
+      "description": "[API] Dog's name - from ShelterLuv API field 'Name'",
+      "x-group": "identity",
+      "x-ownership": "api"
     },
     "Breed": {
       "type": "string",
-      "description": "[API] Dog's breed - from ShelterLuv API field 'Breed'"
+      "description": "[API] Dog's breed - from ShelterLuv API field 'Breed'",
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "AgeYears": {
       "type": "number",
-      "description": "[DERIVED] Canonical age in years for sorting/filtering (e.g., 3.5 for 3 years 6 months) - computed from ShelterLuv age data"
+      "description": "[DERIVED] Canonical age in years for sorting/filtering (e.g., 3.5 for 3 years 6 months) - computed from ShelterLuv age data",
+      "x-group": "derived",
+      "x-ownership": "etl"
     },
     "AgeDisplay": {
       "type": "string",
-      "description": "[DERIVED] Human-readable age representation (e.g., '3 years', 'Adult', 'Senior') - computed from ShelterLuv age data"
+      "description": "[DERIVED] Human-readable age representation (e.g., '3 years', 'Adult', 'Senior') - computed from ShelterLuv age data",
+      "x-group": "derived",
+      "x-ownership": "etl"
     },
     "Size": {
       "type": "string",
       "enum": ["Small", "Medium", "Large", "X-Large", "UNKNOWN"],
-      "description": "[API] Dog's size category - from ShelterLuv API field 'Size'. UNKNOWN indicates size could not be determined."
+      "description": "[API] Dog's size category - from ShelterLuv API field 'Size'. UNKNOWN indicates size could not be determined.",
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "Gender": {
       "type": "string",
       "enum": ["Male", "Female"],
-      "description": "[API] Dog's gender - from ShelterLuv API field 'Gender'"
+      "description": "[API] Dog's gender - from ShelterLuv API field 'Gender'",
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "Status": {
       "type": "string",
       "enum": ["AVAILABLE", "ADOPTED", "PENDING", "HOLD", "UNKNOWN"],
       "description": "[API] Current status in shelter system - from ShelterLuv API field 'Status'. UNKNOWN indicates status could not be determined from ShelterLuv data.",
-      "x-terminal-statuses": ["ADOPTED"]
+      "x-terminal-statuses": ["ADOPTED"],
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "Description": {
       "type": "string",
-      "description": "[API] Dog's description/bio - from ShelterLuv API field 'Description'"
+      "description": "[API] Dog's description/bio - from ShelterLuv API field 'Description'",
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "Photos": {
       "type": "array",
@@ -57,43 +77,199 @@
         "format": "uri",
         "description": "[API] URL to dog photo - from ShelterLuv API field 'Photos'"
       },
-      "description": "[API] Array of photo URLs - from ShelterLuv API field 'Photos'"
+      "description": "[API] Array of photo URLs - from ShelterLuv API field 'Photos'",
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "CaseManager": {
       "type": "string",
-      "description": "[SCRAPED] Assigned case manager name - scraped from ShelterLuv profile section"
+      "description": "[SCRAPED] Assigned case manager name - scraped from ShelterLuv profile section",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
     },
     "MemosRawHTML": {
       "type": "string",
-      "description": "[SCRAPED] Raw HTML content of all memos/notes - scraped from ShelterLuv memos page"
+      "description": "[SCRAPED] Raw HTML content of all memos/notes - scraped from ShelterLuv memos page",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
     },
     "PersonalityNotes": {
       "type": "string",
-      "description": "[DERIVED] Personality and behavior notes extracted from MemosRawHTML - categorized by ETL based on keywords (personality, behavior, temperament, etc.)"
+      "description": "[DERIVED] Personality and behavior notes extracted from MemosRawHTML - categorized by ETL based on keywords (personality, behavior, temperament, etc.)",
+      "x-group": "derived",
+      "x-ownership": "etl"
     },
     "IntakeNotes": {
       "type": "string",
-      "description": "[DERIVED] Intake and background notes extracted from MemosRawHTML - categorized by ETL based on keywords (intake, background, history, etc.)"
+      "description": "[DERIVED] Intake and background notes extracted from MemosRawHTML - categorized by ETL based on keywords (intake, background, history, etc.)",
+      "x-group": "derived",
+      "x-ownership": "etl"
     },
     "MedicalNotes": {
       "type": "string",
-      "description": "[DERIVED] Medical notes extracted from MemosRawHTML - categorized by ETL based on keywords (medical, health, vet, treatment, etc.)"
+      "description": "[DERIVED] Medical notes extracted from MemosRawHTML - categorized by ETL based on keywords (medical, health, vet, treatment, etc.)",
+      "x-group": "derived",
+      "x-ownership": "etl"
+    },
+    "MedicalHistory": {
+      "type": "object",
+      "description": "[DERIVED] Comprehensive medical history extracted from ShelterLuv animal record summary page",
+      "x-group": "derived",
+      "x-ownership": "etl",
+      "properties": {
+        "vaccinations": {
+          "type": "array",
+          "description": "Vaccination history with dates, status, lot numbers, expiration dates",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "date": {"type": "string"},
+              "status": {"type": "string"},
+              "lot_number": {"type": "string"},
+              "expiration_date": {"type": "string"},
+              "rabies_tag_number": {"type": "string"},
+              "source": {"type": "string"},
+              "route": {"type": "string"},
+              "site": {"type": "string"},
+              "vaccinated_by": {"type": "string"}
+            },
+            "additionalProperties": true
+          }
+        },
+        "treatments_due": {
+          "type": "array",
+          "description": "Treatments and medications that are next due",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "dosage": {"type": "string"},
+              "frequency": {"type": "string"},
+              "due_date": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "treatment_history": {
+          "type": "array",
+          "description": "Historical treatment records",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "dosage": {"type": "string"},
+              "frequency": {"type": "string"},
+              "start_date": {"type": "string"},
+              "end_date": {"type": "string"},
+              "notes": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "active_diagnoses": {
+          "type": "array",
+          "description": "Currently active medical diagnoses",
+          "items": {
+            "type": "object",
+            "properties": {
+              "condition": {"type": "string"},
+              "diagnosed_date": {"type": "string"},
+              "notes": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "resolved_diagnoses": {
+          "type": "array",
+          "description": "Previously diagnosed conditions that have been resolved",
+          "items": {
+            "type": "object",
+            "properties": {
+              "condition": {"type": "string"},
+              "diagnosed_date": {"type": "string"},
+              "resolved_date": {"type": "string"},
+              "notes": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "diagnostic_tests": {
+          "type": "array",
+          "description": "Laboratory and diagnostic test results",
+          "items": {
+            "type": "object",
+            "properties": {
+              "test_type": {"type": "string"},
+              "test_name": {"type": "string"},
+              "date": {"type": "string"},
+              "results": {"type": "string"},
+              "results_detail": {"type": "string"},
+              "test_by": {"type": "string"},
+              "veterinarian": {"type": "string"},
+              "notes": {"type": "string"}
+            },
+            "additionalProperties": true
+          }
+        },
+        "physical_exams": {
+          "type": "array",
+          "description": "Physical examination records",
+          "items": {
+            "type": "object",
+            "properties": {
+              "exam_type": {"type": "string"},
+              "date_time": {"type": "string"},
+              "details": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "procedures_surgeries": {
+          "type": "array",
+          "description": "Surgical procedures and medical procedures performed",
+          "items": {
+            "type": "object",
+            "properties": {
+              "procedure_type": {"type": "string"},
+              "date_time": {"type": "string"},
+              "details": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": true
     },
     "AdoptionCategory": {
       "type": "string",
-      "description": "[SCRAPED] Adoption category - scraped from ShelterLuv profile section"
+      "description": "[SCRAPED] Adoption category - scraped from ShelterLuv profile section",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
     },
     "MedicalCategory": {
       "type": "string",
-      "description": "[SCRAPED] Medical category - scraped from ShelterLuv profile section"
+      "description": "[SCRAPED] Medical category - scraped from ShelterLuv profile section",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
     },
     "BehaviorCategory": {
       "type": "string",
-      "description": "[SCRAPED] Behavior category - scraped from ShelterLuv profile section"
+      "description": "[SCRAPED] Behavior category - scraped from ShelterLuv profile section",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "VolunteerCategory": {
+      "type": "string",
+      "description": "[SCRAPED] Volunteer category - scraped from ShelterLuv profile section",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
     },
     "FullAnimalProfile": {
       "type": "string",
-      "description": "[SCRAPED] Full animal profile text - scraped from ShelterLuv profile section"
+      "description": "[SCRAPED] Full animal profile text - scraped from ShelterLuv profile section",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
     },
     "Treatments": {
       "type": "array",
@@ -105,57 +281,260 @@
           "notes": { "type": "string" }
         }
       },
-      "description": "[DERIVED] Medical treatments history - structured from scraped data"
+      "description": "[DERIVED] Medical treatments history - structured from scraped data",
+      "x-group": "derived",
+      "x-ownership": "etl"
     },
     "IntakeDate": {
       "type": "string",
       "format": "date",
-      "description": "[API] Date the dog was taken into custody - from ShelterLuv API field 'IntakeDate'"
+      "description": "[API] Date the dog was taken into custody - from ShelterLuv API field 'IntakeDate'",
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "Location": {
       "type": "string",
-      "description": "[API] Current location in shelter - from ShelterLuv API field 'Location'"
+      "description": "[API] Current location in shelter - from ShelterLuv API field 'Location'",
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "Stage": {
       "type": "string",
-      "description": "[API] Current stage in adoption process - from ShelterLuv API field 'Stage'"
+      "description": "[API] Current stage in adoption process - from ShelterLuv API field 'Stage'",
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "Weight": {
       "type": ["string", "number"],
-      "description": "[API] Dog's weight in pounds - from ShelterLuv API field 'Weight'"
+      "description": "[API] Dog's weight in pounds - from ShelterLuv API field 'Weight'",
+      "x-group": "api",
+      "x-ownership": "api"
     },
     "FosterName": {
       "type": "string",
-      "description": "[DERIVED] Name of current foster parent - derived from ShelterLuv events and people data. ROLE RESTRICTED: closers/staff only"
+      "description": "[DERIVED] Name of current foster parent - derived from ShelterLuv events and people data. ROLE RESTRICTED: closers/staff only",
+      "x-group": "restricted",
+      "x-ownership": "etl"
     },
     "FosterPhone": {
       "type": "string",
-      "description": "[DERIVED] Foster parent's phone number - derived from ShelterLuv people data. ROLE RESTRICTED: closers/staff only"
+      "description": "[DERIVED] Foster parent's phone number - derived from ShelterLuv people data. ROLE RESTRICTED: closers/staff only",
+      "x-group": "restricted",
+      "x-ownership": "etl"
     },
     "FosterEmail": {
       "type": "string",
       "format": "email",
-      "description": "[DERIVED] Foster parent's email address - derived from ShelterLuv people data. ROLE RESTRICTED: closers/staff only"
+      "description": "[DERIVED] Foster parent's email address - derived from ShelterLuv people data. ROLE RESTRICTED: closers/staff only",
+      "x-group": "restricted",
+      "x-ownership": "etl"
     },
     "ScrapeError": {
       "type": "string",
-      "description": "[DERIVED] Error message if scraping dog details failed - shows in UI as warning"
+      "description": "[DERIVED] Error message if scraping dog details failed - shows in UI as warning",
+      "x-group": "derived",
+      "x-ownership": "etl"
     },
     "IsInCustody": {
       "type": "boolean",
-      "description": "[DERIVED] Dog is currently in Muttville's custody. True if dog is actively managed by Muttville (not adopted/returned). Computed from Status and ETL source data - all dogs from ShelterLuv 'In Custody' view are in custody."
+      "description": "[DERIVED] Dog is currently in Muttville's custody. True if dog is actively managed by Muttville (not adopted/returned). Computed from Status and ETL source data - all dogs from ShelterLuv 'In Custody' view are in custody.",
+      "x-group": "derived",
+      "x-ownership": "etl"
     },
     "IsAvailableForAdoption": {
       "type": "boolean",
-      "description": "[DERIVED] Dog is actively available for public adoption. True only when Status is 'AVAILABLE'. Used by frontend to filter adoptable dogs."
+      "description": "[DERIVED] Dog is actively available for public adoption. True only when Status is 'AVAILABLE'. Used by frontend to filter adoptable dogs.",
+      "x-group": "derived",
+      "x-ownership": "etl"
     },
     "IsHospice": {
       "type": "boolean",
-      "description": "[DERIVED] Dog is in Muttville's hospice care program. Computed from MedicalCategory, Stage, event history, and hospice-related keywords in metadata."
+      "description": "[DERIVED] Dog is in Muttville's hospice care program. Computed from MedicalCategory, Stage, event history, and hospice-related keywords in metadata.",
+      "x-group": "derived",
+      "x-ownership": "etl"
     },
     "IsEventDog": {
       "type": "boolean",
-      "description": "[DERIVED] Dog participates in public events/outreach. Computed from event history, AdoptionCategory, BehaviorCategory, and event-related keywords in description/personality notes."
+      "description": "[DERIVED] Dog participates in public events/outreach. Computed from event history, AdoptionCategory, BehaviorCategory, and event-related keywords in description/personality notes.",
+      "x-group": "derived",
+      "x-ownership": "etl"
+    },
+    "Attributes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "[SCRAPED] Attribute tags for this dog - scraped from ShelterLuv Attributes tab (e.g., 'Cat-friendly', 'Potty trained'). Used for filtering and display in UI.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "BehavioralAttributes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "[SCRAPED] Behavioral attribute tags for this dog - scraped from ShelterLuv behavioral attributes section (e.g., 'Cat-friendly', 'Energy Level - Moderate'). Used for filtering and display in UI.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "PhysicalAttributes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "[SCRAPED] Physical/medical attribute tags for this dog - scraped from ShelterLuv physical attributes section (e.g., 'Dental Disease', 'Heart Murmur'). Used for filtering and display in UI.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "Species": {
+      "type": "string",
+      "description": "[SCRAPED] Species of the animal - scraped from ShelterLuv overview section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "Color": {
+      "type": "string",
+      "description": "[SCRAPED] Color of the dog - scraped from ShelterLuv overview section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "Pattern": {
+      "type": "string",
+      "description": "[SCRAPED] Pattern/markings of the dog - scraped from ShelterLuv overview section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "DistinguishingMarks": {
+      "type": "string",
+      "description": "[SCRAPED] Distinguishing marks/features - scraped from ShelterLuv overview section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "AdoptionPrice": {
+      "type": "string",
+      "description": "[SCRAPED] Adoption price - scraped from ShelterLuv overview section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "MicrochipNumber": {
+      "type": "string",
+      "description": "[SCRAPED] Microchip number - scraped from ShelterLuv microchip section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "MicrochipIssuer": {
+      "type": "string",
+      "description": "[SCRAPED] Microchip issuer - scraped from ShelterLuv microchip section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "MicrochipImplantDate": {
+      "type": "string",
+      "description": "[SCRAPED] Microchip implant date - scraped from ShelterLuv microchip section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "AlteredBeforeArrival": {
+      "type": "string",
+      "description": "[SCRAPED] Whether the dog was altered before arrival - scraped from ShelterLuv sex/weight section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "AlteredInCare": {
+      "type": "string",
+      "description": "[SCRAPED] Whether the dog was altered while in care - scraped from ShelterLuv sex/weight section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "AgeGroup": {
+      "type": "string",
+      "description": "[SCRAPED] Age group category - scraped from ShelterLuv size/age section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "EstBirthdate": {
+      "type": "string",
+      "description": "[SCRAPED] Estimated birthdate - scraped from ShelterLuv size/age section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "IntakeType": {
+      "type": "string",
+      "description": "[SCRAPED] Intake type - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "IntakeSubtype": {
+      "type": "string",
+      "description": "[SCRAPED] Intake subtype - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "OutcomeType": {
+      "type": "string",
+      "description": "[SCRAPED] Outcome type - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "OutcomeSubtype": {
+      "type": "string",
+      "description": "[SCRAPED] Outcome subtype - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "AsilomarIntake": {
+      "type": "string",
+      "description": "[SCRAPED] Asilomar intake score - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "AsilomarOutcome": {
+      "type": "string",
+      "description": "[SCRAPED] Asilomar outcome score - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "ConditionAtIntake": {
+      "type": "string",
+      "description": "[SCRAPED] Condition at intake - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "JurisdictionIntake": {
+      "type": "string",
+      "description": "[SCRAPED] Intake jurisdiction - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "JurisdictionOutcome": {
+      "type": "string",
+      "description": "[SCRAPED] Outcome jurisdiction - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "RabiesTagNumber": {
+      "type": "string",
+      "description": "[SCRAPED] Rabies tag number - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "PreviousShelterId": {
+      "type": "string",
+      "description": "[SCRAPED] Previous shelter ID - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "PreviousShelterType": {
+      "type": "string",
+      "description": "[SCRAPED] Previous shelter type - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
+    },
+    "PreviousShelterIssuer": {
+      "type": "string",
+      "description": "[SCRAPED] Previous shelter issuer - scraped from ShelterLuv intake/outcome section.",
+      "x-group": "enrichment",
+      "x-ownership": "scraper"
     }
   },
   "required": [

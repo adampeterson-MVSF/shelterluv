@@ -1,0 +1,174 @@
+/* Notes section */
+.dog-notes-section {
+  margin-top: 1.5rem;
+}
+
+.dog-notes-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.dog-notes-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.notes-tab {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  color: var(--color-muted-text);
+  cursor: pointer;
+}
+
+.notes-tab-active {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.dog-notes-body {
+  padding-top: 1rem;
+}
+
+.notes-paragraph {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.attributes-list {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+
+.attributes-list li + li {
+  margin-top: 0.5rem;
+}
+
+.attributes-section {
+  margin-top: 1.5rem;
+}
+
+.attributes-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.25rem;
+}
+
+.attributes-badges {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.attributes-badges-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.attributes-badges-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.attribute-badge {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+}
+
+/* Legacy styles for backward compatibility */
+.back-link {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  color: #0071e3;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.dog-header {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dog-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dog-title h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.photo-gallery {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.dog-photo {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.dog-core-info {
+  margin-bottom: 1.5rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-item label {
+  font-size: 0.85rem;
+  color: #86868b;
+  font-weight: 500;
+}
+
+.info-item span {
+  font-size: 1rem;
+  color: #1d1d1f;
+}
+
+/* Simplified dog details - removed all tabs, foster info, and internal notes */

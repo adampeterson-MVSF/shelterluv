@@ -6,7 +6,6 @@ import './styles/layout.css'
 import './styles/header.css'
 import './styles/home.css'
 import './styles/dog-details.css'
-import './styles/overlays.css'
 
 // Initialize app services - validates config and sets up Firebase
 // This happens once at app startup, not in module scope

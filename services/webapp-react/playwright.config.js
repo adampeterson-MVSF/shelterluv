@@ -1,9 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
-import fs from 'fs';
+import path from 'path';
 
-// Check if auth state file exists
-const authStatePath = './auth-state.json';
-const hasAuthState = fs.existsSync(authStatePath);
+// Auth state path - must match save-auth-state.mjs and auth.spec.js
+const AUTH_STATE_PATH = path.join(process.cwd(), 'playwright', '.auth', 'muttville.json');
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -32,9 +31,6 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-
-    /* Use saved auth state if available */
-    ...(hasAuthState && { storageState: authStatePath }),
   },
 
   /* Configure projects for major browsers */
@@ -47,9 +43,19 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: process.env.SKIP_WEBSERVER ? undefined : {
-    command: 'VITE_FIREBASE_API_KEY="AIzaSyBC6eEN0wmg8MxGM-hyZ_8OaSsJRRjNHE0" VITE_FIREBASE_AUTH_DOMAIN="muttville.firebaseapp.com" VITE_FIREBASE_PROJECT_ID="muttville" VITE_FIREBASE_STORAGE_BUCKET="muttville.firebasestorage.app" VITE_FIREBASE_MESSAGING_SENDER_ID="537540766155" VITE_FIREBASE_APP_ID="1:537540766155:web:31058157b8e4d87a5e2e4e" npm run dev',
+    command: 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120000, // Increase timeout to 2 minutes
+    env: {
+      // Firebase config should be provided via environment variables
+      // These will be picked up from .env or CI environment
+      VITE_FIREBASE_API_KEY: process.env.VITE_FIREBASE_API_KEY,
+      VITE_FIREBASE_AUTH_DOMAIN: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+      VITE_FIREBASE_PROJECT_ID: process.env.VITE_FIREBASE_PROJECT_ID,
+      VITE_FIREBASE_STORAGE_BUCKET: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+      VITE_FIREBASE_MESSAGING_SENDER_ID: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      VITE_FIREBASE_APP_ID: process.env.VITE_FIREBASE_APP_ID,
+    },
   },
 });

@@ -122,3 +122,59 @@ Complete schema for dog data including ShelterLuv API fields, scraped data, deri
 **Frontend Services**: Do not currently validate against schema. Firestore provides basic type safety.
 
 Schemas are versioned. Breaking changes require coordinated updates to ETL validation and frontend components.
+
+## How to Debug Schema Drift Test Failures
+
+When schema synchronization tests fail, follow these steps:
+
+### 1. Identify the Drift
+
+**Error message will indicate:**
+- Missing status in `STATUS_MAPPING`
+- Missing size in `SIZE_ORDER`
+- Checksum mismatch between schema and artifacts
+
+### 2. Check What Changed
+
+```bash
+# View schema changes
+git diff common/schemas/dog.schema.json
+
+# Check current schema checksum
+node -e "const core = require('./schemaArtifactsCore'); const fs = require('fs'); const schema = fs.readFileSync('common/schemas/dog.schema.json', 'utf8'); console.log('Checksum:', core.generateSchemaChecksum(schema));"
+```
+
+### 3. Regenerate Artifacts
+
+```bash
+# Regenerate all artifacts from schema
+npm run schema:gen
+
+# Verify artifacts are in sync
+npm run schema:check
+```
+
+### 4. Common Issues
+
+**Status enum changed but STATUS_MAPPING not updated:**
+- Run `npm run schema:gen` to regenerate `common/statusMapping.js`
+- Commit the generated file
+
+**Size enum changed but SIZE_ORDER not updated:**
+- Run `npm run schema:gen` to regenerate `common/sizeConfig.js`
+- Verify size order matches schema enum order
+
+**Checksum mismatch:**
+- Someone manually edited a generated file
+- Run `npm run schema:gen` to regenerate
+- Never edit `statusMapping.js`, `sizeConfig.js`, or `Dog.types.ts` manually
+
+### 5. Verify Fix
+
+```bash
+# Run schema sync tests
+npm run schema:check
+
+# Run full test suite
+node generate_test_report.js
+```

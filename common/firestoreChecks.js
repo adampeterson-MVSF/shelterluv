@@ -3,19 +3,18 @@
  * Extracted from check_firestore_data.js for reusability.
  */
 
-const { getRequiredFieldsFromSchema } = require('./schemaArtifacts');
+const { getDogSchema } = require('./schemaArtifacts');
 
 /**
  * Check the dogs collection for data integrity and schema compliance.
- * Thin wrapper over schemaArtifacts + firestore access.
+ * Pure function - no side effects, no logging.
  * @param {Object} db - Firestore database instance
  * @param {Object} options - Options for the check
  * @param {number} options.sampleLimit - Maximum number of documents to sample (default: 3)
- * @param {boolean} options.json - Output machine-parseable JSON instead of formatted text
- * @returns {Object|string} Check results object or JSON string if json=true
+ * @returns {Promise<Object>} Check results object
  */
 async function checkDogsCollection(db, options = {}) {
-  const { sampleLimit = 3, json = false } = options;
+  const { sampleLimit = 3 } = options;
   const results = {
     totalDocuments: 0,
     availableDogs: 0,
@@ -25,12 +24,10 @@ async function checkDogsCollection(db, options = {}) {
   };
 
   try {
-    console.log('🔍 Checking dogs collection in Firestore...');
     const dogsCollection = db.collection('dogs');
     const dogsSnapshot = await dogsCollection.get();
 
     results.totalDocuments = dogsSnapshot.size;
-    console.log(`📊 Found ${results.totalDocuments} documents in dogs collection`);
 
     if (results.totalDocuments > 0) {
       // Sample documents
@@ -53,24 +50,18 @@ async function checkDogsCollection(db, options = {}) {
 
       if (schemaErrors.length > 0) {
         results.success = false;
-        console.error('\n❌ ERROR: Found documents missing ETL-required fields!');
-        console.error('This indicates ETL schema contract violations.');
-      } else {
-        console.log('✅ All documents have required ETL fields.');
       }
-    } else {
-      console.log('📭 No dogs found in collection');
     }
 
   } catch (error) {
     results.success = false;
-    console.error('❌ Error checking Firestore:', error.message);
-    if (error.code) {
-      console.error('Error code:', error.code);
-    }
+    results.error = {
+      message: error.message,
+      code: error.code
+    };
   }
 
-  return json ? JSON.stringify(results, null, 2) : results;
+  return results;
 }
 
 /**
@@ -79,7 +70,8 @@ async function checkDogsCollection(db, options = {}) {
  * @returns {Array} Array of validation errors
  */
 function validateSchemaCompliance(documents) {
-  const requiredFields = getRequiredFieldsFromSchema();
+  const schema = getDogSchema();
+  const requiredFields = schema.required || [];
   const errors = [];
 
   documents.forEach((doc) => {
@@ -98,29 +90,64 @@ function validateSchemaCompliance(documents) {
 }
 
 /**
+ * Generate a structured summary of check results (counts + examples).
+ * Pure function - returns structured data, not formatted strings.
+ * @param {Object} results - Results from checkDogsCollection
+ * @returns {Object} Summary object with counts and example errors
+ */
+function getCheckSummary(results) {
+  const errorCount = results.schemaErrors.length;
+  const exampleErrors = results.schemaErrors.slice(0, 5); // First 5 examples
+
+  return {
+    totalDocuments: results.totalDocuments,
+    availableDogs: results.availableDogs,
+    schemaErrorCount: errorCount,
+    exampleErrors: exampleErrors,
+    hasErrors: errorCount > 0,
+    success: results.success
+  };
+}
+
+/**
  * Generate a human-readable summary of check results.
  * @param {Object} results - Results from checkDogsCollection
  * @returns {string} Formatted summary
  */
 function formatCheckSummary(results) {
-  let summary = `Dogs collection check results:\n`;
-  summary += `- Total documents: ${results.totalDocuments}\n`;
-  summary += `- Available dogs: ${results.availableDogs}\n`;
+  const summary = getCheckSummary(results);
+  let output = `Dogs collection check results:\n`;
+  output += `- Total documents: ${summary.totalDocuments}\n`;
+  output += `- Available dogs: ${summary.availableDogs}\n`;
 
-  if (results.schemaErrors.length > 0) {
-    summary += `- Schema errors: ${results.schemaErrors.length}\n`;
-    results.schemaErrors.forEach(error => {
-      summary += `  • Doc ${error.documentId} missing ${error.missingField}\n`;
+  if (summary.hasErrors) {
+    output += `- Schema errors: ${summary.schemaErrorCount}\n`;
+    summary.exampleErrors.forEach(error => {
+      output += `  • Doc ${error.documentId} missing ${error.missingField}\n`;
     });
+    if (summary.schemaErrorCount > summary.exampleErrors.length) {
+      output += `  ... and ${summary.schemaErrorCount - summary.exampleErrors.length} more\n`;
+    }
   } else {
-    summary += `- Schema compliance: ✅ All good\n`;
+    output += `- Schema compliance: ✅ All good\n`;
   }
 
-  return summary;
+  return output;
+}
+
+/**
+ * Generate machine-readable JSON output of check results.
+ * @param {Object} results - Results from checkDogsCollection
+ * @returns {string} JSON string
+ */
+function formatCheckJson(results) {
+  return JSON.stringify(results, null, 2);
 }
 
 module.exports = {
   checkDogsCollection,
   validateSchemaCompliance,
-  formatCheckSummary
+  getCheckSummary,
+  formatCheckSummary,
+  formatCheckJson
 };

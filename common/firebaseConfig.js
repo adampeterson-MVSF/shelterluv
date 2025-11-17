@@ -1,81 +1,125 @@
 /**
- * Centralized Firebase configuration for both webapp and admin scripts.
- * Provides separate functions for webapp (VITE_*) and admin (FIREBASE_*) configurations.
+ * Centralized Firebase configuration using profile-based approach.
+ * Single source for all Firebase environment variable handling.
  */
 
 const {
-  REQUIRED_FIREBASE_WEB_ENV_VARS,
-  REQUIRED_FIREBASE_ADMIN_ENV_VARS,
+  getProfileEnvSpec,
+  validateEnv,
+  getProjectIdEnvVar
 } = require('./firebaseEnvVars');
 
-/**
- * Validate that all required Firebase admin environment variables are present.
- * Throws an Error if any are missing. No other side effects.
- * @throws {Error} If any required admin env vars are missing
- */
-function validateFirebaseAdminEnv() {
-  for (const envVar of REQUIRED_FIREBASE_ADMIN_ENV_VARS) {
-    if (!process.env[envVar]) {
-      throw new Error(`Missing required environment variable: ${envVar}`);
-    }
+const ENV_TO_CONFIG_MAP = {
+  FIREBASE_API_KEY: 'apiKey',
+  FIREBASE_AUTH_DOMAIN: 'authDomain',
+  FIREBASE_PROJECT_ID: 'projectId',
+  FIREBASE_STORAGE_BUCKET: 'storageBucket',
+  FIREBASE_MESSAGING_SENDER_ID: 'messagingSenderId',
+  FIREBASE_APP_ID: 'appId'
+};
+
+function requireEnvVar(name, env) {
+  const value = env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
   }
+  return value;
+}
+
+/**
+ * Ensure all required environment variables are present for a given profile.
+ * @param {string} profile - 'web', 'admin', or 'etl'
+ * @param {NodeJS.ProcessEnv} [env] - environment source
+ * @throws {Error} If any required env vars are missing
+ */
+function ensureProfile(profile, env = process.env) {
+  const validation = validateEnv(profile, env);
+  if (!validation.isValid) {
+    throw new Error(`Missing required environment variables for ${profile} profile: ${validation.missing.join(', ')}`);
+  }
+  return validation;
 }
 
 /**
  * Get Firebase project ID from environment variables.
- * Uses FIREBASE_PROJECT_ID for admin operations.
+ * Uses the appropriate env var for the given profile.
+ * @param {string} profile - 'admin' or 'etl'
+ * @param {NodeJS.ProcessEnv} [env] - environment source
  * @returns {string} Project ID
- * @throws {Error} If FIREBASE_PROJECT_ID is not set
+ * @throws {Error} If project ID env var is not set or profile doesn't have one
  */
-function getFirebaseProjectId() {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  if (!projectId) {
-    throw new Error('Missing required environment variable: FIREBASE_PROJECT_ID');
-  }
-  return projectId;
+function getProjectId(profile, env = process.env) {
+  const projectIdEnvVar = getProjectIdEnvVar(profile);
+  return requireEnvVar(projectIdEnvVar, env);
 }
 
 /**
- * Initialize Firebase admin app with validated config.
- * Returns the initialized admin app instance.
- * @returns {Object} Initialized Firebase admin app
- */
-function initializeFirebaseApp() {
-  validateFirebaseAdminEnv();
-  const admin = require('firebase-admin');
-  const projectId = getFirebaseProjectId();
-
-  return admin.initializeApp({
-    projectId: projectId
-  });
-}
-
-/**
- * Get Firebase configuration for webapp from VITE_ environment variables.
- * Throws on missing keys; no silent fallbacks.
+ * Get Firebase configuration for webapp from environment variables.
  * Used only by webapp build/runtime (not admin scripts).
- * @param {Function} getEnv - Function to get environment variables (defaults to process.env)
- * @returns {Object} Firebase config object with VITE_ validated env vars
- * @throws {Error} If any required VITE_FIREBASE_* variables are missing
+ * @param {Function} getEnv - Function to get environment variables (expects bare names, adds VITE_ prefix)
+ * @param {NodeJS.ProcessEnv|Object} [env] - environment source for validation (defaults to process.env)
+ * @returns {Object} Firebase config object with validated env vars
+ * @throws {Error} If any required FIREBASE_* variables are missing
  */
-function getWebFirebaseConfigFromEnv(getEnv = (k) => process.env[k]) {
-  const config = {};
+function getWebFirebaseConfigFromEnv(getEnv, env = process.env) {
+  // Validate that required env vars are conceptually present (don't check values in browser)
+  ensureProfile('web', env);
 
-  for (const envVar of REQUIRED_FIREBASE_WEB_ENV_VARS) {
-    const viteVar = `VITE_${envVar}`;
-    const value = getEnv(viteVar);
+  if (!getEnv) {
+    throw new Error('getEnv function is required for webapp Firebase config');
+  }
+
+  const config = {};
+  const missing = [];
+  const { required } = getProfileEnvSpec('web');
+
+  for (const envVar of required) {
+    // envVar is bare name like 'FIREBASE_API_KEY'
+    // getEnv function adds VITE_ prefix internally
+    const value = getEnv(envVar);
     if (!value) {
-      throw new Error(`Missing required environment variable: ${viteVar}`);
+      missing.push(envVar);
+      continue;
     }
-    config[envVar.toLowerCase()] = value;
+
+    const configKey = ENV_TO_CONFIG_MAP[envVar];
+    if (!configKey) {
+      throw new Error(`Unknown Firebase environment variable: ${envVar}`);
+    }
+    config[configKey] = value;
+  }
+
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables for web profile: ${missing.join(', ')}`);
   }
 
   return config;
 }
 
+/**
+ * Get Firebase project ID for admin operations.
+ * @param {NodeJS.ProcessEnv} [env] - Environment source (defaults to process.env)
+ * @returns {string} Project ID
+ * @throws {Error} If FIREBASE_PROJECT_ID is not set
+ */
+function getAdminProjectId(env = process.env) {
+  return getProjectId('admin', env);
+}
+
+/**
+ * Get Firebase project ID for ETL operations.
+ * @param {NodeJS.ProcessEnv} [env] - Environment source (defaults to process.env)
+ * @returns {string} Project ID
+ * @throws {Error} If GCP_PROJECT is not set
+ */
+function getEtlProjectId(env = process.env) {
+  return getProjectId('etl', env);
+}
+
 module.exports = {
-  validateFirebaseAdminEnv,
-  getFirebaseProjectId,
-  initializeFirebaseApp,
+  ensureProfile,
+  getProjectId,
+  getAdminProjectId,
+  getEtlProjectId,
   getWebFirebaseConfigFromEnv
 };

@@ -38,6 +38,23 @@ npm run test:e2e    # E2E tests (Playwright)
 npm run lint        # ESLint
 npm run typecheck   # TypeScript check
 
+### E2E Auth Setup
+
+E2E tests include authenticated user flows that require saved auth state:
+
+1. Start the dev server: `npm run dev`
+2. In another terminal: `npm run test:e2e:save-auth` (or `node save-auth-state.mjs`)
+3. Manually log in when the browser opens (use a @muttville.org account)
+4. Auth state will be saved to `playwright/.auth/muttville.json`
+5. Run E2E tests: `npm run test:e2e`
+
+**Helper script**: `npm run test:e2e:with-auth` saves auth state and runs tests in one command.
+
+# Performance Testing
+node perf/performance_test.js              # Run default scenarios
+node perf/performance_test.js --json       # JSON output only
+node perf/performance_test.js --config perf/scenarios.json  # Custom config
+
 # Schema
 npm run generate:types  # Regenerate Dog.types.ts from schema
 ```

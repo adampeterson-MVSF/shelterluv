@@ -1,5 +1,23 @@
 import PropTypes from 'prop-types';
 import { useAuth } from '../contexts/AuthContext';
+import { VALID_ROLES } from '@common/userRoles.mjs';
+
+/**
+ * Custom PropTypes validator for role arrays.
+ * Ensures all roles in the array are valid.
+ */
+function rolesValidator(propValue, ...args) {
+  const invalidRoles = propValue.filter(role => !VALID_ROLES.includes(role));
+  if (invalidRoles.length > 0) {
+    const [, , componentName, , propFullName] = args;
+    return new Error(
+      `Invalid prop \`${propFullName}\` supplied to \`${componentName}\`. ` +
+      `Invalid roles: ${invalidRoles.join(', ')}. ` +
+      `Valid roles are: ${VALID_ROLES.join(', ')}`
+    );
+  }
+  return null;
+}
 
 /**
  * Guards content based on user roles.
@@ -29,7 +47,13 @@ export function RoleGuard({ roles, children, fallback = null }) {
 }
 
 RoleGuard.propTypes = {
-  roles: PropTypes.arrayOf(PropTypes.string).isRequired,
+  roles: function(props, propName, componentName) {
+    const propValue = props[propName];
+    if (!Array.isArray(propValue)) {
+      return new Error(`Invalid prop \`${propName}\` supplied to \`${componentName}\`. Expected an array.`);
+    }
+    return rolesValidator(propValue, null, componentName, 'prop', propName);
+  },
   children: PropTypes.node.isRequired,
   fallback: PropTypes.node
 };

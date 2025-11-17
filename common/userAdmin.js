@@ -4,7 +4,8 @@
  */
 
 const { VALID_ROLES } = require('./userRoles');
-const { validateEmail, validateRole, addOrUpdateUser } = require('./userManagement');
+const { validateEmail, validateRole } = require('./userValidation');
+const { addOrUpdateUser } = require('./userRepository');
 
 /**
  * Ensure email is valid and from allowed domains. Throws on failure.

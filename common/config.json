@@ -1,0 +1,68 @@
+{
+  "env_profiles": {
+    "web": {
+      "required": [
+        "FIREBASE_API_KEY",
+        "FIREBASE_AUTH_DOMAIN",
+        "FIREBASE_PROJECT_ID",
+        "FIREBASE_STORAGE_BUCKET",
+        "FIREBASE_MESSAGING_SENDER_ID",
+        "FIREBASE_APP_ID"
+      ],
+      "optional": []
+    },
+    "admin": {
+      "required": [
+        "FIREBASE_PROJECT_ID"
+      ],
+      "optional": []
+    },
+    "etl": {
+      "required": [
+        "SHELTERLUV_USER",
+        "SHELTERLUV_PASS",
+        "SHELTERLUV_API_KEY",
+        "GCP_PROJECT",
+        "DOGS_COLLECTION"
+      ],
+      "optional": [
+        "E2E_LIVE_DB",
+        "DISABLE_SECRET_MANAGER"
+      ]
+    },
+    "dev": {
+      "required": [
+        "DEV_SCRIPTS_ENABLED"
+      ],
+      "optional": []
+    }
+  },
+  "python_env_profiles": {
+    "dev": {
+      "gcp_project": "dev-muttville"
+    },
+    "staging": {
+      "gcp_project": "staging-muttville"
+    },
+    "e2e": {
+      "gcp_project": "dev-muttville"
+    },
+    "demo": {
+      "gcp_project": "muttville-demo"
+    },
+    "prod": {
+      "gcp_project": "muttville-prod"
+    }
+  },
+  "safe_profiles": [
+    "dev",
+    "staging",
+    "e2e",
+    "demo"
+  ],
+  "roles": [
+    "viewer",
+    "closer",
+    "staff"
+  ]
+}

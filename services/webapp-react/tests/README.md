@@ -32,8 +32,36 @@ Located in component-specific test files alongside source code:
 
 ### End-to-End Tests
 Located in `tests/e2e/`:
-- **Authentication tests**: `auth.spec.js` tests Google SSO login flow
+- **Authentication tests**: `auth.spec.js` tests Google SSO login flow with real Firebase
 - **Archived tests**: Legacy E2E tests in `archived/` directory
+
+#### Live Firebase Tests
+
+The E2E tests (`auth.spec.js`) run against **real Firebase services** and require:
+
+1. **Firebase Configuration**: Complete `.env.local` with all `VITE_FIREBASE_*` variables
+2. **Auth State Setup**: Pre-authenticated browser session via `node save-auth-state.mjs`
+3. **Firestore Data**: Populated dogs collection for testing
+
+**Test Behavior**:
+- **Authenticated State**: Tests full functionality with real Firestore data
+- **Unauthenticated State**: Verifies login prompts and UI restrictions
+- **Auth Flow**: Validates Google SSO integration and session persistence
+
+**Running Live Firebase Tests**:
+```bash
+# 1. Set up authenticated browser session (one-time)
+node save-auth-state.mjs
+
+# 2. Run E2E tests against real Firebase
+npx playwright test tests/e2e/auth.spec.js
+```
+
+**Auth State Handling**:
+- Tests detect auth state automatically via UI elements
+- **Skip behavior**: Authenticated tests automatically **skip** (not fail) when auth state file is missing
+- Tests filter out harmless 404 errors (favicon, manifest, robots.txt) to avoid false failures
+- Log detailed auth state for debugging (user info visibility, sign-in button state)
 
 ## Running Tests
 
@@ -63,12 +91,17 @@ npm test DogCard.test.jsx
 # Install Playwright browsers (first time only)
 npx playwright install
 
-# Run E2E tests
+# Run E2E tests (authenticated tests will skip if auth state missing)
 npx playwright test
 
 # Run with UI
 npx playwright test --ui
+
+# Save auth state first (required for authenticated tests)
+npm run test:e2e:save-auth
 ```
+
+**Note**: E2E tests filter out harmless 404 errors (favicon, manifest, robots.txt) to prevent false failures. Authenticated tests will skip gracefully if auth state is not available, allowing you to run the full test suite without authentication setup.
 
 ## Test Architecture
 
@@ -144,6 +177,14 @@ ReferenceError: VITE_FIREBASE_API_KEY is not defined
 Error: useAuth must be used within an AuthProvider
 ```
 **Solution**: Use `renderWithProviders` or `renderWithAuth` helper instead of basic `render`.
+
+### E2E Test Failures
+
+#### "JavaScript errors detected: Failed to load resource: 404"
+**Solution**: Tests now filter out harmless 404s (favicon, manifest, robots.txt). If you see this error, it means a real JavaScript error occurred. Check browser console for actual errors.
+
+#### "No auth state found" / Tests skipped
+**Solution**: This is expected behavior. Authenticated tests skip when auth state is missing. Run `npm run test:e2e:save-auth` to create auth state, then tests will run normally.
 
 ## Contributing
 

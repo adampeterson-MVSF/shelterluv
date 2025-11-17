@@ -1,20 +1,25 @@
 /**
  * Shared user role constants and validation.
- * Used across Node.js dev tools and React app.
+ * Single source of truth for roles across webapp and scripts.
+ * Data-driven permission system with explicit capability mapping.
+ * Loads roles from common/config.json via configData.
  */
 
-const VALID_ROLES = ['viewer', 'closer', 'staff'];
+const { getRoles } = require('./configData');
+
+const ROLES = getRoles();
 
 /**
- * Assert that a role is valid, throwing an error if not.
- * @param {string} role - The role to validate
- * @throws {Error} If role is invalid
+ * Permission capabilities mapped to roles.
+ * Each role inherits capabilities from lower roles in hierarchy.
+ * viewer < closer < staff
  */
-function assertValidRole(role) {
-  if (!VALID_ROLES.includes(role)) {
-    throw new Error(`Invalid role: ${role}`);
-  }
-}
+const PERMISSIONS = {
+  viewDogs: ['viewer', 'closer', 'staff'],
+  viewFosterInfo: ['closer', 'staff'],
+  editDogs: ['staff'],
+  manageUsers: ['staff']
+};
 
 /**
  * Validate that a role string is one of the valid roles.
@@ -22,19 +27,42 @@ function assertValidRole(role) {
  * @returns {boolean} True if valid, false otherwise
  */
 function isValidRole(role) {
-  return VALID_ROLES.includes(role);
+  return ROLES.includes(role);
 }
 
 /**
- * Get all valid role values for iteration.
- * @returns {string[]} Array of valid role strings
+ * Assert that a role is valid, throwing an error if not.
+ * @param {string} role - The role to validate
+ * @throws {Error} If the role is not valid
  */
-function getValidRoles() {
-  return [...VALID_ROLES];
+function assertValidRole(role) {
+  if (!isValidRole(role)) {
+    throw new Error(`Invalid role "${role}". Valid roles: ${ROLES.join(', ')}`);
+  }
 }
 
 /**
- * Check if a role has staff privileges (staff role).
+ * Check if a role has a specific permission.
+ * Data-driven: uses PERMISSIONS mapping instead of hardcoded checks.
+ * @param {string} role - The role to check
+ * @param {string} permission - The permission to check (e.g., 'viewFosterInfo')
+ * @returns {boolean} True if the role has the permission
+ */
+function can(role, permission) {
+  if (!isValidRole(role)) {
+    return false;
+  }
+  
+  const allowedRoles = PERMISSIONS[permission];
+  if (!allowedRoles) {
+    return false;
+  }
+  
+  return allowedRoles.includes(role);
+}
+
+/**
+ * Check if a role has staff privileges.
  * @param {string} role - The role to check
  * @returns {boolean} True if the role has staff privileges
  */
@@ -43,19 +71,45 @@ function isStaff(role) {
 }
 
 /**
- * Check if a role has admin privileges (alias for isStaff since staff is the highest level).
- * @param {string} role - The role to check
- * @returns {boolean} True if the role has admin privileges
+ * Check if a user role meets a required role level.
+ * Role hierarchy: viewer < closer < staff
+ * @param {string} userRole - The user's role
+ * @param {string} requiredRole - The minimum required role
+ * @returns {boolean} True if userRole meets or exceeds requiredRole
  */
-function isAdmin(role) {
-  return isStaff(role);
+function hasRole(userRole, requiredRole) {
+  if (!isValidRole(userRole) || !isValidRole(requiredRole)) {
+    return false;
+  }
+  
+  const hierarchy = { viewer: 0, closer: 1, staff: 2 };
+  return hierarchy[userRole] >= hierarchy[requiredRole];
 }
 
-export {
+/**
+ * Check if a user role matches any role in a list.
+ * @param {string} userRole - The user's role
+ * @param {string[]} roleList - List of allowed roles
+ * @returns {boolean} True if userRole is in roleList
+ */
+function hasAnyRole(userRole, roleList) {
+  if (!isValidRole(userRole) || !Array.isArray(roleList)) {
+    return false;
+  }
+  return roleList.includes(userRole);
+}
+
+// Alias for backward compatibility
+const VALID_ROLES = ROLES;
+
+module.exports = {
+  ROLES,
   VALID_ROLES,
-  assertValidRole,
+  PERMISSIONS,
   isValidRole,
-  getValidRoles,
+  assertValidRole,
+  can,
   isStaff,
-  isAdmin,
+  hasRole,
+  hasAnyRole
 };

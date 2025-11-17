@@ -83,16 +83,38 @@ def _parse_structured_notes(dog: Dict[str, Any]) -> Dict[str, Any]:
     """Parse structured notes from raw HTML memos."""
     result = dict(dog)
 
+    # Preserve existing PersonalityNotes, IntakeNotes, MedicalNotes that were set by structured extraction
+    # (e.g., from _extract_memos_section which correctly extracts "Kennel Card / Website Memo")
+    existing_personality = result.get("PersonalityNotes", "")
+    existing_intake = result.get("IntakeNotes", "")
+    existing_medical = result.get("MedicalNotes", "")
+
     if result.get("MemosRawHTML"):
         from scraper.parsers import parse_memos_by_type_pure
 
         notes = parse_memos_by_type_pure(result["MemosRawHTML"])
-        result.update(notes)
+        
+        # Merge parsed notes with existing notes, prioritizing existing structured extraction
+        # Only use parsed notes if existing notes are empty
+        if existing_personality:
+            result["PersonalityNotes"] = existing_personality
+        else:
+            result["PersonalityNotes"] = notes.get("PersonalityNotes", "")
+        
+        if existing_intake:
+            result["IntakeNotes"] = existing_intake
+        else:
+            result["IntakeNotes"] = notes.get("IntakeNotes", "")
+        
+        if existing_medical:
+            result["MedicalNotes"] = existing_medical
+        else:
+            result["MedicalNotes"] = notes.get("MedicalNotes", "")
     else:
         # Ensure we don't accidentally reuse old notes when memos are not scraped
-        result.setdefault("PersonalityNotes", "")
+        result.setdefault("PersonalityNotes", "Not Available")
         result.setdefault("IntakeNotes", "")
-        result.setdefault("MedicalNotes", "")
+        result.setdefault("MedicalNotes", "Not Available")
 
     return result
 

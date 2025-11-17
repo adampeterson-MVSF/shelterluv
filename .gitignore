@@ -78,6 +78,8 @@ dev_tools/perf/performance_results_*.json
 
 # Test reports - generated artifacts, not for version control
 artifacts/
+artifacts/TESTS.txt
+@TESTS.txt
 
 # Dev tools - keep source_collector, ignore outputs
 dev_tools/source_collector/static/uploads/
@@ -96,3 +98,8 @@ services/webapp-react/gcloud*
 
 # Scratch directory - exploratory artifacts
 scratch/
+
+# Python coverage reports
+htmlcov/
+.coverage
+coverage.xml

@@ -1,9 +1,31 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getDogById } from '../repositories/dogRepository';
-import { DOG_ERROR_CODES } from '../types/dogErrors';
+import { useCancellableRequest, createRequestToken, checkRequestCancelled } from './useCancellableRequest';
 
 /**
- * Custom hook for fetching a single dog by ID
+ * Processes the result from getDogById and returns processed state
+ * @param {Object} result - Result from getDogById
+ * @param {string} id - Dog ID
+ * @returns {Object} Processed state with dog and error
+ */
+function processDogResult(result, id) {
+  if (result.success) {
+    if (result.data === null) {
+      return {
+        dog: null,
+        error: { kind: 'not_found', message: `Dog with ID ${id} not found` }
+      };
+    } else {
+      return { dog: result.data, error: null };
+    }
+  } else {
+    // Repository already returns normalized error with kind
+    return { dog: null, error: result.error };
+  }
+}
+
+/**
+ * Custom hook for fetching a single dog by ID with request cancellation
  * @param {string} id - Dog ID to fetch
  * @returns {Object} Hook state with dog, loading, and error
  */
@@ -12,86 +34,55 @@ export function useDogDetails(id) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+  // Track the current fetch request to prevent race conditions
+  const requestRef = useCancellableRequest();
 
   useEffect(() => {
     if (!id) {
-      setError({ message: 'No dog ID provided' });
+      setError({ kind: 'error', message: 'No dog ID provided' });
       setLoading(false);
+      setDog(null);
       return;
     }
 
-    const fetchDog = async () => {
-      if (!isMountedRef.current) return;
+    // Create new request token (cancels any previous request)
+    const requestToken = createRequestToken(requestRef);
 
-      setLoading(true);
-      setError(null);
-      setDog(null);
+    // Reset state for new fetch
+    setLoading(true);
+    setError(null);
+    setDog(null);
 
-      console.log('[useDogDetails] Fetching dog with ID:', id);
-
+    // Fetch data
+    (async () => {
       try {
         const result = await getDogById(id);
-        
-        // 🔍 BREAKPOINT TARGET: Inspect `result` here
-        // Expected: { success: true, data: {...normalizedDog} } or { success: false, error: {...} }
-        console.log('🔍 [useDogDetails] BREAKPOINT CHECKPOINT - Result received:', {
-          success: result?.success,
-          hasData: !!result?.data,
-          hasError: !!result?.error,
-          dataType: typeof result?.data,
-          resultKeys: result ? Object.keys(result) : [],
-          dataKeys: result?.data ? Object.keys(result.data).slice(0, 5) : [],
-          result: result // Full object for inspection
-        });
 
-        if (!isMountedRef.current) {
-          console.warn('[useDogDetails] Component unmounted, skipping state update');
+        // Check if this request was cancelled
+        if (checkRequestCancelled(requestToken, setLoading)) {
           return;
         }
 
-        console.log('[useDogDetails] Component still mounted, processing result');
-        
-        if (result.success) {
-          if (result.data === null) {
-            // Document doesn't exist - treat as not_found error
-            console.log('[useDogDetails] Document not found, setting error');
-            setError({ kind: 'not_found', message: `Dog with ID ${id} not found` });
-          } else {
-            // 🔍 BREAKPOINT TARGET: Inspect before setDog
-            console.log('🔍 [useDogDetails] About to call setDog with:', {
-              dogName: result.data?.Name,
-              dogId: result.data?.id,
-              dogKeys: Object.keys(result.data).slice(0, 10),
-              fullData: result.data
-            });
-            setDog(result.data);
-            console.log('✅ [useDogDetails] setDog called successfully');
-          }
-        } else {
-          console.error('[useDogDetails] Error fetching dog:', result.error);
-          // Convert DogError to expected format
-          const errorObj = result.error?.code === DOG_ERROR_CODES.DOCUMENT_NOT_FOUND
-            ? { kind: 'not_found', message: result.error.message }
-            : { kind: 'error', message: result.error?.message || 'Unknown error' };
-          setError(errorObj);
-        }
-      } catch (err) {
-        console.error('[useDogDetails] Unexpected error:', err);
-        setError({ kind: 'error', message: err.message || 'Failed to fetch dog' });
-      } finally {
-        console.log('[useDogDetails] Setting loading to false');
-        setLoading(false);
-      }
-    };
+        const { dog: newDog, error: newError } = processDogResult(result, id);
+        setDog(newDog);
+        setError(newError);
 
-    fetchDog();
+      } catch (err) {
+        // Check if this request was cancelled
+        if (checkRequestCancelled(requestToken, setLoading)) {
+          return;
+        }
+
+        setError({ kind: 'error', message: err.message || 'Failed to fetch dog' });
+        setDog(null);
+      } finally {
+        // Only clear loading if this is still the current request
+        if (requestRef.current === requestToken) {
+          setLoading(false);
+        }
+      }
+    })();
+
   }, [id]);
 
   return { dog, loading, error };

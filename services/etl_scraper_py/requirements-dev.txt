@@ -1,0 +1,12 @@
+# Development and testing dependencies
+# Install with: pip install -r requirements.txt -r requirements-dev.txt
+#
+# These dependencies are NOT needed for production deployment,
+# only for local development, testing, and performance monitoring.
+
+# Testing framework and test runner
+pytest>=7.4.0,<8.0.0
+pytest-cov>=4.1.0,<5.0.0
+
+# System monitoring (for performance testing)
+psutil>=5.9.0,<6.0.0

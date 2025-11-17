@@ -1,13 +1,11 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import path from 'path';
+import { aliasConfig } from './shared-alias-config.js';
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      '@common': path.resolve(__dirname, '../../common')
-    }
+    alias: aliasConfig
   },
   test: {
     environment: 'jsdom',

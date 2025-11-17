@@ -44,7 +44,7 @@ Polyglot monorepo for Muttville's dog adoption platform.
 
 **Data Flow**: ShelterLuv → ETL → Firestore → Webapp
 
-**Configuration Flow**: `common/config.json` → `config.py` (Python) / `firebaseConfig.js` (Node)
+**Configuration Flow**: `common/config.json` + `configData.js` → Both JS and Python
 
 **Schema Flow**: `common/schemas/dog.schema.json` → Generated artifacts → ETL + Webapp
 
@@ -86,6 +86,22 @@ Polyglot monorepo for Muttville's dog adoption platform.
 
 All scripts use `common/devScriptSafety.js` for safety checks. Never hardcode project IDs.
 
+### Configuration Sharing Between JS and Python
+
+**Single source**: `common/config.json` defines environment profiles and project mappings used by both JavaScript and Python code.
+
+**JS consumption**:
+- `common/configData.js` - Single loader that reads `common/config.json` and exposes normalized profile maps
+- Provides `{ envProfileName → { projectId, isSafe } }` and `{ projectId → { envProfileName, isSafe } }` mappings
+- Used by `firebaseConfig.js`, `devScriptSafety.js`, and all Node scripts
+
+**Python consumption**:
+- `services/etl_scraper_py/config_loader.py` - Reads `common/config.json` via generated artifacts (not direct JSON parsing)
+- Provides `get_env_profiles()`, `get_safe_profiles()`, `get_project_safety()` mappings
+- Used by `config.py` for `EtlConfig` and `SafetyPolicy` construction
+
+**Consistency guarantee**: Both languages use the same underlying data from `common/config.json`, ensuring environment profiles and safety rules are identical across the stack.
+
 ## Quick Start
 
 ### Schema Generation
@@ -122,6 +138,8 @@ npm run dev   # http://localhost:5173
 Uses `VITE_`-prefixed env vars from `common/config.json` `web` profile. See `services/webapp-react/README.md`.
 
 ## Safety Model
+
+**Conceptual Overview**: The system distinguishes between "safe" development/testing projects and "unsafe" production projects. All destructive operations (data writes, user management, schema changes) require explicit safety checks that verify the target project is in the approved "safe" list.
 
 **Single source of truth**: `common/config.json` defines `safe_profiles` list. All safety checks use this file via `common/devScriptSafety.js` (Node) or `services/etl_scraper_py/config.py` (Python).
 

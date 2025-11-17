@@ -2,19 +2,27 @@
 import PropTypes from 'prop-types';
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import { authService } from '../app';
-import { getUserRole } from '../repositories/userRepository';
+import { hasRole as hasRoleHierarchy, hasAnyRole as hasAnyRoleCheck } from '@common/userRoles.mjs';
+
+// Auth state union types - fixed set of possible states
+export const AUTH_STATE_KINDS = {
+  LOADING: 'loading',
+  ANONYMOUS: 'anonymous',
+  FORBIDDEN: 'forbidden',
+  AUTHENTICATED: 'authenticated'
+};
 
 // Auth state reducer - pure function for state transitions
 function authReducer(state, action) {
   switch (action.type) {
     case 'AUTH_LOADING':
-      return { kind: 'loading' };
+      return { kind: AUTH_STATE_KINDS.LOADING };
     case 'AUTH_ANONYMOUS':
-      return { kind: 'anonymous' };
+      return { kind: AUTH_STATE_KINDS.ANONYMOUS };
     case 'AUTH_FORBIDDEN':
-      return { kind: 'forbidden', user: action.user };
+      return { kind: AUTH_STATE_KINDS.FORBIDDEN, user: action.user };
     case 'AUTH_AUTHENTICATED':
-      return { kind: 'authenticated', user: action.user, role: action.role };
+      return { kind: AUTH_STATE_KINDS.AUTHENTICATED, user: action.user, role: action.role };
     default:
       return state;
   }
@@ -31,9 +39,9 @@ export function useAuth() {
 }
 
 // Pure function to handle Firebase user → auth state transition
-function handleFirebaseUser(firebaseUser, getUserRoleDep, dispatch) {
+function handleFirebaseUser(firebaseUser, authServiceDep, dispatch) {
   if (firebaseUser) {
-    getUserRoleDep(firebaseUser.uid).then(result => {
+    authServiceDep.getUserRole(firebaseUser.uid).then(result => {
       if (result.success) {
         if (result.data === null) {
           console.warn(`Forbidden access attempt from ${firebaseUser.email} (UID: ${firebaseUser.uid}) - no user document`);
@@ -51,13 +59,13 @@ function handleFirebaseUser(firebaseUser, getUserRoleDep, dispatch) {
   }
 }
 
-function useAuthStateManagement(authServiceDep, getUserRoleDep, dispatch) {
+function useAuthStateManagement(authServiceDep, dispatch) {
   useEffect(() => {
     const unsubscribe = authServiceDep.subscribeToAuthChanges((firebaseUser) => {
-      handleFirebaseUser(firebaseUser, getUserRoleDep, dispatch);
+      handleFirebaseUser(firebaseUser, authServiceDep, dispatch);
     });
     return () => unsubscribe();
-  }, [authServiceDep, getUserRoleDep, dispatch]);
+  }, [authServiceDep, dispatch]);
 }
 
 function createAuthActions(authServiceDep) {
@@ -85,27 +93,49 @@ function createAuthActions(authServiceDep) {
 }
 
 function createAuthHelpers(authState) {
+  // Use shared role hierarchy functions from common/userRoles.mjs
   const hasRole = (requiredRole) => {
-    return authState.kind === 'authenticated' && authState.role === requiredRole;
+    return authState.kind === 'authenticated' && hasRoleHierarchy(authState.role, requiredRole);
   };
 
   const hasAnyRole = (roles) => {
-    return authState.kind === 'authenticated' && roles.includes(authState.role);
+    return authState.kind === 'authenticated' && hasAnyRoleCheck(authState.role, roles);
   };
 
   const isAuthenticated = authState.kind === 'authenticated';
+  const isForbidden = authState.kind === 'forbidden';
+  const canViewDogs = authState.kind === 'authenticated';
 
-  return { hasRole, hasAnyRole, isAuthenticated };
+  return { hasRole, hasAnyRole, isAuthenticated, isForbidden, canViewDogs };
+}
+
+/**
+ * Standalone helper functions for auth state checks.
+ * Use these instead of open-coding state machine logic.
+ */
+export function isAuthenticated(authState) {
+  return authState.kind === AUTH_STATE_KINDS.AUTHENTICATED;
+}
+
+export function isForbidden(authState) {
+  return authState.kind === AUTH_STATE_KINDS.FORBIDDEN;
+}
+
+export function canViewDogs(authState) {
+  return authState.kind === AUTH_STATE_KINDS.AUTHENTICATED;
+}
+
+export function shouldHideDogs(authState) {
+  return authState.kind === AUTH_STATE_KINDS.ANONYMOUS || authState.kind === AUTH_STATE_KINDS.FORBIDDEN;
 }
 
 export function AuthProvider({
   children,
-  authService: authServiceDep = authService,
-  getUserRole: getUserRoleDep = getUserRole
+  authService: authServiceDep = authService
 }) {
   const [authState, dispatch] = useReducer(authReducer, { kind: 'loading' });
 
-  useAuthStateManagement(authServiceDep, getUserRoleDep, dispatch);
+  useAuthStateManagement(authServiceDep, dispatch);
 
   const { login, logout } = createAuthActions(authServiceDep);
   const { hasRole, hasAnyRole, isAuthenticated } = createAuthHelpers(authState);
@@ -124,6 +154,5 @@ export function AuthProvider({
 
 AuthProvider.propTypes = {
   children: PropTypes.node.isRequired,
-  authService: PropTypes.object,
-  getUserRole: PropTypes.func
+  authService: PropTypes.object
 };

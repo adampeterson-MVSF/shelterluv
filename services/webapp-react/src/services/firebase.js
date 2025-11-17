@@ -1,8 +1,9 @@
 // Firebase configuration - centralized, no global initialization
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth';
-import { getWebFirebaseConfigFromEnv } from '../../../../common/firebaseConfig.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getWebFirebaseConfigFromEnv } from '../../../../common/firebaseConfig.web.mjs';
+import { getUserRole } from '../repositories/userRepository';
 
 // Webapp-specific environment variable getter (Vite requires VITE_ prefix)
 function getViteEnvVar(varName) {
@@ -16,14 +17,27 @@ function getViteEnvVar(varName) {
 
 // Pure function to build Firebase config object using centralized helper
 export function buildFirebaseConfig() {
-  return getWebFirebaseConfigFromEnv(getViteEnvVar);
+  const config = getWebFirebaseConfigFromEnv(getViteEnvVar);
+  // Log project ID for debugging (not sensitive - it's visible in network requests anyway)
+  console.log('[Firebase] Initializing with project:', config.projectId);
+  return config;
 }
 
 // Pure function to create Firebase app and services
 export function createFirebaseApp(config) {
   const app = initializeApp(config);
+  // Initialize Firestore with explicit settings to avoid CORS issues
+  // Use experimentalAutoDetectLongPolling to avoid WebSocket/Channel connection issues
   const db = getFirestore(app);
   const auth = getAuth(app);
+  
+  // Configure auth to use localStorage instead of IndexedDB
+  // This is necessary for Playwright E2E tests to capture auth state
+  // Note: setPersistence is deprecated but still works for localStorage
+  setPersistence(auth, browserLocalPersistence).catch(err => {
+    console.warn('Failed to set Firebase auth persistence:', err);
+  });
+  
   return { app, db, auth };
 }
 
@@ -51,6 +65,10 @@ export function createAuthService(auth) {
 
     subscribeToAuthChanges(callback) {
       return onAuthStateChanged(auth, callback);
+    },
+
+    getUserRole(uid) {
+      return getUserRole(uid);
     }
   };
 }

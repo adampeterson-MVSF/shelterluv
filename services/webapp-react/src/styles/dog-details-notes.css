@@ -1,0 +1,92 @@
+/* ==================== Dog Details Notes Section ==================== */
+.dog-notes-section {
+  margin-top: 1.5rem;
+}
+
+.dog-notes-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.dog-notes-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.notes-tab {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  color: var(--color-muted-text);
+  cursor: pointer;
+}
+
+.notes-tab-active {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.dog-notes-body {
+  padding-top: 1rem;
+}
+
+.notes-paragraph {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.attributes-list {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+
+.attributes-list li + li {
+  margin-top: 0.5rem;
+}
+
+.attributes-section {
+  margin-top: 1.5rem;
+}
+
+.attributes-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.25rem;
+}
+
+.attributes-badges {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.attributes-badges-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.attributes-badges-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.attribute-badge {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+}

@@ -1,56 +1,63 @@
 /**
- * Shared Firebase Admin SDK initialization for dev scripts and admin tools.
- * Enforces single initialization using centralized config and safety checks.
+ * Single entry for all Node admin usage.
+ * Handles safety checks and Firebase Admin initialization.
+ * Uses explicit project ID functions from firebaseConfig.
  */
 
-const admin = require('firebase-admin');
-const path = require('path');
-const { validateFirebaseAdminEnv, getFirebaseProjectId } = require('./firebaseConfig');
-const { assertNotProdProject } = require('./firebaseSafetyConfig');
-
-let initialized = false;
+const { createAdminApp } = require('./firebaseAdmin');
+const { getProjectId } = require('./firebaseConfig');
+const { assertDevScriptsEnabled, assertSafeProject } = require('./devScriptSafety');
 
 /**
- * Get Firebase Admin database instance, initializing if needed.
- * Enforces single initialization, validates environment, and ensures safe project.
+ * Initialize Firebase Admin with safety checks.
+ * This is the ONLY place where firebase-admin gets initialized in scripts.
  *
- * @returns {Object} Firestore database instance
- * @throws {Error} If initialization fails or project is unsafe
+ * @param {Object} options - Configuration options
+ * @param {boolean} [options.requireDevScripts=true] - Whether to require DEV_SCRIPTS_ENABLED=1
+ * @returns {Object} Initialized Firebase admin app
+ * @throws {Error} If safety checks fail or initialization fails
  */
-function getAdminDb() {
-  if (initialized) {
-    return admin.firestore();
+function initializeAdmin(options = {}) {
+  const { requireDevScripts = true } = options;
+
+  // Safety checks
+  if (requireDevScripts) {
+    assertDevScriptsEnabled();
   }
+  const projectId = getProjectId('admin');
+  assertSafeProject(projectId, { allowDestructive: true });
 
-  // Validate environment and get project ID
-  validateFirebaseAdminEnv();
-  const projectId = getFirebaseProjectId();
+  // Initialize Firebase Admin
+  return createAdminApp();
+}
 
-  // Safety check
-  assertNotProdProject(projectId, 'admin operations');
+/**
+ * Get the initialized Firebase Admin app instance.
+ * Convenience function for scripts that need the app directly.
+ *
+ * @param {Object} options - Configuration options (same as initializeAdmin)
+ * @returns {Object} Initialized Firebase admin app
+ * @throws {Error} If safety checks fail or initialization fails
+ */
+function getAdminApp(options = {}) {
+  return initializeAdmin(options);
+}
 
-  // Initialize admin with optional service account path override
-  const defaultKeyPath = path.join(__dirname, '..', 'firebase-admin-key.json');
-  const serviceAccountPath = process.env.FIREBASE_ADMIN_KEY_PATH || defaultKeyPath;
-
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccountPath),
-      projectId: projectId
-    });
-    console.log(`✅ Firebase Admin initialized for project: ${projectId}`);
-    initialized = true;
-  } catch (error) {
-    if (error.code !== 'app/duplicate-app') {
-      console.error('❌ Failed to initialize Firebase Admin SDK:', error.message);
-      throw error;
-    }
-    initialized = true; // App was already initialized elsewhere
-  }
-
+/**
+ * Initialize Firebase Admin and return the Firestore database instance.
+ * Convenience function for scripts that just need the DB.
+ *
+ * @param {Object} options - Configuration options (same as initializeAdmin)
+ * @returns {Object} Firestore database instance
+ * @throws {Error} If safety checks fail or initialization fails
+ */
+function getAdminDb(options = {}) {
+  const admin = initializeAdmin(options);
   return admin.firestore();
 }
 
 module.exports = {
+  initializeAdmin,
+  getAdminApp,
   getAdminDb
 };

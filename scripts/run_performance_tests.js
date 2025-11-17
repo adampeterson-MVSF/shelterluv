@@ -15,23 +15,36 @@
 
 const { spawn } = require('child_process');
 const path = require('path');
+const { assertSafe } = require('../common/devScriptSafety');
+const { getProjectId } = require('../common/firebaseConfig');
 
-const SERVICES = {
-  etl: {
+/**
+ * Performance test scenario configurations.
+ * Each scenario defines how to run a performance test for a service.
+ */
+const PERFORMANCE_SCENARIOS = [
+  {
+    key: 'etl',
     name: 'ETL Pipeline',
-    command: 'python',
+    command: 'python3',
     args: ['perf/pipeline_performance_test.py', '--dogs', '10'],
-    cwd: path.join(__dirname, '..', 'services', 'etl-scraper-py'),
+    cwd: path.join(__dirname, '..', 'services', 'etl_scraper_py'),
     description: 'Test ETL pipeline performance with 10 dogs'
   },
-  webapp: {
+  {
+    key: 'webapp',
     name: 'Webapp',
     command: 'node',
     args: ['perf/performance_test.js'],
     cwd: path.join(__dirname, '..', 'services', 'webapp-react'),
     description: 'Test webapp performance and responsiveness'
   }
-};
+];
+
+// Convert to lookup map for backward compatibility
+const SERVICES = Object.fromEntries(
+  PERFORMANCE_SCENARIOS.map(scenario => [scenario.key, scenario])
+);
 
 function showHelp() {
   console.log('Unified Performance Testing Tool\n');
@@ -120,18 +133,19 @@ async function runServicePerformanceTest(serviceKey, options = {}) {
   });
 }
 
-async function runAllPerformanceTests(options = {}) {
-  if (!options.json) {
-    console.log('🔍 Unified Performance Testing Suite');
-    console.log('=====================================\n');
-  }
-
-  // Environment safety checks
-  const firebaseEnv = process.env.FIREBASE_ENV;
-  const gcpProject = process.env.GOOGLE_CLOUD_PROJECT;
-
-  if (firebaseEnv === 'prod' || (gcpProject && gcpProject.includes('prod'))) {
-    const errorMsg = 'Cannot run performance tests against production environment';
+/**
+ * Validate environment is safe for performance testing.
+ * Uses devScriptSafety for consistent safety checks.
+ * @param {Object} options - Options object
+ * @returns {boolean} True if safe, false otherwise
+ */
+function validateEnvironment(options = {}) {
+  try {
+    const projectId = getProjectId('admin');
+    assertSafe(projectId, { allowDestructive: false });
+    return true;
+  } catch (error) {
+    const errorMsg = error.message;
     if (options.json) {
       console.log(JSON.stringify({
         success: false,
@@ -140,15 +154,26 @@ async function runAllPerformanceTests(options = {}) {
       }));
     } else {
       console.error('❌ ERROR:', errorMsg);
-      console.error('Set FIREBASE_ENV=staging and GOOGLE_CLOUD_PROJECT to a safe project');
     }
     return false;
   }
+}
 
+async function runAllPerformanceTests(options = {}) {
+  if (!options.json) {
+    console.log('🔍 Unified Performance Testing Suite');
+    console.log('=====================================\n');
+  }
+
+  // Environment safety check
+  if (!validateEnvironment(options)) {
+    return false;
+  }
+
+  const projectId = process.env.GCP_PROJECT || process.env.FIREBASE_PROJECT_ID;
   if (!options.json) {
     console.log('🔍 Environment safety check passed');
-    console.log(`FIREBASE_ENV: ${firebaseEnv || 'not set'}`);
-    console.log(`GOOGLE_CLOUD_PROJECT: ${gcpProject || 'not set'}\n`);
+    console.log(`GCP_PROJECT: ${projectId || 'not set'}\n`);
   }
 
   const results = [];
@@ -180,8 +205,8 @@ async function runAllPerformanceTests(options = {}) {
       success: overallSuccess,
       timestamp: new Date().toISOString(),
       environment: {
-        FIREBASE_ENV: firebaseEnv,
-        GOOGLE_CLOUD_PROJECT: gcpProject
+        GCP_PROJECT: projectId,
+        FIREBASE_PROJECT_ID: projectId
       },
       summary: {
         passed: successful,
@@ -212,50 +237,63 @@ async function runAllPerformanceTests(options = {}) {
   return overallSuccess;
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
-    return;
-  }
-
+/**
+ * Parse command line arguments into options and service keys.
+ * @param {string[]} args - Command line arguments
+ * @returns {{options: Object, serviceKeys: string[]}}
+ */
+function parseArgs(args) {
   const options = {
     verbose: args.includes('--verbose') || args.includes('-v'),
     json: args.includes('--json'),
     continueOnError: args.includes('--continue-on-error')
   };
 
-  // Filter out option flags to get service names
-  const serviceArgs = args.filter(arg => !arg.startsWith('--'));
+  const serviceKeys = args.filter(arg => !arg.startsWith('--'));
+  return { options, serviceKeys };
+}
 
-  if (serviceArgs.length === 0) {
-    // Run all services
+async function main() {
+  const args = process.argv.slice(2);
+
+  if (args.includes('--help') || args.includes('-h')) {
+    showHelp();
+    process.exit(0);
+    return;
+  }
+
+  const { options, serviceKeys } = parseArgs(args);
+
+  // Run all services if none specified
+  if (serviceKeys.length === 0) {
     const success = await runAllPerformanceTests(options);
     process.exit(success ? 0 : 1);
-  } else {
-    // Run specific services
-    let allSuccess = true;
+    return;
+  }
 
-    for (const serviceArg of serviceArgs) {
-      if (!SERVICES[serviceArg]) {
-        console.error(`Unknown service: ${serviceArg}`);
-        console.log('Available services:', Object.keys(SERVICES).join(', '));
-        process.exit(1);
-      }
-
-      const success = await runServicePerformanceTest(serviceArg, options);
-      if (!success) {
-        allSuccess = false;
-        if (!options.continueOnError) {
-          break;
-        }
-      }
-      console.log('');
+  // Run specific services
+  let allSuccess = true;
+  for (const serviceKey of serviceKeys) {
+    if (!SERVICES[serviceKey]) {
+      console.error(`Unknown service: ${serviceKey}`);
+      console.log('Available services:', Object.keys(SERVICES).join(', '));
+      process.exit(1);
+      return;
     }
 
-    process.exit(allSuccess ? 0 : 1);
+    const result = await runServicePerformanceTest(serviceKey, options);
+    if (!result.success) {
+      allSuccess = false;
+      if (!options.continueOnError) {
+        break;
+      }
+    }
+    if (!options.json) {
+      console.log('');
+    }
   }
+
+  process.exit(allSuccess ? 0 : 1);
 }
 
 if (require.main === module) {

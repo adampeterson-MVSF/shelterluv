@@ -1,7 +1,9 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { AuthProvider, useAuth } from './AuthContext';
+
+// No global mocking - tests use dependency injection via AuthProvider props
 
 // Test component that uses the auth context
 function TestComponent({ onLogin, onLogout, onReady }) {
@@ -32,38 +34,34 @@ const createMockFirebaseUser = (overrides = {}) => ({
 
 // Helper to render with auth context using DI
 function renderWithAuth(overrides = {}) {
-  const authChangeCallback = { current: undefined };
-  const mockUnsubscribe = vi.fn();
-
-  const mockSubscribe = overrides.subscribeToAuthChanges || ((cb) => {
-    authChangeCallback.current = cb;
-    return mockUnsubscribe;
-  });
+  let authChangeCallback;
+  const unsubscribeMock = vi.fn();
 
   const mockGetRole = overrides.getUserRole || vi.fn().mockResolvedValue({ success: true, data: null });
-  const mockSignIn = overrides.signInWithGoogle || vi.fn().mockResolvedValue();
-  const mockSignOut = overrides.signOutUser || vi.fn().mockResolvedValue();
+
+  const fakeAuthService = {
+    subscribeToAuthChanges: vi.fn((cb) => {
+      authChangeCallback = cb;
+      return unsubscribeMock;
+    }),
+    signInWithGoogle: vi.fn(),
+    signOutUser: vi.fn(),
+    getUserRole: mockGetRole,
+  };
 
   const result = render(
-    <AuthProvider
-      subscribeToAuthChanges={mockSubscribe}
-      getUserRole={mockGetRole}
-      signInWithGoogle={mockSignIn}
-      signOutUser={mockSignOut}
-    >
+    <AuthProvider authService={fakeAuthService}>
       <TestComponent />
     </AuthProvider>
   );
 
   return {
     ...result,
-    simulateAuthChange: async (user) => {
-      if (!authChangeCallback.current) {
-        throw new Error('Auth change callback not initialized. Did you render <AuthProvider />?');
+    simulateAuthChange: (user) => {
+      if (!authChangeCallback) {
+        throw new Error('authChangeCallback not initialized');
       }
-      await act(async () => {
-        await authChangeCallback.current(user);
-      });
+      authChangeCallback(user);
     }
   };
 }
@@ -93,8 +91,11 @@ describe('AuthContext', () => {
   });
 
   describe('Initial state', () => {
-    it('starts with anonymous status after auth initialization', async () => {
+    it('starts with loading status then transitions to anonymous after auth initialization', async () => {
       const { simulateAuthChange } = renderWithAuth();
+
+      // Initially should be loading
+      expect(screen.getByTestId('status')).toHaveTextContent('loading');
 
       // Tell the subscription "there is no user"
       await simulateAuthChange(null);
@@ -171,56 +172,126 @@ describe('AuthContext', () => {
   describe('Login functionality', () => {
     it('calls signInWithGoogle and handles success', async () => {
       const mockSignIn = vi.fn().mockResolvedValue();
+      const fakeAuthService = {
+        subscribeToAuthChanges: vi.fn(() => vi.fn()),
+        signInWithGoogle: mockSignIn,
+        signOutUser: vi.fn(),
+      };
 
-      renderWithAuth({ signInWithGoogle: mockSignIn });
+      let capturedLogin;
+      function TestConsumer() {
+        const { login } = useAuth();
+        React.useEffect(() => {
+          capturedLogin = login;
+        }, [login]);
+        return <div>Test</div>;
+      }
 
-      // This test focuses on the auth state machine, the login function is just a pass-through
-      expect(mockSignIn).not.toHaveBeenCalled();
+      render(
+        <AuthProvider authService={fakeAuthService}>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      // Call the login function
+      await capturedLogin();
+
+      expect(mockSignIn).toHaveBeenCalledTimes(1);
     });
 
     it('handles login errors', async () => {
       const mockError = new Error('Login failed');
       const mockSignIn = vi.fn().mockRejectedValue(mockError);
+      const fakeAuthService = {
+        subscribeToAuthChanges: vi.fn(() => vi.fn()),
+        signInWithGoogle: mockSignIn,
+        signOutUser: vi.fn(),
+      };
 
-      renderWithAuth({ signInWithGoogle: mockSignIn });
+      let capturedLogin;
+      function TestConsumer() {
+        const { login } = useAuth();
+        React.useEffect(() => {
+          capturedLogin = login;
+        }, [login]);
+        return <div>Test</div>;
+      }
 
-      // The login function just passes through the error from Firebase
-      // This is tested implicitly through the auth state machine tests
-      expect(mockSignIn).not.toHaveBeenCalled();
+      render(
+        <AuthProvider authService={fakeAuthService}>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      // Call the login function and expect it to handle the error
+      const result = await capturedLogin();
+
+      expect(mockSignIn).toHaveBeenCalledTimes(1);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Login failed');
     });
   });
 
   describe('Logout functionality', () => {
     it('calls signOutUser and handles success', async () => {
-      const mockFirebaseUser = createMockFirebaseUser();
-      const mockGetRole = vi.fn().mockResolvedValue({ success: true, data: 'staff' });
       const mockSignOut = vi.fn().mockResolvedValue();
+      const fakeAuthService = {
+        subscribeToAuthChanges: vi.fn(() => vi.fn()),
+        signInWithGoogle: vi.fn(),
+        signOutUser: mockSignOut,
+      };
 
-      const { simulateAuthChange } = renderWithAuth({
-        getUserRole: mockGetRole,
-        signOutUser: mockSignOut
-      });
+      let capturedLogout;
+      function TestConsumer() {
+        const { logout } = useAuth();
+        React.useEffect(() => {
+          capturedLogout = logout;
+        }, [logout]);
+        return <div>Test</div>;
+      }
 
-      // First simulate logged in state
-      await simulateAuthChange(mockFirebaseUser);
-      await waitFor(() => {
-        expect(screen.getByTestId('status')).toHaveTextContent('authenticated');
-      });
+      render(
+        <AuthProvider authService={fakeAuthService}>
+          <TestConsumer />
+        </AuthProvider>
+      );
 
-      // The logout function is just a pass-through to Firebase
-      // The auth state change simulation above covers the core behavior
-      expect(mockSignOut).not.toHaveBeenCalled();
+      // Call the logout function
+      await capturedLogout();
+
+      expect(mockSignOut).toHaveBeenCalledTimes(1);
     });
 
     it('handles logout errors', async () => {
       const mockError = new Error('Logout failed');
       const mockSignOut = vi.fn().mockRejectedValue(mockError);
+      const fakeAuthService = {
+        subscribeToAuthChanges: vi.fn(() => vi.fn()),
+        signInWithGoogle: vi.fn(),
+        signOutUser: mockSignOut,
+      };
 
-      renderWithAuth({ signOutUser: mockSignOut });
+      let capturedLogout;
+      function TestConsumer() {
+        const { logout } = useAuth();
+        React.useEffect(() => {
+          capturedLogout = logout;
+        }, [logout]);
+        return <div>Test</div>;
+      }
 
-      // The logout function just passes through errors from Firebase
-      // This is tested implicitly through the auth state machine
-      expect(mockSignOut).not.toHaveBeenCalled();
+      render(
+        <AuthProvider authService={fakeAuthService}>
+          <TestConsumer />
+        </AuthProvider>
+      );
+
+      // Call the logout function and expect it to handle the error
+      const result = await capturedLogout();
+
+      expect(mockSignOut).toHaveBeenCalledTimes(1);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Logout failed');
     });
   });
 
@@ -250,24 +321,25 @@ describe('AuthContext', () => {
 
   describe('Subscription cleanup', () => {
     it('unsubscribes from auth changes on unmount', async () => {
-      const mockUnsubscribe = vi.fn();
-      const mockSubscribe = vi.fn((_cb) => {
-        // Store callback for later
-        return mockUnsubscribe;
-      });
+      const unsubscribeMock = vi.fn();
+      const fakeAuthService = {
+        subscribeToAuthChanges: vi.fn(() => unsubscribeMock),
+        signInWithGoogle: vi.fn(),
+        signOutUser: vi.fn(),
+      };
 
       const { unmount } = render(
-        <AuthProvider subscribeToAuthChanges={mockSubscribe}>
+        <AuthProvider authService={fakeAuthService}>
           <TestComponent />
         </AuthProvider>
       );
 
       // Wait for subscription to be called
-      await waitFor(() => expect(mockSubscribe).toHaveBeenCalled());
+      await waitFor(() => expect(fakeAuthService.subscribeToAuthChanges).toHaveBeenCalled());
 
       unmount();
 
-      expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+      expect(unsubscribeMock).toHaveBeenCalledTimes(1);
     });
   });
 });

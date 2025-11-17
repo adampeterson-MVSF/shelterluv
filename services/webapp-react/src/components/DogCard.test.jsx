@@ -7,6 +7,16 @@ import { screen } from '@testing-library/react';
 import { DogCard } from './DogCard.jsx';
 import { renderWithRouter } from '../test/testUtils';
 
+// Mock Firebase app initialization to prevent env var requirements
+vi.mock('../app', () => ({
+  db: 'mock-db-instance',
+  authService: {
+    signInWithGoogle: vi.fn(),
+    signOutUser: vi.fn(),
+    subscribeToAuthChanges: vi.fn(() => vi.fn()) // Return mock unsubscribe function
+  }
+}));
+
 // Mock the required modules
 vi.mock('../types/dogNormalize', () => ({
   getPrimaryPhoto: vi.fn()

@@ -50,20 +50,7 @@ main {
 }
 
 /* ==================== Utility Classes ==================== */
-/* Spacing utilities */
-.margin-bottom-sm { margin: var(--margin-bottom-sm); }
-.margin-bottom-md { margin: var(--margin-bottom-md); }
-.margin-bottom-lg { margin: var(--margin-bottom-lg); }
-.margin-bottom-xl { margin: var(--margin-bottom-xl); }
-
-.padding-sm { padding: var(--padding-sm); }
-.padding-md { padding: var(--padding-md); }
-.padding-lg { padding: var(--padding-lg); }
-.padding-xl { padding: var(--padding-xl); }
-
-/* Common component spacing */
-.card-padding { padding: var(--spacing-lg); }
-.section-margin { margin-bottom: var(--spacing-3xl); }
+/* Removed unused spacing utilities - kept only what's actually used */
 
 /* ==================== Page Container ==================== */
 .page-container {

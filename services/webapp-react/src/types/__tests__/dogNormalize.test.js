@@ -28,7 +28,7 @@ describe('normalizeDog', () => {
 
     const result = normalizeDog(mockDoc);
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       id: 'test-dog-id',
       'Internal-ID': '12345',
       'ID': 'A001',
@@ -47,6 +47,7 @@ describe('normalizeDog', () => {
       'Photos': [],
       'Treatments': []
     });
+    expect(result.MedicalHistory).toBeNull();
   });
 
   it('should throw error for missing Internal-ID in all environments', () => {

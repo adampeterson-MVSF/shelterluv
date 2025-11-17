@@ -12,7 +12,7 @@ load_dotenv('.env')
 load_dotenv('.env.local')
 
 # Add the ETL service path to import modules
-sys.path.append(os.path.join(os.path.dirname(__file__), 'services', 'etl-scraper-py'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'services', 'etl_scraper_py'))
 
 from enrichment import _compute_is_in_custody
 

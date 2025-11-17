@@ -1,86 +1,19 @@
-import { useState } from 'react';
-import PropTypes from 'prop-types';
-import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { AUTH_STATE_KINDS } from '../contexts/AuthContext';
+import { useAuthActions } from '../hooks/useAuthActions';
+import { HeaderError } from './HeaderError';
+import { ForbiddenHeader } from './ForbiddenHeader';
+import { AuthControls } from './AuthControls';
 
-function HeaderError({ message }) {
-  return <div className="error-message">{message}</div>;
-}
-
-HeaderError.propTypes = {
-  message: PropTypes.string.isRequired
-};
-
-function ForbiddenHeader({ handleLogout }) {
-  return (
-    <header className="app-header">
-      <div className="header-content">
-        <h1>Muttville</h1>
-        <div className="unauthorized-message">
-          <p>Access denied. Only @muttville.org accounts are permitted.</p>
-          <button onClick={handleLogout}>Sign Out</button>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-ForbiddenHeader.propTypes = {
-  handleLogout: PropTypes.func.isRequired
-};
-
-function AuthControls({ authState, handleLogin, handleLogout }) {
-  if (authState.kind === 'anonymous') {
-    return (
-      <button className="sign-in-btn" onClick={handleLogin}>
-        Sign In
-      </button>
-    );
-  }
-
-  if (authState.kind === 'authenticated') {
-    return (
-      <div className="header-user-section">
-        <span className="user-info">{authState.user.email}</span>
-        <button className="logout-btn" onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
-    );
-  }
-
-  return null;
-}
-
-AuthControls.propTypes = {
-  authState: PropTypes.object.isRequired,
-  handleLogin: PropTypes.func.isRequired,
-  handleLogout: PropTypes.func.isRequired
-};
-
+/**
+ * Main application header component
+ */
 export function Header() {
-  const { authState, login, logout } = useAuth();
-  const [error, setError] = useState(null);
+  const { authState } = useAuth();
+  const { error, handleLogin, handleLogout } = useAuthActions();
 
-  const handleLogin = async () => {
-    setError(null);
-    const result = await login();
-    if (!result.success) {
-      console.error('Login failed:', result.error);
-      setError('Login failed. Please try again.');
-    }
-  };
-
-  const handleLogout = async () => {
-    setError(null);
-    const result = await logout();
-    if (!result.success) {
-      console.error('Logout failed:', result.error);
-      setError('Logout failed. Please try again.');
-    }
-  };
-
-  if (authState.kind === 'forbidden') {
+  if (authState.kind === AUTH_STATE_KINDS.FORBIDDEN) {
     return <ForbiddenHeader handleLogout={handleLogout} />;
   }
 
@@ -88,7 +21,10 @@ export function Header() {
     <header className="app-header">
       <div className="header-content">
         <Link to="/" className="app-title">
-          <h1>Muttville</h1>
+          <h1>Muttville <span className="font-normal">Senior Dogs</span></h1>
+          <p className="app-header-subtitle">
+            Give an older dog a second chance at happiness
+          </p>
         </Link>
         {error && <HeaderError message={error} />}
         <AuthControls

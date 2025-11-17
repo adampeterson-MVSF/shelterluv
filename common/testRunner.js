@@ -66,9 +66,7 @@ function executeTestCommand(commandConfig, options = {}) {
       success: false,
       exitCode,
       stdout,
-      stderr,
-      output: stdout, // Legacy field for backward compatibility
-      error: stderr // Legacy field for backward compatibility
+      stderr
     };
   }
 }

@@ -1,0 +1,23 @@
+/* ==================== Dog Details Status Banner ==================== */
+.dog-status-banner {
+  border-bottom: 1px solid var(--color-border);
+  background: #fff9e6;
+  padding: 1rem 1.25rem;
+}
+
+.dog-status-line {
+  text-align: center;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dog-status-sub {
+  margin-top: 0.25rem;
+  text-align: center;
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0 0;
+}
+
+.dog-status-sub .strong {
+  font-weight: 600;
+}

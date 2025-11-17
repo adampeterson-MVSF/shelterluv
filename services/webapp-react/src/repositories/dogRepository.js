@@ -5,11 +5,44 @@
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../app';
 import { normalizeDog } from '../types/dogNormalize';
+import { isDogError, createFirestoreError, DOG_ERROR_CODES } from '../types/dogErrors';
+
+/**
+ * Maps DogError codes to normalized error kinds for UI consumption.
+ * @param {import('../types/dogErrors').DogError} dogError - The raw DogError
+ * @returns {DogError} Normalized error with kind and message
+ */
+function mapDogErrorToUnion(dogError) {
+  switch (dogError.code) {
+    case DOG_ERROR_CODES.DOCUMENT_NOT_FOUND:
+      return { kind: 'not_found', message: dogError.message };
+    case DOG_ERROR_CODES.FIRESTORE_CONNECTION_ERROR:
+      return { kind: 'network', message: dogError.message };
+    case DOG_ERROR_CODES.MISSING_REQUIRED_FIELD:
+    case DOG_ERROR_CODES.MISSING_ETL_CONTRACT_FIELDS:
+      return { kind: 'validation', message: dogError.message };
+    default:
+      return { kind: 'unknown', message: dogError.message };
+  }
+}
+
+/**
+ * @typedef {Object} DogResult
+ * @property {boolean} success - Whether the operation succeeded
+ * @property {Dog[]|null} data - Dog data if success, null if error
+ * @property {DogError|null} error - Structured error if operation failed
+ */
+
+/**
+ * @typedef {Object} DogError
+ * @property {'not_found'|'permission'|'network'|'validation'|'unknown'} kind - Error kind for UI handling
+ * @property {string} message - Human-readable error message
+ */
 
 /**
  * Fetches all dogs from Firestore.
  * Fails on malformed documents - trusts ETL to provide schema-compliant data.
- * @returns {Promise<{success: boolean, data: Dog[], error?: string}>} Result object with success/data or error
+ * @returns {Promise<DogResult>} Result object with success/data or error
  */
 export async function getDogs() {
   try {
@@ -25,8 +58,9 @@ export async function getDogs() {
 
     return { success: true, data: dogsList };
   } catch (error) {
-    console.error('Error fetching dogs from Firestore:', error);
-    return { success: false, data: [], error: error.message };
+    // Map error to normalized union type
+    const dogError = isDogError(error) ? error : createFirestoreError(error);
+    return { success: false, data: null, error: mapDogErrorToUnion(dogError) };
   }
 }
 
@@ -34,12 +68,13 @@ export async function getDogs() {
  * Fetches a single dog by ID from Firestore
  * Fails on malformed documents - trusts ETL to provide schema-compliant data.
  * @param {string} id - Dog document ID
- * @returns {Promise<{success: boolean, data: Dog|null, error?: string}>} Result object with success/data or error
+ * @returns {Promise<DogResult>} Result object with success/data or error
  */
 export async function getDogById(id) {
   try {
     const { doc, getDoc } = await import('firebase/firestore');
-    const dogDoc = await getDoc(doc(db, 'dogs', id));
+    const dogDocRef = doc(db, 'dogs', id);
+    const dogDoc = await getDoc(dogDocRef);
 
     if (!dogDoc.exists()) {
       return { success: true, data: null };
@@ -50,8 +85,9 @@ export async function getDogById(id) {
     return { success: true, data: normalizedDog };
 
   } catch (error) {
-    console.error('Error fetching dog from Firestore:', error);
-    return { success: false, data: null, error: error.message };
+    // Map error to normalized union type
+    const dogError = isDogError(error) ? error : createFirestoreError(error);
+    return { success: false, data: null, error: mapDogErrorToUnion(dogError) };
   }
 }
 

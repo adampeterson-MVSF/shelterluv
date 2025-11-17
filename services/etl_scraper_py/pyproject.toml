@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "requests.*",
+    "pytest.*",
+    "bs4.*",
+    "lxml.*",
+    "selenium.*",
+]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default
+select = ["E", "F", "C90", "I", "N", "UP", "YTT", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
+ignore = [
+    "S101",  # assert statements
+    "S104",  # binding to all interfaces
+    "COM812",  # trailing comma missing
+    "ISC001",  # implicit string concatenation
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"test_*.py" = ["S101", "PLR2004", "FBT001", "FBT002", "FBT003"]
+
+[tool.radon]
+# Maximum complexity threshold
+max-cc = 10
+
+# Minimum complexity to report
+min-cc = 1
+
+# Exclude files/directories
+exclude = [
+    "*/tests/*",
+    "*/test_*",
+    "__pycache__",
+    "*.pyc"
+]

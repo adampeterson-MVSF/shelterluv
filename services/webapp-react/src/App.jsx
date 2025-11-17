@@ -1,8 +1,7 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Header } from './components/Header';
-import Home from './pages/Home';
-import DogDetails from './pages/DogDetails';
+import { RoutesConfig } from './RoutesConfig';
 
 function App() {
   return (
@@ -11,10 +10,7 @@ function App() {
         <div className="App">
           <Header />
           <main>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/dog/:id" element={<DogDetails />} />
-            </Routes>
+            <RoutesConfig />
           </main>
         </div>
       </Router>

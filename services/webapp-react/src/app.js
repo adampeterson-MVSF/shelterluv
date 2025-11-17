@@ -10,7 +10,15 @@ const { app, db, auth } = createFirebaseApp(firebaseConfig);
 // Create auth service instance
 const authService = createAuthService(auth);
 
+/**
+ * Get Firebase services - single entry point for Firebase dependencies.
+ * Returns initialized services for use throughout the app.
+ * @returns {Object} Firebase services object
+ */
+export function getFirebaseServices() {
+  return { db, authService };
+}
+
 // Export initialized services for use throughout the app
 export { db, authService };
-export { authService as auth }; // Alias for backward compatibility
 export default app;

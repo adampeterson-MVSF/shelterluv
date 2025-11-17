@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDogs } from '../repositories/dogRepository';
+import { useCancellableRequest, createRequestToken, checkRequestCancelled } from './useCancellableRequest';
 
 /**
  * @typedef {Object} UseDogsReturn
@@ -10,47 +11,85 @@ import { getDogs } from '../repositories/dogRepository';
  */
 
 /**
- * Custom hook for fetching dog data
- * Fetches all dogs once when authenticated, sets error state on failures
- * @param {Object} authState - Authentication state from useAuth hook
- * @param {string} authState.kind - Current auth kind ('loading'|'authenticated'|'anonymous'|'forbidden')
+ * Custom hook for fetching dog data with request cancellation and race condition protection
+ * @param {Object} authPermissions - Pure data about user permissions (not auth state)
+ * @param {boolean} authPermissions.canViewDogs - Whether user can view dogs
+ * @param {boolean} authPermissions.shouldHideDogs - Whether dogs should be hidden
+ * @param {Object} options - Hook options
+ * @param {boolean} options.autoFetch - Whether to fetch automatically on permission changes (default: true)
  * @returns {UseDogsReturn}
  */
-export function useDogs(authState) {
+export function useDogs(authPermissions, options = {}) {
+  const { autoFetch = true } = options;
   const [allDogs, setAllDogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Track the current fetch request to prevent race conditions
+  const requestRef = useCancellableRequest();
+
   const fetchDogs = useCallback(async () => {
+    // Create new request token (cancels any previous request)
+    const requestToken = createRequestToken(requestRef);
+
     setLoading(true);
     setError(null);
 
-    const result = await getDogs();
-    if (result.success) {
-      setAllDogs(result.data);
-    } else {
-      console.error('Error fetching dogs:', result.error);
-      setError(result.error);
+    try {
+      const result = await getDogs();
+
+      // Check if this request was cancelled
+      if (checkRequestCancelled(requestToken, setLoading)) {
+        return;
+      }
+
+      if (result.success) {
+        setAllDogs(result.data);
+        setError(null);
+      } else {
+        setError(result.error);
+        setAllDogs([]);
+      }
+    } catch (err) {
+      // Check if this request was cancelled
+      if (checkRequestCancelled(requestToken, setLoading)) {
+        return;
+      }
+
+      setError(err);
       setAllDogs([]);
+    } finally {
+      // Only clear loading if this is still the current request
+      if (requestRef.current === requestToken) {
+        setLoading(false);
+      }
     }
-    setLoading(false);
   }, []);
 
   const refetch = useCallback(() => {
     fetchDogs();
   }, [fetchDogs]);
 
+  // State machine for data fetching based on permissions
   useEffect(() => {
-    // Only fetch dogs when user is authenticated
-    if (authState.kind === 'authenticated') {
+    if (!autoFetch) return;
+
+    if (authPermissions.canViewDogs) {
+      // Fetch fresh data when authenticated
       fetchDogs();
-    } else if (authState.kind === 'anonymous' || authState.kind === 'forbidden') {
-      // Clear any existing data and errors when not authenticated
+    } else if (authPermissions.shouldHideDogs) {
+      // Clear stale data when not authenticated to prevent showing old data
       setAllDogs([]);
       setLoading(false);
       setError(null);
+      // Cancel any in-flight request
+      if (requestRef.current) {
+        requestRef.current.cancelled = true;
+      }
     }
-  }, [authState.kind, fetchDogs]);
+    // 'loading' state: don't change data state
+  }, [authPermissions.canViewDogs, authPermissions.shouldHideDogs, autoFetch, fetchDogs]);
+
 
   return {
     allDogs,

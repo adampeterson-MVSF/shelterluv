@@ -1,27 +1,115 @@
 # Performance Testing
 
-**⚠️ SAFETY FIRST**: Performance scripts hit real ShelterLuv APIs and Firebase. Use only with staging/test projects.
+Performance tests call live ShelterLuv endpoints and Firestore. Run only against non-production projects.
 
-Set environment variables:
-- `FIREBASE_ENV=staging` (see `common/firebaseSafetyConfig.js` for allowed projects)
-- `GOOGLE_CLOUD_PROJECT=muttville-staging` (see `services/etl-scraper-py/common.py` for project mapping)
+**⚠️ SAFETY**: All perf tests use `common/devScriptSafety.js` (Node) or `config.py` `SafetyPolicy` (Python). Projects must be in `common/config.json` `safe_profiles`. **NEVER** run against production (`muttville-prod`, `muttville-production`).
 
-**What "Good Enough" Means:**
-- **ETL**: Process 10 dogs in < 60 seconds (6 seconds/dog) with < 300MB memory
-- **Webapp**: Page loads in < 2 seconds, bundle < 2MB, Lighthouse score ≥ 90
+**Canonical Entry Points:**
+- **Orchestrator**: `scripts/run_performance_tests.js` - Runs both suites
+- **ETL**: `services/etl_scraper_py/perf/pipeline_performance_test.py` - ETL pipeline metrics
+- **Webapp**: `services/webapp-react/perf/performance_test.js` - Frontend render/load metrics
+
+**No second config system**: Perf tests use the same config as main ETL/webapp (`common/config.json`, `config.py`, `SafetyPolicy`).
+
+## Prerequisites Checklist
+
+- [ ] Select an approved staging project from `common/config.json` `safe_profiles` list (`dev`, `staging`, `e2e`, or `demo`) and confirm it contains representative dog data.
+- [ ] Export required environment variables:
+  - `FIREBASE_PROJECT_ID=staging-muttville` (or another safe project from `common/config.json` `safe_profiles`)
+  - `GCP_PROJECT=staging-muttville` (must match `FIREBASE_PROJECT_ID` and be in `safe_profiles`)
+  - `SHELTERLUV_USER`, `SHELTERLUV_PASS`, `SHELTERLUV_API_KEY` when exercising the real API.
+- [ ] Sign in with `gcloud auth application-default login` so Firestore and Secret Manager clients can authenticate.
+- [ ] Regenerate schema artifacts with `npm run schema:gen` to keep ETL/webapp contracts in sync before measuring performance.
+
+## One-Command Orchestrator
+
+Run both performance suites in one shot:
+
+```bash
+node scripts/run_performance_tests.js
+```
+
+The orchestrator shells out to:
+
+- `services/etl_scraper_py/perf/pipeline_performance_test.py`
+- `services/webapp-react/perf/performance_test.js`
+
+It writes JSON artifacts into `artifacts/` and prints a consolidated summary.
+
+## Performance Thresholds
+
+### Contractually Important Metrics (CI-Enforced)
+
+These metrics are contractually enforced in CI. Failures block merges and require immediate attention.
+
+| Metric | JSON Key | Source File | Threshold | How to Fix |
+|--------|----------|-------------|-----------|------------|
+| ETL Total Time | `total_time` | `services/etl_scraper_py/perf/pipeline_performance_test.py` | < 60s for 10 dogs | Optimize concurrent scraping in `services/etl_scraper_py/scraper/` |
+| ETL Memory Peak | `memory_peak` | `services/etl_scraper_py/perf/pipeline_performance_test.py` | < 300MB | Reduce concurrent workers in `services/etl_scraper_py/transform.py` |
+| Webapp Page Load | `homePageLoad.average` | `services/webapp-react/perf/performance_test.js` | < 2000ms | Optimize dog data fetching in `services/webapp-react/src/hooks/useDogs.js` |
+
+### Nice-to-Have Metrics (Monitoring Only)
+
+These metrics are tracked for awareness but don't block CI. Investigate if they degrade significantly.
+
+| Metric | JSON Key | Source File | Threshold | How to Fix |
+|--------|----------|-------------|-----------|------------|
+| ETL Scrape Time | `scrape_transform_time` | `services/etl_scraper_py/perf/pipeline_performance_test.py` | < 30s for 10 dogs | Add retry logic and timeouts in `services/etl_scraper_py/scraper/session.py` |
+| Webapp Filtering | `filtering.measurements[].average` | `services/webapp-react/perf/performance_test.js` | < 500ms | Add indexes to Firestore queries in `services/webapp-react/src/repositories/dogRepository.js` |
+| Webapp Search | `search.measurements[].average` | `services/webapp-react/perf/performance_test.js` | < 300ms | Implement client-side search optimization in `services/webapp-react/src/hooks/useDogs.js` |
+
+**Note**: Keep this table authoritative with CI expectations—update both together whenever a threshold changes.
+
+## How to Interpret Failures
+
+### CI Failure Scenarios
+
+1. **ETL Total Time > 60s**: Pipeline is too slow for production. Check:
+   - Network latency to ShelterLuv API
+   - Concurrent worker count in `transform.py`
+   - Firestore write batch sizes
+   - **Action**: Optimize bottlenecks or increase threshold if justified
+
+2. **ETL Memory Peak > 300MB**: Risk of OOM in production. Check:
+   - Number of concurrent workers
+   - Large data structures in memory
+   - **Action**: Reduce concurrency or optimize memory usage
+
+3. **Webapp Page Load > 2000ms**: Poor user experience. Check:
+   - Firestore query performance (add indexes)
+   - Network conditions
+   - **Action**: Optimize queries, add indexes, or lazy load routes
+
+### Non-Blocking Degradations
+
+If nice-to-have metrics degrade but don't exceed thresholds:
+- Monitor trends over multiple runs
+- File a non-blocking issue if degradation is consistent
+- Investigate during next performance sprint
+
+### Test Environment Issues
+
+If tests fail due to environment (not code):
+- Verify project is in `safe_profiles` list
+- Check `FIREBASE_PROJECT_ID` and `GCP_PROJECT` are set correctly
+- Ensure `gcloud auth application-default login` is complete
+- Re-run tests; if still failing, check Firestore connectivity
 
 ## ETL Performance Testing
 
-### Run Performance Test
-```bash
-cd services/etl-scraper-py
-python perf/pipeline_performance_test.py --dogs 10
-```
+### Checklist
 
-**Note**: Runs in dry-run mode by default (no actual Firestore writes). Use `--write` for full end-to-end testing.
+1. `cd services/etl_scraper_py`
+2. `python3 perf/pipeline_performance_test.py --dogs 10`
+   - Append `--write` to hit Firestore for real writes; default is dry-run.
+3. Save stdout to `perf/etl_run.json`.
+4. Confirm:
+   - `total_time < 60`
+   - `memory_peak < 300000000`
+   - `dogs_processed == --dogs`
+5. File a regression issue if any metric fails or output `success` is `false`.
 
-### Expected JSON Output
-The script outputs a single JSON object to stdout:
+### JSON Shape
 
 ```json
 {
@@ -41,221 +129,88 @@ The script outputs a single JSON object to stdout:
 }
 ```
 
-### Compare Runs
+### Compare Runs Quickly
+
 ```bash
-# Run twice and compare manually
-python perf/pipeline_performance_test.py --dogs 10 > run1.json
-python perf/pipeline_performance_test.py --dogs 10 > run2.json
-
-# Compare total_time field
-jq '.total_time' run1.json run2.json
+python3 perf/pipeline_performance_test.py --dogs 10 > perf/run1.json
+python3 perf/pipeline_performance_test.py --dogs 10 > perf/run2.json
+jq '.total_time' perf/run1.json perf/run2.json
 ```
-
-### Target Performance
-- `total_time`: < 60 seconds for 10 dogs (6 seconds per dog)
-- `memory_peak`: < 300MB
-- `dogs_processed`: Should match `--dogs` parameter
 
 ## Webapp Performance Testing
 
-### Run Performance Test
-```bash
-cd services/webapp-react
-node perf/performance_test.js [--port PORT] [--iterations N] [--seed-data]
-```
+### Checklist
 
-**Scenarios Covered:**
-1. **Home Page Load Performance** - Measures initial page load with dog data fetching and rendering
-2. **Filtering Performance** - Tests various filter combinations (availability, size, case managers)
-3. **Search Performance** - Tests search queries (names, breeds, case managers)
-4. **Sorting Performance** - Tests sorting by name and age (ascending/descending)
-5. **Bundle Size Analysis** - Analyzes production build size
+1. `cd services/webapp-react`
+2. Start dev server: `npm run dev` (runs on port 5173 by default)
+3. Run `node perf/performance_test.js --iterations 3 --port 5173`
+4. Inspect `perf/performance_results_*.json` and verify:
+   - Home Page Load `average < 2000`
+   - Filtering scenarios `average < 500`
+   - Search scenarios `average < 300`
+5. Attach the JSON output to any regression report.
 
-### Expected File Output
-Results are saved to `services/webapp-react/perf/` with timestamp:
+### Result Shape
 
 ```json
 {
   "timestamp": "2024-01-01T12:00:00.000Z",
   "config": {
     "port": 5173,
-    "iterations": 3,
-    "seedData": false
+    "scenarios": ["homePageLoad", "filtering", "search"]
   },
-  "tests": [
-    {
+  "results": {
+    "homePageLoad": {
       "name": "Home Page Load Performance",
-      "average": 1234.5,
-      "min": 1100,
-      "max": 1450,
-      "avgDogCount": 8.5
+      "description": "Measure time to load home page and display dog data",
+      "measurements": [
+        {
+          "iteration": 1,
+          "duration": 1234,
+          "success": true,
+          "loadTime": 1234,
+          "dogCount": 8,
+          "authStatus": true
+        }
+      ]
     },
-    {
+    "filtering": {
       "name": "Filtering Performance",
+      "description": "Test filtering operations with various combinations",
       "measurements": [
         {
           "scenario": "No filters",
-          "average": 45.2,
-          "avgVisibleDogs": 10
-        },
-        {
-          "scenario": "Available only",
-          "average": 123.8,
-          "avgVisibleDogs": 7
-        }
-      ]
-    },
-    {
-      "name": "Search Performance",
-      "measurements": [
-        {
-          "query": "Max",
-          "description": "Single name search",
-          "average": 89.3,
-          "avgResultCount": 2
-        }
-      ]
-    },
-    {
-      "name": "Sorting Performance",
-      "measurements": [
-        {
-          "description": "Name A-Z",
-          "average": 67.4,
-          "avgDogCount": 10
-        }
-      ]
-    },
-    {
-      "name": "Bundle Size Analysis",
-      "buildSize": 1847291
-    }
-  ]
-}
-```
-
-### Compare Runs
-```bash
-# Check metrics across runs
-ls perf/performance_results_*.json
-cat perf/performance_results_*.json | jq '.metrics.pageLoadTime.avg'
-```
-
-### Target Performance
-- **Home Page Load**: `average` < 2.0 seconds
-- **Filtering**: `average` < 500ms per scenario
-- **Search**: `average` < 300ms per query
-- **Sorting**: `average` < 200ms per sort operation
-- **Bundle Size**: `buildSize` < 2MB (2000000 bytes)
-
-## How to Add a New Perf Scenario
-
-To add a new performance test scenario, modify `services/webapp-react/perf/performance_test.js`:
-
-### 1. Add Scenario Method
-Create a new async method in the `PerformanceTester` class following the pattern:
-
-```javascript
-async testNewFeaturePerformance() {
-    console.log('🎯 Testing new feature performance...');
-
-    const results = {
-        name: 'New Feature Performance',
-        measurements: []
-    };
-
-    // Define test scenarios
-    const testScenarios = [
-        { name: 'Scenario A', config: { /* scenario config */ } },
-        { name: 'Scenario B', config: { /* scenario config */ } }
-    ];
-
-    for (const scenario of testScenarios) {
-        const scenarioResults = {
-            scenario: scenario.name,
-            measurements: []
-        };
-
-        for (let i = 0; i < this.iterations; i++) {
-            try {
-                // Navigate to test page
-                await this.page.goto(this.baseUrl, { waitUntil: 'networkidle' });
-
-                const startTime = Date.now();
-
-                // Perform the action being tested
-                await this.performNewFeatureAction(scenario.config);
-
-                // Wait for completion
-                await this.page.waitForSelector('.completion-indicator', { timeout: 5000 });
-
-                const duration = Date.now() - startTime;
-                const resultMetric = await this.getResultMetric();
-
-                scenarioResults.measurements.push({
-                    duration,
-                    resultMetric,
-                    success: true
-                });
-
-            } catch (error) {
-                scenarioResults.measurements.push({
-                    duration: null,
-                    resultMetric: 0,
-                    success: false,
-                    error: error.message
-                });
+          "measurements": [
+            {
+              "iteration": 1,
+              "duration": 45,
+              "success": true,
+              "filterTime": 45,
+              "visibleDogs": 10,
+              "activeFilters": 0
             }
+          ],
+          "average": 45.2,
+          "successRate": 100
         }
-
-        // Calculate averages for successful measurements
-        const successfulMeasurements = scenarioResults.measurements.filter(m => m.success);
-        if (successfulMeasurements.length > 0) {
-            scenarioResults.average = this.calculateAverage(successfulMeasurements.map(m => m.duration));
-            scenarioResults.avgResultMetric = this.calculateAverage(successfulMeasurements.map(m => m.resultMetric));
-        }
-
-        results.measurements.push(scenarioResults);
+      ]
     }
-
-    return results;
+  }
 }
 ```
 
-### 2. Add Helper Methods
-Add any helper methods needed for your scenario:
+### Compare Runs Quickly
 
-```javascript
-async performNewFeatureAction(config) {
-    // Implement the action logic
-    await this.page.click('[data-testid="new-feature-button"]');
-    // ... additional steps
-}
-
-async getResultMetric() {
-    // Return a metric for the results (count, size, etc.)
-    return await this.page.locator('.result-items').count();
-}
+```bash
+ls perf/performance_results_*.json
+jq '.results.homePageLoad.measurements[0].duration' perf/performance_results_*.json
 ```
-
-### 3. Wire Into Main Test Flow
-Add the new test to the main `runTests()` method:
-
-```javascript
-// Test 6: New feature performance
-const newFeatureTest = await this.testNewFeaturePerformance();
-results.tests.push(newFeatureTest);
-```
-
-### 4. Update Expected Performance
-Add target performance metrics to the "Target Performance" section above.
 
 ## Running Both Together
 
-Use the orchestrator script for comprehensive performance testing:
-
 ```bash
-./scripts/run_performance_tests.sh
+node scripts/run_performance_tests.js
 ```
 
-This runs both ETL and webapp performance tests with proper environment setup.
+This runs both ETL and webapp performance tests, coordinating the execution and writing JSON artifacts for CI consumption.
+

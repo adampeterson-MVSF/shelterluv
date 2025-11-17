@@ -1,0 +1,151 @@
+=== COMPREHENSIVE TEST REPORT ===
+
+Generated on: Sun Nov 16 17:20:41 PST 2025
+
+=== CROSS-LANGUAGE SAFETY TESTS ===
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-7.4.4, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/adampeterson/Github/shelterluv/services/etl_scraper_py
+configfile: pytest.ini
+plugins: anyio-4.11.0, cov-4.1.0
+collecting ... collected 5 items
+
+tests/test_cross_language_safety.py::TestCrossLanguageSafety::test_python_safety_map_structure PASSED [ 20%]
+tests/test_cross_language_safety.py::TestCrossLanguageSafety::test_js_python_safety_consistency PASSED [ 40%]
+tests/test_cross_language_safety.py::TestCrossLanguageSafety::test_no_duplicate_projects_in_safety_map PASSED [ 60%]
+tests/test_cross_language_safety.py::TestCrossLanguageSafety::test_all_projects_have_valid_env_profiles PASSED [ 80%]
+tests/test_cross_language_safety.py::TestCrossLanguageSafety::test_safety_consistency_with_config PASSED [100%]
+
+============================== 5 passed in 0.01s ===============================
+
+=== ERROR TESTS ===
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-7.4.4, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/adampeterson/Github/shelterluv/services/etl_scraper_py
+configfile: pytest.ini
+plugins: anyio-4.11.0, cov-4.1.0
+collecting ... collected 7 items
+
+tests/test_errors.py::TestErrors::test_etl_error_inheritance PASSED      [ 14%]
+tests/test_errors.py::TestErrors::test_api_error_inheritance PASSED      [ 28%]
+tests/test_errors.py::TestErrors::test_scraper_error_inheritance PASSED  [ 42%]
+tests/test_errors.py::TestErrors::test_schema_validation_error_inheritance PASSED [ 57%]
+tests/test_errors.py::TestErrors::test_error_hierarchy PASSED            [ 71%]
+tests/test_errors.py::TestErrors::test_error_with_custom_message PASSED  [ 85%]
+tests/test_errors.py::TestErrors::test_error_cause_preservation PASSED   [100%]
+
+============================== 7 passed in 0.01s ===============================
+
+=== SCHEMA VALIDATION TESTS ===
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-7.4.4, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/adampeterson/Github/shelterluv/services/etl_scraper_py
+configfile: pytest.ini
+plugins: anyio-4.11.0, cov-4.1.0
+collecting ... collected 21 items
+
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_schema_loads_successfully PASSED [  4%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_required_fields_match_schema PASSED [  9%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_status_enum_matches_schema PASSED [ 14%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_size_enum_matches_schema PASSED [ 19%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_gender_enum_matches_schema PASSED [ 23%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_boolean_fields_are_boolean_type PASSED [ 28%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_string_fields_are_string_type PASSED [ 33%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_number_fields_are_number_type PASSED [ 38%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_array_fields_are_array_type PASSED [ 42%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_photos_array_items_are_uri_strings PASSED [ 47%]
+tests/test_schema_validation.py::TestSchemaTypeValidation::test_treatments_array_structure PASSED [ 52%]
+tests/test_schema_validation.py::TestNormalizationFunctions::test_normalize_size_produces_valid_values PASSED [ 57%]
+tests/test_schema_validation.py::TestNormalizationFunctions::test_normalize_status_produces_valid_values PASSED [ 61%]
+tests/test_schema_validation.py::TestNormalizationFunctions::test_normalize_age_years_produces_numbers PASSED [ 66%]
+tests/test_schema_validation.py::TestNormalizationFunctions::test_build_age_display_produces_strings PASSED [ 71%]
+tests/test_schema_validation.py::TestSchemaValidation::test_valid_minimal_dog_record_passes_validation PASSED [ 76%]
+tests/test_schema_validation.py::TestSchemaValidation::test_valid_complete_dog_record_passes_validation PASSED [ 80%]
+tests/test_schema_validation.py::TestSchemaValidation::test_invalid_dog_record_fails_validation PASSED [ 85%]
+tests/test_schema_validation.py::TestSchemaValidation::test_missing_required_field_fails_validation PASSED [ 90%]
+tests/test_schema_validation.py::TestSchemaValidation::test_wrong_type_fails_validation PASSED [ 95%]
+tests/test_schema_validation.py::TestSchemaValidation::test_boolean_fields_must_be_boolean PASSED [100%]
+
+============================== 21 passed in 0.05s ==============================
+
+=== SECRET MANAGER TESTS ===
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-7.4.4, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/adampeterson/Github/shelterluv/services/etl_scraper_py
+configfile: pytest.ini
+plugins: anyio-4.11.0, cov-4.1.0
+collecting ... collected 6 items
+
+tests/test_secret_manager.py::TestSecretManager::test_get_secret_client_caching PASSED [ 16%]
+tests/test_secret_manager.py::TestSecretManager::test_get_secret_client_caching_attribute PASSED [ 33%]
+tests/test_secret_manager.py::TestSecretManager::test_get_shelterluv_creds_from_secret_manager PASSED [ 50%]
+tests/test_secret_manager.py::TestSecretManager::test_get_shelterluv_creds_from_env_vars_only PASSED [ 66%]
+tests/test_secret_manager.py::TestSecretManager::test_get_shelterluv_creds_missing_env_vars PASSED [ 83%]
+tests/test_secret_manager.py::TestSecretManager::test_get_shelterluv_creds_partial_env_vars PASSED [100%]
+
+============================== 6 passed in 0.19s ===============================
+
+=== API CLIENT TESTS ===
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-7.4.4, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/adampeterson/Github/shelterluv/services/etl_scraper_py
+configfile: pytest.ini
+plugins: anyio-4.11.0, cov-4.1.0
+collecting ... collected 21 items
+
+tests/test_api_client.py::TestGetAllAnimalsInCustody::test_get_all_animals_single_page PASSED [  4%]
+tests/test_api_client.py::TestGetAllAnimalsInCustody::test_get_all_animals_multiple_pages PASSED [  9%]
+tests/test_api_client.py::TestGetAllAnimalsInCustody::test_get_all_animals_filters_custody_status PASSED [ 14%]
+tests/test_api_client.py::TestGetAllAnimalsInCustody::test_get_all_animals_max_limit_enforced PASSED [ 19%]
+tests/test_api_client.py::TestGetAllAnimalsInCustody::test_get_all_animals_missing_internal_id PASSED [ 23%]
+tests/test_api_client.py::TestGetAllAnimalsInCustody::test_get_all_animals_http_error PASSED [ 28%]
+tests/test_api_client.py::TestGetAllAnimalsInCustody::test_get_all_animals_timeout_error PASSED [ 33%]
+tests/test_api_client.py::TestGetAnimalEvents::test_get_animal_events_filters_relevant_types PASSED [ 38%]
+tests/test_api_client.py::TestGetAnimalEvents::test_get_animal_events_sorts_chronologically PASSED [ 42%]
+tests/test_api_client.py::TestGetAnimalEvents::test_get_animal_events_pagination PASSED [ 47%]
+tests/test_api_client.py::TestGetAnimalEvents::test_get_animal_events_http_error PASSED [ 52%]
+tests/test_api_client.py::TestGetPeople::test_get_people_basic_fetch PASSED [ 57%]
+tests/test_api_client.py::TestGetPeople::test_get_people_pagination PASSED [ 61%]
+tests/test_api_client.py::TestGetPeople::test_get_people_http_error PASSED [ 66%]
+tests/test_api_client.py::TestGetAnimalMemos::test_get_animal_memos_success_with_documents PASSED [ 71%]
+tests/test_api_client.py::TestGetAnimalMemos::test_get_animal_memos_success_with_memos_field PASSED [ 76%]
+tests/test_api_client.py::TestGetAnimalMemos::test_get_animal_memos_success_with_string_memos PASSED [ 80%]
+tests/test_api_client.py::TestGetAnimalMemos::test_get_animal_memos_empty_response PASSED [ 85%]
+tests/test_api_client.py::TestGetAnimalMemos::test_get_animal_memos_api_error PASSED [ 90%]
+tests/test_api_client.py::TestGetAnimalsMemosBatch::test_get_animals_memos_batch_empty_list PASSED [ 95%]
+tests/test_api_client.py::TestGetAnimalsMemosBatch::test_get_animals_memos_batch_concurrent_success PASSED [100%]
+
+============================= 21 passed in 38.11s ==============================
+
+=== FOSTER MAPPING TESTS ===
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-7.4.4, pluggy-1.6.0 -- /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/adampeterson/Github/shelterluv/services/etl_scraper_py
+configfile: pytest.ini
+plugins: anyio-4.11.0, cov-4.1.0
+collecting ... collected 8 items
+
+tests/test_enrichment.py::TestFosterMapping::test_single_foster_assignment PASSED [ 12%]
+tests/test_enrichment.py::TestFosterMapping::test_multiple_fosters_chronological_state_machine PASSED [ 25%]
+tests/test_enrichment.py::TestFosterMapping::test_events_processed_chronologically PASSED [ 37%]
+tests/test_enrichment.py::TestFosterMapping::test_foster_return_state_machine PASSED [ 50%]
+tests/test_enrichment.py::TestFosterMapping::test_foster_return_clears_foster PASSED [ 62%]
+tests/test_enrichment.py::TestFosterMapping::test_missing_person_data PASSED [ 75%]
+tests/test_enrichment.py::TestFosterMapping::test_empty_inputs PASSED    [ 87%]
+tests/test_enrichment.py::TestFosterMapping::test_malformed_events PASSED [100%]
+
+============================== 8 passed in 0.01s ===============================
+
+=== TEST SUMMARY ===
+Total tests executed: 5 test suites
+Test suites: Cross-Language Safety, Errors, Schema Validation, Secret Manager, API Client, Foster Mapping
+Status: All working test suites PASS
+
+Note: Some test files have import issues due to relative imports in the scraper module.
+The pytest configuration issue has been resolved - tests can now run from the etl_scraper_py directory.

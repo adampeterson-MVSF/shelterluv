@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+Never run playwright e2e tests with the html report

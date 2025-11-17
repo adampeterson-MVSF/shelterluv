@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 3
+      "actualWorkers": 7
     },
     "preserveOutput": "always",
     "reporter": [
@@ -41,7 +41,7 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 3
+          "actualWorkers": 7
         },
         "id": "chromium",
         "name": "chromium",
@@ -61,10 +61,11 @@
     "version": "1.56.1",
     "workers": 7,
     "webServer": {
-      "command": "VITE_FIREBASE_API_KEY=\"AIzaSyBC6eEN0wmg8MxGM-hyZ_8OaSsJRRjNHE0\" VITE_FIREBASE_AUTH_DOMAIN=\"muttville.firebaseapp.com\" VITE_FIREBASE_PROJECT_ID=\"muttville\" VITE_FIREBASE_STORAGE_BUCKET=\"muttville.firebasestorage.app\" VITE_FIREBASE_MESSAGING_SENDER_ID=\"537540766155\" VITE_FIREBASE_APP_ID=\"1:537540766155:web:31058157b8e4d87a5e2e4e\" npm run dev",
+      "command": "npm run dev",
       "url": "http://localhost:5173",
       "reuseExistingServer": true,
-      "timeout": 120000
+      "timeout": 120000,
+      "env": {}
     }
   },
   "suites": [
@@ -76,145 +77,328 @@
       "specs": [],
       "suites": [
         {
-          "title": "Basic Webapp Functionality",
+          "title": "Authentication State Testing",
           "file": "auth.spec.js",
-          "line": 19,
+          "line": 39,
           "column": 6,
-          "specs": [
+          "specs": [],
+          "suites": [
             {
-              "title": "app loads and shows appropriate UI based on auth state",
-              "ok": true,
-              "tags": [],
-              "tests": [
+              "title": "unauthenticated user",
+              "file": "auth.spec.js",
+              "line": 40,
+              "column": 8,
+              "specs": [
                 {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
+                  "title": "app loads and shows appropriate UI",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
                     {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 3745,
-                      "errors": [],
-                      "stdout": [
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
                         {
-                          "text": "Page title: Muttville Dog Adoption\n"
-                        },
-                        {
-                          "text": "Body content length: \u001b[33m83\u001b[39m\n"
-                        },
-                        {
-                          "text": "Body content preview: \n    MuttvilleSign InWelcome to MuttvillePlease sign in to view our dogs.\n    \n  \n\n\n"
-                        },
-                        {
-                          "text": "Sign in button visible: \u001b[33mtrue\u001b[39m\n"
-                        },
-                        {
-                          "text": "User info visible: \u001b[33mfalse\u001b[39m\n"
-                        },
-                        {
-                          "text": "Console errors: None\n"
-                        },
-                        {
-                          "text": "✅ User needs to authenticate - testing login prompt\n"
-                        },
-                        {
-                          "text": "✅ Login prompt working correctly\n"
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3750,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-16T23:01:32.909Z",
+                          "annotations": [],
+                          "attachments": []
                         }
                       ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-11-09T16:36:24.888Z",
-                      "annotations": [],
-                      "attachments": []
+                      "status": "expected"
                     }
                   ],
-                  "status": "expected"
+                  "id": "d5ed79a6b333c2ba7209-8be2f6d0e7db50f7e807",
+                  "file": "auth.spec.js",
+                  "line": 44,
+                  "column": 9
+                },
+                {
+                  "title": "can view dog information",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 176,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-16T23:01:32.901Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "d5ed79a6b333c2ba7209-4729ba45dba8d118f5ad",
+                  "file": "auth.spec.js",
+                  "line": 140,
+                  "column": 9
+                },
+                {
+                  "title": "can navigate between pages",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 105,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-16T23:01:32.903Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "d5ed79a6b333c2ba7209-2db83cd9e7fac4e716bc",
+                  "file": "auth.spec.js",
+                  "line": 145,
+                  "column": 9
                 }
-              ],
-              "id": "d5ed79a6b333c2ba7209-2fc4e9d3123fc3b884b8",
-              "file": "auth.spec.js",
-              "line": 23,
-              "column": 7
+              ]
             },
             {
-              "title": "authenticated users can view dog information",
-              "ok": true,
-              "tags": [],
-              "tests": [
+              "title": "authenticated user",
+              "file": "auth.spec.js",
+              "line": 151,
+              "column": 8,
+              "specs": [
                 {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
+                  "title": "app loads and shows appropriate UI",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
                     {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "passed",
-                      "duration": 264,
-                      "errors": [],
-                      "stdout": [
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
                         {
-                          "text": "Skipping dog information test - user not authenticated\n"
+                          "workerIndex": 3,
+                          "parallelIndex": 3,
+                          "status": "passed",
+                          "duration": 3149,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-16T23:01:32.905Z",
+                          "annotations": [],
+                          "attachments": []
                         }
                       ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-11-09T16:36:24.890Z",
-                      "annotations": [],
-                      "attachments": []
+                      "status": "expected"
                     }
                   ],
-                  "status": "expected"
+                  "id": "d5ed79a6b333c2ba7209-0e15083eb42a4a1ce7b4",
+                  "file": "auth.spec.js",
+                  "line": 162,
+                  "column": 9
+                },
+                {
+                  "title": "can view dog information",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 4,
+                          "parallelIndex": 4,
+                          "status": "passed",
+                          "duration": 5099,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-16T23:01:32.908Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "d5ed79a6b333c2ba7209-e3243b13c85b6966bcde",
+                  "file": "auth.spec.js",
+                  "line": 264,
+                  "column": 9
+                },
+                {
+                  "title": "can navigate between pages",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 5,
+                          "status": "passed",
+                          "duration": 5723,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-16T23:01:32.905Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "d5ed79a6b333c2ba7209-e912b97b8152fd8b7505",
+                  "file": "auth.spec.js",
+                  "line": 306,
+                  "column": 9
                 }
-              ],
-              "id": "d5ed79a6b333c2ba7209-7e158057bedd0c87d9db",
+              ]
+            }
+          ]
+        },
+        {
+          "title": "User Role Testing",
+          "file": "auth.spec.js",
+          "line": 356,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "staff user (staff@muttville.org)",
               "file": "auth.spec.js",
-              "line": 115,
-              "column": 7
+              "line": 358,
+              "column": 10,
+              "specs": [
+                {
+                  "title": "shows appropriate permissions",
+                  "ok": true,
+                  "tags": [
+                    "muttville.org)"
+                  ],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 6,
+                          "parallelIndex": 6,
+                          "status": "passed",
+                          "duration": 795,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-16T23:01:32.903Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "d5ed79a6b333c2ba7209-15d62fe215af083fe79d",
+                  "file": "auth.spec.js",
+                  "line": 360,
+                  "column": 11
+                }
+              ]
             },
             {
-              "title": "authenticated users can navigate between pages",
-              "ok": true,
-              "tags": [],
-              "tests": [
+              "title": "viewer user (viewer@muttville.org)",
+              "file": "auth.spec.js",
+              "line": 358,
+              "column": 10,
+              "specs": [
                 {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
+                  "title": "shows appropriate permissions",
+                  "ok": true,
+                  "tags": [
+                    "muttville.org)"
+                  ],
+                  "tests": [
                     {
-                      "workerIndex": 2,
-                      "parallelIndex": 2,
-                      "status": "passed",
-                      "duration": 264,
-                      "errors": [],
-                      "stdout": [
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
                         {
-                          "text": "Skipping navigation test - user not authenticated\n"
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 627,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-11-16T23:01:33.450Z",
+                          "annotations": [],
+                          "attachments": []
                         }
                       ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-11-09T16:36:24.888Z",
-                      "annotations": [],
-                      "attachments": []
+                      "status": "expected"
                     }
                   ],
-                  "status": "expected"
+                  "id": "d5ed79a6b333c2ba7209-bebba414895849364bb6",
+                  "file": "auth.spec.js",
+                  "line": 360,
+                  "column": 11
                 }
-              ],
-              "id": "d5ed79a6b333c2ba7209-e38641e29a32b11fb9eb",
-              "file": "auth.spec.js",
-              "line": 148,
-              "column": 7
+              ]
             }
           ]
         }
@@ -223,9 +407,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-11-09T16:36:24.609Z",
-    "duration": 4259.4980000000005,
-    "expected": 3,
+    "startTime": "2025-11-16T23:01:32.565Z",
+    "duration": 6474.833,
+    "expected": 8,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

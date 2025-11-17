@@ -7,36 +7,52 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { Header } from './Header.jsx';
 import { renderWithProviders } from '../test/testUtils';
 
-// Mock auth state for tests that need specific states
-let mockAuthState = { kind: 'loading' };
-let mockLogin = vi.fn().mockResolvedValue({ success: true });
-let mockLogout = vi.fn().mockResolvedValue({ success: true });
-let mockHasRole = vi.fn();
-let mockIsAuthenticated = false;
-
-vi.mock('../contexts/AuthContext', () => ({
-  useAuth: () => ({
-    authState: mockAuthState,
-    login: mockLogin,
-    logout: mockLogout,
-    hasRole: mockHasRole,
-    isAuthenticated: mockIsAuthenticated
-  })
+// Mock Firebase app initialization to prevent env var requirements
+vi.mock('../app', () => ({
+  db: 'mock-db-instance',
+  authService: {
+    signInWithGoogle: vi.fn(),
+    signOutUser: vi.fn(),
+    subscribeToAuthChanges: vi.fn(() => vi.fn()) // Return mock unsubscribe function
+  }
 }));
+
+// Mock auth state for tests that need specific states
+const mockState = {
+  authState: { kind: 'loading' },
+  login: vi.fn().mockResolvedValue({ success: true }),
+  logout: vi.fn().mockResolvedValue({ success: true }),
+  hasRole: vi.fn(),
+  isAuthenticated: false
+};
+
+vi.mock('../contexts/AuthContext', async () => {
+  const actual = await vi.importActual('../contexts/AuthContext');
+  return {
+    ...actual,
+    useAuth: () => ({
+      authState: mockState.authState,
+      login: mockState.login,
+      logout: mockState.logout,
+      hasRole: mockState.hasRole,
+      isAuthenticated: mockState.isAuthenticated
+    })
+  };
+});
 
 describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset mock auth state
-    mockAuthState = { kind: 'loading' };
-    mockLogin = vi.fn().mockResolvedValue({ success: true });
-    mockLogout = vi.fn().mockResolvedValue({ success: true });
-    mockHasRole = vi.fn();
-    mockIsAuthenticated = false;
+    mockState.authState = { kind: 'loading' };
+    mockState.login.mockResolvedValue({ success: true });
+    mockState.logout.mockResolvedValue({ success: true });
+    mockState.hasRole.mockReset();
+    mockState.isAuthenticated = false;
   });
 
   it('should render app title and sign in button when not authenticated', () => {
-    mockAuthState = { kind: 'anonymous' };
+    mockState.authState = { kind: 'anonymous' };
 
     renderWithProviders(<Header />);
 
@@ -46,7 +62,7 @@ describe('Header', () => {
   });
 
   it('should call login when sign in button is clicked', async () => {
-    mockAuthState = { kind: 'anonymous' };
+    mockState.authState = { kind: 'anonymous' };
 
     renderWithProviders(<Header />);
 
@@ -54,12 +70,12 @@ describe('Header', () => {
     fireEvent.click(signInButton);
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledTimes(1);
+      expect(mockState.login).toHaveBeenCalledTimes(1);
     });
   });
 
   it('should show unauthorized message for unauthorized users', () => {
-    mockAuthState = { kind: 'forbidden', user: { email: 'test@example.com' } };
+    mockState.authState = { kind: 'forbidden', user: { email: 'test@example.com' } };
 
     renderWithProviders(<Header />);
 
@@ -72,7 +88,7 @@ describe('Header', () => {
   });
 
   it('should call logout when sign out button is clicked for unauthorized users', async () => {
-    mockAuthState = { kind: 'forbidden', user: { email: 'test@example.com' } };
+    mockState.authState = { kind: 'forbidden', user: { email: 'test@example.com' } };
 
     renderWithProviders(<Header />);
 
@@ -80,12 +96,12 @@ describe('Header', () => {
     fireEvent.click(signOutButton);
 
     await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalledTimes(1);
+      expect(mockState.logout).toHaveBeenCalledTimes(1);
     });
   });
 
   it('should show user email and logout button when authenticated', () => {
-    mockAuthState = { kind: 'authenticated', user: { email: 'user@muttville.org' }, role: 'staff' };
+    mockState.authState = { kind: 'authenticated', user: { email: 'user@muttville.org' }, role: 'staff' };
 
     renderWithProviders(<Header />);
 
@@ -98,7 +114,7 @@ describe('Header', () => {
   });
 
   it('should call logout when logout button is clicked for authenticated users', async () => {
-    mockAuthState = { kind: 'authenticated', user: { email: 'user@muttville.org' }, role: 'staff' };
+    mockState.authState = { kind: 'authenticated', user: { email: 'user@muttville.org' }, role: 'staff' };
 
     renderWithProviders(<Header />);
 
@@ -106,12 +122,12 @@ describe('Header', () => {
     fireEvent.click(logoutButton);
 
     await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalledTimes(1);
+      expect(mockState.logout).toHaveBeenCalledTimes(1);
     });
   });
 
   it('should have correct CSS classes', () => {
-    mockAuthState = { kind: 'authenticated', user: { email: 'user@muttville.org' }, role: 'staff' };
+    mockState.authState = { kind: 'authenticated', user: { email: 'user@muttville.org' }, role: 'staff' };
 
     const { container } = renderWithProviders(<Header />);
 
@@ -128,8 +144,8 @@ describe('Header', () => {
   });
 
   it('should handle login error gracefully', async () => {
-    mockAuthState = { kind: 'anonymous' };
-    mockLogin.mockResolvedValue({ success: false, error: 'Login failed' });
+    mockState.authState = { kind: 'anonymous' };
+    mockState.login.mockResolvedValue({ success: false, error: 'Login failed' });
 
     renderWithProviders(<Header />);
 
@@ -140,12 +156,12 @@ describe('Header', () => {
       expect(screen.getByText('Login failed. Please try again.')).toBeInTheDocument();
     });
 
-    expect(mockLogin).toHaveBeenCalledTimes(1);
+    expect(mockState.login).toHaveBeenCalledTimes(1);
   });
 
   it('should handle logout error gracefully', async () => {
-    mockAuthState = { kind: 'authenticated', user: { email: 'user@muttville.org' }, role: 'staff' };
-    mockLogout.mockResolvedValue({ success: false, error: 'Logout failed' });
+    mockState.authState = { kind: 'authenticated', user: { email: 'user@muttville.org' }, role: 'staff' };
+    mockState.logout.mockResolvedValue({ success: false, error: 'Logout failed' });
 
     renderWithProviders(<Header />);
 
@@ -156,7 +172,7 @@ describe('Header', () => {
       expect(screen.getByText('Logout failed. Please try again.')).toBeInTheDocument();
     });
 
-    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockState.logout).toHaveBeenCalledTimes(1);
   });
 
 });

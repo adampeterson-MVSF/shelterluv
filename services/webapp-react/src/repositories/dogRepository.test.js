@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getDogs, getDogById } from './dogRepository';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { normalizeDog } from '../types/dogNormalize';
+import { DogError, DOG_ERROR_CODES, createMissingRequiredFieldError, createMissingETLFieldsError } from '../types/dogErrors';
 
 // Mock Firebase Firestore
 vi.mock('firebase/firestore', () => ({
@@ -81,7 +82,7 @@ describe('dogRepository', () => {
       expect(result).toEqual({ success: true, data: [mockNormalizedDog1, mockNormalizedDog2] });
     });
 
-    it('returns error when dog documents are malformed', async () => {
+    it('returns structured error when dog documents are malformed', async () => {
       const mockDogsSnapshot = {
         docs: [
           {
@@ -94,22 +95,24 @@ describe('dogRepository', () => {
       mockCollection.mockReturnValue('mock-collection');
       mockGetDocs.mockResolvedValue(mockDogsSnapshot);
 
-      // Mock normalizeDog to throw for malformed documents
+      // Mock normalizeDog to throw structured DogError
+      const expectedError = createMissingRequiredFieldError('dog1', 'Internal-ID');
       mockNormalizeDog.mockImplementation(() => {
-        throw new Error('missing required Internal-ID field');
+        throw expectedError;
       });
 
       const result = await getDogs();
 
-      // Should return error since document is malformed
-      expect(result).toEqual({
-        success: false,
-        error: 'missing required Internal-ID field',
-        data: []
-      });
+      // Should return structured error since document is malformed
+      expect(result.success).toBe(false);
+      expect(result.data).toEqual([]);
+      expect(result.error).toBeInstanceOf(DogError);
+      expect(result.error.code).toBe(DOG_ERROR_CODES.MISSING_REQUIRED_FIELD);
+      expect(result.error.details.docId).toBe('dog1');
+      expect(result.error.details.fieldName).toBe('Internal-ID');
     });
 
-    it('handles firestore errors', async () => {
+    it('handles firestore errors with structured error', async () => {
       const mockError = new Error('Firestore connection failed');
       mockCollection.mockReturnValue('mock-collection');
       mockGetDocs.mockRejectedValue(mockError);
@@ -118,7 +121,11 @@ describe('dogRepository', () => {
 
       const result = await getDogs();
 
-      expect(result).toEqual({ success: false, data: [], error: 'Firestore connection failed' });
+      expect(result.success).toBe(false);
+      expect(result.data).toEqual([]);
+      expect(result.error).toBeInstanceOf(DogError);
+      expect(result.error.code).toBe(DOG_ERROR_CODES.FIRESTORE_CONNECTION_ERROR);
+      expect(result.error.details.originalError).toBe('Firestore connection failed');
       expect(consoleSpy).toHaveBeenCalledWith('Error fetching dogs from Firestore:', mockError);
       consoleSpy.mockRestore();
     });
@@ -136,7 +143,7 @@ describe('dogRepository', () => {
       expect(result).toEqual({ success: true, data: [] });
     });
 
-    it('returns error when any document has missing required ETL fields', async () => {
+    it('returns structured error when any document has missing required ETL fields', async () => {
       const mockDogsSnapshot = {
         docs: [
           {
@@ -155,18 +162,20 @@ describe('dogRepository', () => {
       mockCollection.mockReturnValue('mock-collection');
       mockGetDocs.mockResolvedValue(mockDogsSnapshot);
 
-      // Mock normalizeDog to throw for ETL contract violation
+      // Mock normalizeDog to throw structured DogError for ETL contract violation
+      const expectedError = createMissingETLFieldsError('dog1', ['AgeYears', 'AgeDisplay', 'IsInCustody', 'IsAvailableForAdoption', 'IsHospice', 'IsEventDog']);
       mockNormalizeDog.mockImplementation(() => {
-        throw new Error('Dog document dog1 missing ETL-required fields: AgeYears, AgeDisplay, IsInCustody, IsAvailableForAdoption, IsHospice, IsEventDog');
+        throw expectedError;
       });
 
       const result = await getDogs();
 
-      expect(result).toEqual({
-        success: false,
-        error: 'Dog document dog1 missing ETL-required fields: AgeYears, AgeDisplay, IsInCustody, IsAvailableForAdoption, IsHospice, IsEventDog',
-        data: []
-      });
+      expect(result.success).toBe(false);
+      expect(result.data).toEqual([]);
+      expect(result.error).toBeInstanceOf(DogError);
+      expect(result.error.code).toBe(DOG_ERROR_CODES.MISSING_ETL_CONTRACT_FIELDS);
+      expect(result.error.details.docId).toBe('dog1');
+      expect(result.error.details.missingFields).toEqual(['AgeYears', 'AgeDisplay', 'IsInCustody', 'IsAvailableForAdoption', 'IsHospice', 'IsEventDog']);
     });
 
   });
@@ -207,7 +216,7 @@ describe('dogRepository', () => {
       expect(mockNormalizeDog).not.toHaveBeenCalled();
     });
 
-    it('returns error when existing dog document is malformed', async () => {
+    it('returns structured error when existing dog document is malformed', async () => {
       const mockDogDoc = {
         exists: () => true,
         id: 'dog1',
@@ -217,21 +226,23 @@ describe('dogRepository', () => {
       mockDoc.mockReturnValue('mock-doc-ref');
       mockGetDoc.mockResolvedValue(mockDogDoc);
 
-      // Mock normalizeDog to throw for malformed documents
+      // Mock normalizeDog to throw structured DogError for malformed documents
+      const expectedError = createMissingRequiredFieldError('dog1', 'Internal-ID');
       mockNormalizeDog.mockImplementation(() => {
-        throw new Error('missing required Internal-ID field');
+        throw expectedError;
       });
 
       const result = await getDogById('dog1');
 
-      expect(result).toEqual({
-        success: false,
-        data: null,
-        error: 'missing required Internal-ID field'
-      });
+      expect(result.success).toBe(false);
+      expect(result.data).toBe(null);
+      expect(result.error).toBeInstanceOf(DogError);
+      expect(result.error.code).toBe(DOG_ERROR_CODES.MISSING_REQUIRED_FIELD);
+      expect(result.error.details.docId).toBe('dog1');
+      expect(result.error.details.fieldName).toBe('Internal-ID');
     });
 
-    it('handles firestore errors', async () => {
+    it('handles firestore errors with structured error', async () => {
       const mockError = new Error('Firestore connection failed');
       mockDoc.mockReturnValue('mock-doc-ref');
       mockGetDoc.mockRejectedValue(mockError);
@@ -240,12 +251,16 @@ describe('dogRepository', () => {
 
       const result = await getDogById('dog1');
 
-      expect(result).toEqual({ success: false, data: null, error: 'Firestore connection failed' });
+      expect(result.success).toBe(false);
+      expect(result.data).toBe(null);
+      expect(result.error).toBeInstanceOf(DogError);
+      expect(result.error.code).toBe(DOG_ERROR_CODES.FIRESTORE_CONNECTION_ERROR);
+      expect(result.error.details.originalError).toBe('Firestore connection failed');
       expect(consoleSpy).toHaveBeenCalledWith('Error fetching dog from Firestore:', mockError);
       consoleSpy.mockRestore();
     });
 
-    it('returns error when existing dog document has missing required ETL fields', async () => {
+    it('returns structured error when existing dog document has missing required ETL fields', async () => {
       const mockDogDoc = {
         exists: () => true,
         id: 'dog1',
@@ -261,18 +276,20 @@ describe('dogRepository', () => {
       mockDoc.mockReturnValue('mock-doc-ref');
       mockGetDoc.mockResolvedValue(mockDogDoc);
 
-      // Mock normalizeDog to throw for ETL contract violation
+      // Mock normalizeDog to throw structured DogError for ETL contract violation
+      const expectedError = createMissingETLFieldsError('dog1', ['AgeYears', 'AgeDisplay', 'IsInCustody', 'IsAvailableForAdoption', 'IsHospice', 'IsEventDog']);
       mockNormalizeDog.mockImplementation(() => {
-        throw new Error('Dog document dog1 missing ETL-required fields: AgeYears, AgeDisplay, IsInCustody, IsAvailableForAdoption, IsHospice, IsEventDog');
+        throw expectedError;
       });
 
       const result = await getDogById('dog1');
 
-      expect(result).toEqual({
-        success: false,
-        data: null,
-        error: 'Dog document dog1 missing ETL-required fields: AgeYears, AgeDisplay, IsInCustody, IsAvailableForAdoption, IsHospice, IsEventDog'
-      });
+      expect(result.success).toBe(false);
+      expect(result.data).toBe(null);
+      expect(result.error).toBeInstanceOf(DogError);
+      expect(result.error.code).toBe(DOG_ERROR_CODES.MISSING_ETL_CONTRACT_FIELDS);
+      expect(result.error.details.docId).toBe('dog1');
+      expect(result.error.details.missingFields).toEqual(['AgeYears', 'AgeDisplay', 'IsInCustody', 'IsAvailableForAdoption', 'IsHospice', 'IsEventDog']);
     });
 
   });

@@ -11,8 +11,14 @@ vi.mock('../app', () => ({
 }));
 
 // Mock userRoles validation
-vi.mock('../../../../common/userRoles.node.cjs', () => ({
-  VALID_ROLES: ['viewer', 'closer', 'staff']
+vi.mock('@common/userRoles.mjs', () => ({
+  ROLES: ['viewer', 'closer', 'staff']
+}));
+
+// Mock Firebase Firestore
+vi.mock('firebase/firestore', () => ({
+  doc: vi.fn(),
+  getDoc: vi.fn()
 }));
 
 import { doc, getDoc } from 'firebase/firestore';

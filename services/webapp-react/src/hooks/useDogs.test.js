@@ -45,9 +45,9 @@ describe('useDogs', () => {
   describe('successful fetch', () => {
     it('fetches dogs successfully when authenticated', async () => {
       mockGetDogs.mockResolvedValue({ success: true, data: mockNormalizedDogs });
-      const mockAuthState = { kind: 'authenticated', user: { uid: 'test' }, role: 'viewer' };
+      const mockAuthPermissions = { canViewDogs: true, shouldHideDogs: false };
 
-      const { result } = renderHook(() => useDogs(mockAuthState));
+      const { result } = renderHook(() => useDogs(mockAuthPermissions));
 
       // Wait for fetch to complete
       await waitFor(() => {
@@ -64,9 +64,9 @@ describe('useDogs', () => {
 
     it('handles empty dogs array when authenticated', async () => {
       mockGetDogs.mockResolvedValue({ success: true, data: [] });
-      const mockAuthState = { kind: 'authenticated', user: { uid: 'test' }, role: 'viewer' };
+      const mockAuthPermissions = { canViewDogs: true, shouldHideDogs: false };
 
-      const { result } = renderHook(() => useDogs(mockAuthState));
+      const { result } = renderHook(() => useDogs(mockAuthPermissions));
 
       await waitFor(() => {
         expect(result.current).toEqual({
@@ -83,9 +83,9 @@ describe('useDogs', () => {
     it('sets error state on fetch failure when authenticated', async () => {
       const mockError = 'Firestore connection failed';
       mockGetDogs.mockResolvedValue({ success: false, data: [], error: mockError });
-      const mockAuthState = { kind: 'authenticated', user: { uid: 'test' }, role: 'viewer' };
+      const mockAuthPermissions = { canViewDogs: true, shouldHideDogs: false };
 
-      const { result } = renderHook(() => useDogs(mockAuthState));
+      const { result } = renderHook(() => useDogs(mockAuthPermissions));
 
       await waitFor(() => {
         expect(result.current).toEqual({
@@ -101,10 +101,10 @@ describe('useDogs', () => {
   });
 
   describe('unauthenticated state', () => {
-    it('returns empty state when anonymous', () => {
-      const mockAuthState = { kind: 'anonymous' };
+    it('returns empty state when should hide dogs', () => {
+      const mockAuthPermissions = { canViewDogs: false, shouldHideDogs: true };
 
-      const { result } = renderHook(() => useDogs(mockAuthState));
+      const { result } = renderHook(() => useDogs(mockAuthPermissions));
 
       expect(result.current).toEqual({
         allDogs: [],
@@ -116,9 +116,9 @@ describe('useDogs', () => {
     });
 
     it('returns empty state when forbidden', () => {
-      const mockAuthState = { kind: 'forbidden' };
+      const mockAuthPermissions = { canViewDogs: false, shouldHideDogs: true };
 
-      const { result } = renderHook(() => useDogs(mockAuthState));
+      const { result } = renderHook(() => useDogs(mockAuthPermissions));
 
       expect(result.current).toEqual({
         allDogs: [],

@@ -4,7 +4,7 @@
 
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../app';
-import { VALID_ROLES } from '../../../../common/userRoles.node.cjs';
+import { ROLES } from '@common/userRoles.mjs';
 
 /**
  * Fetches the user's application role from the /users collection.
@@ -25,7 +25,7 @@ export async function getUserRole(uid) {
 
       if (!role) return { success: true, data: null };
 
-      if (!VALID_ROLES.includes(role)) {
+      if (!ROLES.includes(role)) {
         console.warn('Unknown user role in Firestore:', role);
         return { success: true, data: null };
       }

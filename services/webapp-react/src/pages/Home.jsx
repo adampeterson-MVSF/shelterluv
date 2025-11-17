@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { useDogs } from '../hooks/useDogs';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, canViewDogs, shouldHideDogs } from '../contexts/AuthContext';
 import { DogCard } from '../components/DogCard';
 import { AuthGate } from '../components/AuthGate';
 import {
@@ -36,20 +36,36 @@ DogList.propTypes = {
  */
 function Home() {
   const { authState } = useAuth();
-  const { allDogs, loading, error } = useDogs(authState);
 
-  // Auth states - fail loud on errors
-  if (authState.kind === 'loading') return <LoadingState />;
-  if (authState.kind === 'anonymous') return <AnonymousState />;
-  if (authState.kind === 'forbidden') return <ForbiddenState />;
+  // Compute pure permission data from auth state
+  const authPermissions = {
+    canViewDogs: canViewDogs(authState),
+    shouldHideDogs: shouldHideDogs(authState)
+  };
 
-  // Show error state instead of throwing
-  if (error) return <ErrorState error={error} title="Error Loading Dogs" backText="Try refreshing" />;
+  const { allDogs, loading, error } = useDogs(authPermissions);
 
-  if (loading) return <LoadingDogsState />;
+  if (error) {
+    return (
+      <AuthGate>
+        <ErrorState error={error} title="Error Loading Dogs" backText="Try refreshing" />
+      </AuthGate>
+    );
+  }
 
-  // Main content - simple list, no complex filtering/sorting
-  return <DogList allDogs={allDogs} />;
+  if (loading) {
+    return (
+      <AuthGate>
+        <LoadingDogsState />
+      </AuthGate>
+    );
+  }
+
+  return (
+    <AuthGate>
+      <DogList allDogs={allDogs} />
+    </AuthGate>
+  );
 }
 
 export default Home;

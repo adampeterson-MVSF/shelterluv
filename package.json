@@ -2,7 +2,6 @@
   "name": "shelterluv",
   "version": "1.0.0",
   "description": "A polyglot monorepo containing services for Muttville's dog adoption platform.",
-  "main": "check_firestore_data.js",
   "dependencies": {
     "abort-controller": "^3.0.0",
     "agent-base": "^7.1.4",
@@ -126,7 +125,7 @@
     "yocto-queue": "^0.1.0"
   },
   "scripts": {
-    "test": "node -e \"require('./common/testRunner').runAllTests().then(results => { require('./common/testRunner').writeTestArtifacts(results); process.exit(results.webapp.success && results.etl.success ? 0 : 1); })\"",
+    "test": "node -e \"require('./common/testRunner').runAllTests({ continueOnError: true }).then(results => { require('./common/testRunner').writeTestArtifacts(results); process.exit(results.webapp.success && results.etl.success ? 0 : 1); })\"",
     "test:ci": "npm run test",
     "lint": "cd services/webapp-react && npm run lint",
     "schema:gen": "node generate_schema_artifacts.js",

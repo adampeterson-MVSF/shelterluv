@@ -1,0 +1,43 @@
+/* ==================== Dog Details Page ==================== */
+.dog-details-page {
+  max-width: 960px;
+}
+
+/* New header */
+.dog-detail-header {
+  background-color: var(--color-primary);
+}
+
+.dog-detail-header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dog-detail-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-primary-text);
+  text-decoration: none;
+  font-size: 1.25rem;
+}
+
+.dog-detail-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+}
+
+.dog-detail-title .highlight {
+  font-weight: 700;
+}

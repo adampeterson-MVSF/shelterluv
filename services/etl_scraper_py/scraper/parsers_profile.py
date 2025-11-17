@@ -184,7 +184,13 @@ def _extract_header_profile_block(page, result: Dict[str, Any]) -> None:
             result["MicrochipNumber"] = microchip_elem.first.inner_text(timeout=1000).strip()
 
         # Primary profile photo URL
-        photo_xpath = "//img[@id='animal-photo']/@src"
+        #
+        # NOTE: We intentionally select the <img> element itself (no /@src) and
+        # then read the "src" attribute. Using an XPath that returns the
+        # @src attribute node and then calling get_attribute('src') would
+        # always return None in Playwright, which silently produced an empty
+        # Photos array in Firestore even though images rendered in ShelterLuv.
+        photo_xpath = "//img[@id='animal-photo']"
         photo_elem = page.locator(f"xpath={photo_xpath}")
         if photo_elem.count() > 0:
             photo_url = photo_elem.first.get_attribute("src", timeout=1000)

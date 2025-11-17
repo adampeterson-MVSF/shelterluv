@@ -5,11 +5,13 @@
  *
  * This artifact contains normalized profile mappings and safety rules
  * that both JavaScript and Python code can consume without duplication.
+ *
+ * Business logic helpers are in configArtifactHelpers.js
  */
 
 const CONFIG_ARTIFACT = {
   "checksum": "5c89089c",
-  "generated_at": "2025-11-17T17:05:37.005Z",
+  "generated_at": "2025-11-17T19:32:22.885Z",
   "generator": "writers.js",
   "env_profiles": {
     "web": {
@@ -98,42 +100,6 @@ const CONFIG_ARTIFACT = {
   }
 };
 
-// Convenience accessors
-function getEnvProfiles() {
-  return CONFIG_ARTIFACT.env_profiles;
-}
-
-function getSafeProfiles() {
-  return CONFIG_ARTIFACT.safe_profiles;
-}
-
-function getRoles() {
-  return CONFIG_ARTIFACT.roles;
-}
-
-function getProfileSafetyMap() {
-  return CONFIG_ARTIFACT.profile_safety_map;
-}
-
-function getProjectSafetyMap() {
-  return CONFIG_ARTIFACT.project_safety_map;
-}
-
-function isProfileSafe(profileName) {
-  return CONFIG_ARTIFACT.profile_safety_map[profileName]?.is_safe || false;
-}
-
-function isProjectSafe(projectId) {
-  return CONFIG_ARTIFACT.project_safety_map[projectId]?.is_safe || false;
-}
-
 module.exports = {
-  CONFIG_ARTIFACT,
-  getEnvProfiles,
-  getSafeProfiles,
-  getRoles,
-  getProfileSafetyMap,
-  getProjectSafetyMap,
-  isProfileSafe,
-  isProjectSafe
+  CONFIG_ARTIFACT
 };

@@ -80,14 +80,11 @@ class TestIncrementalScraping:
         )
 
         # Setup transform config
-        transform_config = TransformConfig(
-            env_profile=EnvProfile.DEV,
-            dry_run=False,
-            force_refresh=False,
-        )
+        transform_config = TransformConfig()
+        creds = {"SHELTERLUV_USERNAME": "test", "SHELTERLUV_PASSWORD": "test"}
 
         # Run transform
-        result = transform(extract_result, transform_config)
+        result = transform(extract_result, creds, transform_config)
 
         # Assertions
         assert isinstance(result, TransformResult)
@@ -162,13 +159,10 @@ class TestIncrementalScraping:
             },
         )
 
-        transform_config = TransformConfig(
-            env_profile=EnvProfile.DEV,
-            dry_run=False,
-            force_refresh=False,
-        )
+        transform_config = TransformConfig()
+        creds = {"SHELTERLUV_USERNAME": "test", "SHELTERLUV_PASSWORD": "test"}
 
-        result = transform(extract_result, transform_config)
+        result = transform(extract_result, creds, transform_config)
 
         assert len(result.dogs) == 1
         dog = result.dogs[0]
@@ -233,13 +227,10 @@ class TestIncrementalScraping:
             scraped_map=scraped_map,
         )
 
-        transform_config = TransformConfig(
-            env_profile=EnvProfile.DEV,
-            dry_run=False,
-            force_refresh=False,
-        )
+        transform_config = TransformConfig()
+        creds = {"SHELTERLUV_USERNAME": "test", "SHELTERLUV_PASSWORD": "test"}
 
-        result = transform(extract_result, transform_config)
+        result = transform(extract_result, creds, transform_config)
 
         # All dogs should be processed
         assert len(result.dogs) == num_dogs

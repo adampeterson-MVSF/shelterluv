@@ -1,13 +1,13 @@
 /**
  * Tests for firebaseEnvVars.js
- * Ensures ENV_PROFILES stays in sync with configData.getEnvProfiles().
+ * Ensures ENV_PROFILES stays in sync with configArtifact.getEnvProfiles().
  */
 
-const { getEnvProfiles } = require('./configData');
+const { getEnvProfiles } = require('./configArtifactHelpers');
 const { ENV_PROFILES } = require('./firebaseEnvVars');
 
 describe('firebaseEnvVars', () => {
-  test('ENV_PROFILES matches configData.getEnvProfiles()', () => {
+  test('ENV_PROFILES matches configArtifact.getEnvProfiles()', () => {
     const configProfiles = getEnvProfiles();
     const envProfiles = ENV_PROFILES;
 

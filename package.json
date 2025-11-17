@@ -128,8 +128,8 @@
     "test": "node -e \"require('./common/testRunner').runAllTests({ continueOnError: true }).then(results => { require('./common/testRunner').writeTestArtifacts(results); process.exit(results.webapp.success && results.etl.success ? 0 : 1); })\"",
     "test:ci": "npm run test",
     "lint": "cd services/webapp-react && npm run lint",
-    "schema:gen": "node generate_schema_artifacts.js",
-    "schema:check": "node generate_schema_artifacts.js --check",
+    "schema:gen": "node schemaArtifactsCli.js",
+    "schema:check": "node schemaArtifactsCli.js --check",
     "schema:ci": "npm run schema:gen && git diff --exit-code",
     "test:report": "node generate_test_report.js"
   },

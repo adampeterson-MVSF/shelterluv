@@ -16,6 +16,11 @@
 
 
 
+
+
+
+
+
 /**
  * Schema for dog data collected from ShelterLuv. Frontend renders: Name, Age, Size, Gender, Status, Photos, Description, CaseManager, AdoptionCategory, MedicalCategory, BehaviorCategory. Supports role-based access to foster contact information and structured memo tabs.
  */

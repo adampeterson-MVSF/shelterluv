@@ -7,8 +7,6 @@ const { generateSchemaChecksum, assertSchemaStructure, enumerateStatuses, enumer
 const { generateStatusMapping, generateSizeConfig, generateDogTypesHeader, generatePythonDogTypes, jsonTypeToPythonType } = require('./schemaArtifacts/transformSchema');
 const { generateAllArtifacts, generateArtifactBundle } = require('./schemaArtifacts/writers');
 
-const DEFAULT_SIZE_ORDER = ['Small', 'Medium', 'Large', 'X-Large', 'UNKNOWN'];
-
 
 module.exports = {
   assertSchemaStructure,
@@ -21,7 +19,6 @@ module.exports = {
   generateAllArtifacts,
   generateArtifactBundle,
   enumerateStatuses,
-  enumerateSizes,
-  DEFAULT_SIZE_ORDER
+  enumerateSizes
 };
 

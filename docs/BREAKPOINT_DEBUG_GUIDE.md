@@ -1,5 +1,9 @@
 # Breakpoint Debug Guide - Dog Details Issue
 
+**⚠️ STALENESS WARNING**: Line numbers and specific code references in this guide are best-effort and may drift over time. Trust the code, not the line numbers. For general debugging patterns, see the troubleshooting section in `README.md`.
+
+**Last verified**: Dog Details implementation is stable as of refactor completion.
+
 ## Where to Set Breakpoints
 
 ### 1. Primary Breakpoint (Highest Leverage)

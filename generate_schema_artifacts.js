@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 /**
+ * @deprecated Use schemaArtifactsCli.js directly instead.
+ * This file is kept for backward compatibility but will be removed in a future version.
  * CLI entrypoint for schema artifact generation.
  * Pure logic lives in schemaArtifactsCore.js and schemaArtifactsCli.js.
  * This file is just a thin wrapper that delegates to the CLI module.

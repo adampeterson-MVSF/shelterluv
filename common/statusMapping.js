@@ -40,17 +40,10 @@ export function getStatusDisplay(status) {
 }
 
 export function isTerminalStatus(status) {
-  return STATUS_MAPPING[status]?.isTerminal || false;
+  const mapping = STATUS_MAPPING[status];
+  return mapping ? mapping.isTerminal : false;
 }
 
-/**
- * Get all valid status keys for synchronization checks.
- * Tests can use this to ensure schema and UI stay in lockstep.
- */
 export function getAllStatuses() {
   return Object.keys(STATUS_MAPPING);
 }
-
-// Note: Semantic flags (isInCustody, isAvailable, isHospice) are now computed by ETL
-// and stored as IsInCustody, IsAvailableForAdoption, IsHospice in the schema.
-// Use dogDerived.js helpers to access these flags from the schema fields.

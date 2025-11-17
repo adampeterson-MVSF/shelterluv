@@ -44,6 +44,20 @@ class EnvProfile(Enum):
         profile_map = get_normalized_profile_map()
         return profile_map.get(self.value, {}).get("is_safe", False)
 
+    def project_id(self) -> str:
+        """
+        Get the GCP project ID for this environment profile.
+        Uses python_env_profiles from config as single source of truth.
+        """
+        try:
+            from .config_loader import get_python_env_profiles
+        except ImportError:
+            from config_loader import get_python_env_profiles
+        python_profiles = get_python_env_profiles()
+        if self.value not in python_profiles:
+            raise ValueError(f"No GCP project mapping found for profile '{self.value}'")
+        return python_profiles[self.value]["gcp_project"]
+
     @classmethod
     def get_safe_profiles(cls) -> List["EnvProfile"]:
         """
@@ -123,14 +137,8 @@ class EtlConfig:
                 f"Invalid ENV_PROFILE: {env_profile_str}. Must be one of: {[e.value for e in EnvProfile]}"
             )
 
-        # Resolve project_id from config data
-        python_profiles = get_python_env_profiles()
-        if env_profile_str not in python_profiles:
-            raise EtlError(f"No GCP project mapping found for profile '{env_profile_str}'")
-
-        project_id = overrides.get("project_id") or python_profiles[env_profile_str]["gcp_project"]
-        if not project_id:
-            raise EtlError(f"No GCP project configured for profile '{env_profile_str}'")
+        # Resolve project_id from profile
+        project_id = overrides.get("project_id") or env_profile.project_id()
 
         # Validate project_id override against safety map
         if overrides.get("project_id"):

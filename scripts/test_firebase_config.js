@@ -2,13 +2,13 @@
 
 /**
  * Test Firebase and Firestore configuration
- * Validates consistency between common/firebaseConfig and configData
+ * Validates consistency between common/firebaseConfig and configArtifact
  */
 
-const { createAdminApp } = require('../common/firebaseAdmin');
+const { getAdminApp } = require('../common/adminInit');
 const { getWebFirebaseConfigFromEnv } = require('../common/firebaseConfig');
 const { getAdminProjectId } = require('../common/firebaseConfig');
-const { getProfileSafetyMap } = require('../common/configArtifact');
+const { getProfileSafetyMap } = require('../common/configArtifactHelpers');
 
 function validateConfigConsistency() {
   console.log('\n🔍 Validating Firebase Config Consistency...');
@@ -44,7 +44,7 @@ async function testAdminSDK() {
     const projectId = getAdminProjectId();
     console.log(`   Using project ID: ${projectId}`);
     
-    const adminApp = createAdminApp();
+    const adminApp = getAdminApp();
     console.log('✅ Admin SDK initialized');
     
     return { success: true, adminApp, projectId };

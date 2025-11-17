@@ -6,12 +6,35 @@
 const crypto = require('crypto');
 
 /**
+ * Canonical size ordering derived from schema.
+ * Must match the order defined in the dog schema enum.
+ */
+
+/**
+ * Generate MD5 checksum for content (first 8 chars).
+ * @param {string} content - Raw content to checksum
+ * @returns {string} 8-character hex checksum
+ */
+function generateChecksum(content) {
+  return crypto.createHash('md5').update(content).digest('hex').substring(0, 8);
+}
+
+/**
  * Generate MD5 checksum for schema content (first 8 chars).
  * @param {string} schemaContent - Raw JSON schema file content
  * @returns {string} 8-character hex checksum
  */
 function generateSchemaChecksum(schemaContent) {
-  return crypto.createHash('md5').update(schemaContent).digest('hex').substring(0, 8);
+  return generateChecksum(schemaContent);
+}
+
+/**
+ * Generate MD5 checksum for config content (first 8 chars).
+ * @param {string} configContent - Raw JSON config file content
+ * @returns {string} 8-character hex checksum
+ */
+function generateConfigChecksum(configContent) {
+  return generateChecksum(configContent);
 }
 
 /**
@@ -101,13 +124,12 @@ function enumerateTerminalStatuses(schema) {
 }
 
 /**
- * Get size ordering constant from schema.
+ * Get size ordering derived from schema enum order.
  * @param {object} schema - Parsed JSON schema object
  * @returns {string[]} Array of size values in canonical order
  */
 function getSizeOrdering(schema) {
-  // This should match the DEFAULT_SIZE_ORDER in transformSchema.js
-  return ['Small', 'Medium', 'Large', 'X-Large', 'UNKNOWN'];
+  return schema.properties.Size.enum || [];
 }
 
 /**
@@ -127,7 +149,9 @@ function extractSchemaMetadata(schema) {
 }
 
 module.exports = {
+  generateChecksum,
   generateSchemaChecksum,
+  generateConfigChecksum,
   assertSchemaStructure,
   enumerateStatuses,
   enumerateSizes,

@@ -5,8 +5,6 @@
 
 const { assertSchemaStructure, generateSchemaChecksum } = require('./loadConfig');
 
-const DEFAULT_SIZE_ORDER = ['Small', 'Medium', 'Large', 'X-Large', 'UNKNOWN'];
-
 /**
  * Generate status mapping ESM module content from schema.
  * @param {object} schema - Parsed JSON schema object
@@ -69,12 +67,6 @@ function generateSizeConfig(schema, schemaContent) {
 
   const checksum = generateSchemaChecksum(schemaContent);
   const schemaSizes = schema.properties.Size.enum;
-  const sizeOrder = DEFAULT_SIZE_ORDER.filter(size => schemaSizes.includes(size));
-
-  // Ensure size order matches schema
-  if (sizeOrder.length !== schemaSizes.length) {
-    throw new Error(`Size order mismatch: schema has ${schemaSizes.join(', ')}, but DEFAULT_SIZE_ORDER only covers ${sizeOrder.join(', ')}`);
-  }
 
   return `/**
  * Shared size configuration constants for ETL and frontend.
@@ -85,7 +77,7 @@ function generateSizeConfig(schema, schemaContent) {
  * If you change size enum in schema, regenerate this file.
  */
 
-export const SIZE_ORDER = [${sizeOrder.map(s => `'${s}'`).join(', ')}];
+export const SIZE_ORDER = [${schemaSizes.map(s => `'${s}'`).join(', ')}];
 
 export function getSizeSortIndex(size) {
   const index = SIZE_ORDER.indexOf(size);

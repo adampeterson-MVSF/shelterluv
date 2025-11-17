@@ -2,10 +2,10 @@
  * Shared user role constants and validation.
  * Single source of truth for roles across webapp and scripts.
  * Data-driven permission system with explicit capability mapping.
- * Loads roles from common/config.json via configData.
+ * Loads roles from common/config.json via configArtifact.
  */
 
-const { getRoles } = require('./configArtifact');
+const { getRoles } = require('./configArtifactHelpers');
 
 const ROLES = getRoles();
 

@@ -44,7 +44,7 @@ Polyglot monorepo for Muttville's dog adoption platform.
 
 **Data Flow**: ShelterLuv → ETL → Firestore → Webapp
 
-**Configuration Flow**: `common/config.json` + `configData.js` → Both JS and Python
+**Configuration Flow**: `common/config.json` → `configArtifact.{js,py}` → Both JS and Python
 
 **Schema Flow**: `common/schemas/dog.schema.json` → Generated artifacts → ETL + Webapp
 
@@ -91,7 +91,7 @@ All scripts use `common/devScriptSafety.js` for safety checks. Never hardcode pr
 **Single source**: `common/config.json` defines environment profiles and project mappings used by both JavaScript and Python code.
 
 **JS consumption**:
-- `common/configData.js` - Single loader that reads `common/config.json` and exposes normalized profile maps
+- `common/configArtifact.js` - Generated artifact that provides normalized profile maps and safety rules
 - Provides `{ envProfileName → { projectId, isSafe } }` and `{ projectId → { envProfileName, isSafe } }` mappings
 - Used by `firebaseConfig.js`, `devScriptSafety.js`, and all Node scripts
 
@@ -163,7 +163,7 @@ Defined in `common/config.json`:
 
 - **Node.js**: `common/devScriptSafety.js` - Exports `assertSafe()`, `isSafeProject()`, `assertDevScriptsEnabled()`
 - **Python**: `services/etl_scraper_py/config.py` - `EnvProfile.get_safe_profiles()` validates against config.json
-- **Config Loader**: `common/configData.js` - Single loader for `common/config.json` with validation
+- **Config Loader**: `common/configArtifact.js` - Generated artifact from `common/config.json` with validation
 
 **Usage**: All scripts that perform destructive operations (user seeding, data deletion, etc.) must call `assertSafe()` before execution. See `scripts/firebase_cli_tool.js` for examples.
 

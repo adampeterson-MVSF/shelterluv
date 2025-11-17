@@ -7,7 +7,7 @@
  */
 
 const { getProjectId } = require('./firebaseConfig');
-const { getProjectSafetyMap } = require('./configArtifact');
+const { getProjectSafetyMap } = require('./configArtifactHelpers');
 
 /**
  * Check if a project ID is safe for development operations.

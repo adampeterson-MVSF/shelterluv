@@ -239,22 +239,22 @@ def validate_dog_record(dog_dict: Dict[str, Any]) -> None:
 
 def assert_size_order_matches_schema() -> None:
     """
-    Assert that the Size enum in the schema matches the generated DOG_SIZES.
+    Assert that the Size enum in the schema matches the expected size ordering.
     This ensures consistency between schema and generated Python artifacts.
     """
     try:
-        # Import the generated DOG_SIZES from dog_types.py
-        from dog_types import DOG_SIZES
-        expected_order = DOG_SIZES
+        # Import the size ordering from schema_artifact
+        from schema_artifact import get_size_ordering
+        expected_order = get_size_ordering()
     except ImportError:
-        # Fallback to hardcoded order if dog_types.py not available
+        # Fallback to hardcoded order if schema_artifact not available
         expected_order = ["Small", "Medium", "Large", "X-Large", "UNKNOWN"]
 
     schema_sizes = _get_dog_schema()["properties"]["Size"]["enum"]
 
     if schema_sizes != expected_order:
         raise ValueError(
-            f"Schema Size enum does not match generated DOG_SIZES. "
+            f"Schema Size enum does not match expected size ordering. "
             f"Expected: {expected_order}, Got: {schema_sizes}. "
-            f"Please regenerate dog_types.py with: python3 scripts/generate_python_dog_types.py"
+            f"Please regenerate schema artifacts with: npm run schema:gen"
         )

@@ -67,7 +67,7 @@ The `config.py` module loads this configuration via `config_loader.py`. Never ha
 **Safety is defined over project IDs, not profile names.** Any changes to `common/config.json` must keep JS and Python safety maps equivalent:
 
 - `config_loader.get_project_safety()` returns `{project_id → {env_profile, is_safe}}`
-- `common/configData.getNormalizedProfileMap()` returns `{profile → {gcp_project, is_safe}}`
+- `common/configArtifact.getEnvProfiles()` returns `{profile → {projectId, isSafe}}`
 - Both must produce consistent safety decisions for the same project ID
 - Cross-language tests in `tests/test_cross_language_safety.py` enforce this equivalence
 

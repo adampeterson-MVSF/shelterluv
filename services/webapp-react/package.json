@@ -20,8 +20,7 @@
     "check:data": "node ../../scripts/firebase_cli_tool.js check-data",
     "perf": "node performance_test.js",
     "lint": "eslint src --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "typecheck": "tsc --noEmit",
-    "generate:types": "npx json-schema-to-typescript ../../common/schemas/dog.schema.json src/types/Dog.types.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
@@ -45,7 +44,6 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
     "jsdom": "^27.1.0",
-    "json-schema-to-typescript": "^13.1.2",
     "playwright": "^1.56.1",
     "typescript": "^5.9.3",
     "vite": "^5.0.0",

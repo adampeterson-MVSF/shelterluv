@@ -4,7 +4,22 @@
  */
 
 const { assertSchemaStructure, generateSchemaChecksum, enumerateStatuses, enumerateSizes, enumerateRequiredFields, enumerateFieldOwnership, enumerateTerminalStatuses, getSizeOrdering, extractSchemaMetadata } = require('./loadConfig');
-const { generateStatusMapping, generateSizeConfig, generateDogTypesHeader, generatePythonDogTypes, generateConfigArtifact, generatePythonConfigArtifactFromConfig, generateSchemaArtifact, generatePythonSchemaArtifact } = require('./transformSchema');
+const { generateStatusMapping, generateSizeConfig, generateDogTypesHeader, generatePythonDogTypes, generateConfigArtifact, generatePythonConfigArtifact, generateSchemaArtifact, generatePythonSchemaArtifact } = require('./transformSchema');
+
+/**
+ * Canonical list of all generated artifact files.
+ * Used by both writeArtifactsToDisk and checkArtifactsSync to ensure consistency.
+ */
+const ARTIFACT_PATHS = {
+  schemaArtifact: 'common/schemaArtifact.js',
+  pythonSchemaArtifact: 'services/etl_scraper_py/schema_artifact.py',
+  configArtifact: 'common/configArtifact.js',
+  pythonConfigArtifact: 'services/etl_scraper_py/config_artifact.py',
+  statusMapping: 'common/statusMapping.js',
+  sizeConfig: 'common/sizeConfig.js',
+  pythonDogTypes: 'services/etl_scraper_py/dog_types.py',
+  dogTypes: 'services/webapp-react/src/types/Dog.types.ts'
+};
 
 /**
  * Generate all schema artifacts from a single schema load.
@@ -55,7 +70,7 @@ function generateConfigArtifactFromContent(configContent, options = {}) {
     throw new Error(`Failed to parse config JSON (${configPath}): ${error.message}`);
   }
 
-  return generateConfigArtifact(config, configContent, options);
+  return generateConfigArtifact(config, configContent);
 }
 
 /**
@@ -67,7 +82,7 @@ function generateConfigArtifactFromContent(configContent, options = {}) {
  * @returns {string} Generated Python config artifact content
  * @throws {Error} If config is invalid
  */
-function generatePythonConfigArtifact(configContent, options = {}) {
+function generatePythonConfigArtifactFromContent(configContent, options = {}) {
   const { configPath = 'common/config.json' } = options;
 
   let config;
@@ -77,7 +92,7 @@ function generatePythonConfigArtifact(configContent, options = {}) {
     throw new Error(`Failed to parse config JSON (${configPath}): ${error.message}`);
   }
 
-  return generatePythonConfigArtifactFromConfig(config, configContent, options);
+  return generatePythonConfigArtifact(config, configContent);
 }
 
 /**
@@ -142,14 +157,14 @@ function writeArtifactsToDisk(options = {}) {
   const {
     schemaPath = 'common/schemas/dog.schema.json',
     configPath = 'common/config.json',
-    statusMappingPath = 'common/statusMapping.js',
-    sizeConfigPath = 'common/sizeConfig.js',
-    schemaArtifactPath = 'common/schemaArtifact.js',
-    pythonSchemaArtifactPath = 'services/etl_scraper_py/schema_artifact.py',
-    configArtifactPath = 'common/configArtifact.js',
-    pythonConfigArtifactPath = 'services/etl_scraper_py/config_artifact.py',
-    dogTypesPath = 'services/webapp-react/src/types/Dog.types.ts',
-    pythonDogTypesPath = 'services/etl_scraper_py/dog_types.py',
+    statusMappingPath = ARTIFACT_PATHS.statusMapping,
+    sizeConfigPath = ARTIFACT_PATHS.sizeConfig,
+    schemaArtifactPath = ARTIFACT_PATHS.schemaArtifact,
+    pythonSchemaArtifactPath = ARTIFACT_PATHS.pythonSchemaArtifact,
+    configArtifactPath = ARTIFACT_PATHS.configArtifact,
+    pythonConfigArtifactPath = ARTIFACT_PATHS.pythonConfigArtifact,
+    dogTypesPath = ARTIFACT_PATHS.dogTypes,
+    pythonDogTypesPath = ARTIFACT_PATHS.pythonDogTypes,
     readFile = (filePath) => fs.readFileSync(filePath, 'utf8'),
     writeFile = (filePath, content) => fs.writeFileSync(filePath, content),
     fileExists = (filePath) => fs.existsSync(filePath),
@@ -202,7 +217,7 @@ function writeArtifactsToDisk(options = {}) {
   writeFile(configArtifactPath, configArtifact);
 
   // Write Python config artifact
-  writeFile(pythonConfigArtifactPath, generatePythonConfigArtifact(configContent, {
+  writeFile(pythonConfigArtifactPath, generatePythonConfigArtifactFromContent(configContent, {
     configPath,
     generatorFileName: path.basename(__filename)
   }));
@@ -294,17 +309,17 @@ function checkArtifactsSync(options = {}) {
 
     // Generate config artifacts
     const configArtifact = generateConfigArtifactFromContent(configContent, { configPath });
-    const pythonConfigArtifact = generatePythonConfigArtifact(configContent, { configPath });
+    const pythonConfigArtifact = generatePythonConfigArtifactFromContent(configContent, { configPath });
 
     // Check each artifact file
     const checks = [
-      { path: 'common/schemaArtifact.js', expected: schemaArtifact },
-      { path: 'services/etl_scraper_py/schema_artifact.py', expected: pythonSchemaArtifact },
-      { path: 'common/configArtifact.js', expected: configArtifact },
-      { path: 'services/etl_scraper_py/config_artifact.py', expected: pythonConfigArtifact },
-      { path: 'common/statusMapping.js', expected: artifacts.statusMapping },
-      { path: 'common/sizeConfig.js', expected: artifacts.sizeConfig },
-      { path: 'services/etl_scraper_py/dog_types.py', expected: artifacts.pythonDogTypes }
+      { path: ARTIFACT_PATHS.schemaArtifact, expected: schemaArtifact },
+      { path: ARTIFACT_PATHS.pythonSchemaArtifact, expected: pythonSchemaArtifact },
+      { path: ARTIFACT_PATHS.configArtifact, expected: configArtifact },
+      { path: ARTIFACT_PATHS.pythonConfigArtifact, expected: pythonConfigArtifact },
+      { path: ARTIFACT_PATHS.statusMapping, expected: artifacts.statusMapping },
+      { path: ARTIFACT_PATHS.sizeConfig, expected: artifacts.sizeConfig },
+      { path: ARTIFACT_PATHS.pythonDogTypes, expected: artifacts.pythonDogTypes }
     ];
 
     for (const check of checks) {
@@ -318,8 +333,8 @@ function checkArtifactsSync(options = {}) {
     }
 
     // Check TypeScript header separately (more complex)
-    if (fileExists('services/webapp-react/src/types/Dog.types.ts')) {
-      const tsContent = readFile('services/webapp-react/src/types/Dog.types.ts');
+    if (fileExists(ARTIFACT_PATHS.dogTypes)) {
+      const tsContent = readFile(ARTIFACT_PATHS.dogTypes);
       const expectedHeader = generateDogTypesHeader(schemaContent, {
         generatorFileName: 'writers.js'
       });

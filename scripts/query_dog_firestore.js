@@ -5,7 +5,7 @@
  * Usage: node scripts/query_dog_firestore.js <dog-id>
  */
 
-const { createAdminApp } = require('../common/firebaseAdmin');
+const { getAdminApp } = require('../common/adminInit');
 const { assertSafeForDestructiveOps } = require('../common/devScriptSafety');
 const { getAdminProjectId } = require('../common/firebaseConfig');
 
@@ -18,7 +18,7 @@ async function queryDog(id) {
     assertSafeForDestructiveOps(projectId);
 
     // Use shared admin app initialization
-    const adminApp = createAdminApp();
+    const adminApp = getAdminApp();
     const db = adminApp.firestore();
 
     console.log(`✅ Connected to Firestore project: ${projectId}\n`);

@@ -45,7 +45,7 @@ const COMMANDS = [
   {
     name: 'add-user',
     description: 'Add or update a user in Firestore (email uid role [--dry-run] [--domain domain])',
-    handler: (flags) => runAddUser(parseBasicArgs(process.argv).params, flags),
+    handler: runAddUser,
     destructive: true,
     requiresParams: true,
     paramCount: 3
@@ -112,9 +112,15 @@ function showHelp() {
 async function main() {
   const { command, flags, params } = parseBasicArgs(process.argv);
 
-  if (!command || flags.help || flags.h) {
+  if (flags.help || flags.h || command === '--help' || command === '-h') {
     showHelp();
     process.exit(0);
+  }
+
+  if (!command) {
+    console.error('❌ No command specified');
+    console.error('Run with --help to see available commands');
+    process.exit(1);
   }
 
   const cmdDef = getCommand(command);
@@ -135,7 +141,7 @@ async function main() {
     let success;
     if (command === 'add-user') {
       // Special handling for add-user which needs params
-      success = await cmdDef.handler(flags);
+      success = await cmdDef.handler(params, flags);
     } else {
       success = await cmdDef.handler(flags);
     }

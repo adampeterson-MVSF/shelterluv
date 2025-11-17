@@ -7,10 +7,10 @@ import os
 import sys
 from typing import Any, Dict, List
 
-from ..api import get_all_animals_in_custody
-from ..project_safety import guard_dev_only
-from ..errors import ApiError
-from ..secret_manager import get_shelterluv_creds
+from api import get_all_animals_in_custody
+from project_safety import guard_dev_only
+from errors import ApiError
+from secret_manager import get_shelterluv_creds
 
 
 def search_mvsf_animals(api_key: str) -> List[Dict[str, Any]]:

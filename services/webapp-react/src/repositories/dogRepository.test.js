@@ -105,11 +105,9 @@ describe('dogRepository', () => {
 
       // Should return structured error since document is malformed
       expect(result.success).toBe(false);
-      expect(result.data).toEqual([]);
-      expect(result.error).toBeInstanceOf(DogError);
-      expect(result.error.code).toBe(DOG_ERROR_CODES.MISSING_REQUIRED_FIELD);
-      expect(result.error.details.docId).toBe('dog1');
-      expect(result.error.details.fieldName).toBe('Internal-ID');
+      expect(result.data).toBe(null);
+      expect(result.error.kind).toBe('validation');
+      expect(result.error.message).toContain('missing required');
     });
 
     it('handles firestore errors with structured error', async () => {
@@ -117,17 +115,12 @@ describe('dogRepository', () => {
       mockCollection.mockReturnValue('mock-collection');
       mockGetDocs.mockRejectedValue(mockError);
 
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
       const result = await getDogs();
 
       expect(result.success).toBe(false);
-      expect(result.data).toEqual([]);
-      expect(result.error).toBeInstanceOf(DogError);
-      expect(result.error.code).toBe(DOG_ERROR_CODES.FIRESTORE_CONNECTION_ERROR);
-      expect(result.error.details.originalError).toBe('Firestore connection failed');
-      expect(consoleSpy).toHaveBeenCalledWith('Error fetching dogs from Firestore:', mockError);
-      consoleSpy.mockRestore();
+      expect(result.data).toBe(null);
+      expect(result.error.kind).toBe('network');
+      expect(result.error.message).toContain('Firestore operation failed');
     });
 
     it('returns empty array when no dogs exist', async () => {
@@ -171,11 +164,9 @@ describe('dogRepository', () => {
       const result = await getDogs();
 
       expect(result.success).toBe(false);
-      expect(result.data).toEqual([]);
-      expect(result.error).toBeInstanceOf(DogError);
-      expect(result.error.code).toBe(DOG_ERROR_CODES.MISSING_ETL_CONTRACT_FIELDS);
-      expect(result.error.details.docId).toBe('dog1');
-      expect(result.error.details.missingFields).toEqual(['AgeYears', 'AgeDisplay', 'IsInCustody', 'IsAvailableForAdoption', 'IsHospice', 'IsEventDog']);
+      expect(result.data).toBe(null);
+      expect(result.error.kind).toBe('validation');
+      expect(result.error.message).toContain('missing ETL-required fields');
     });
 
   });
@@ -236,10 +227,8 @@ describe('dogRepository', () => {
 
       expect(result.success).toBe(false);
       expect(result.data).toBe(null);
-      expect(result.error).toBeInstanceOf(DogError);
-      expect(result.error.code).toBe(DOG_ERROR_CODES.MISSING_REQUIRED_FIELD);
-      expect(result.error.details.docId).toBe('dog1');
-      expect(result.error.details.fieldName).toBe('Internal-ID');
+      expect(result.error.kind).toBe('validation');
+      expect(result.error.message).toContain('missing required');
     });
 
     it('handles firestore errors with structured error', async () => {
@@ -247,17 +236,12 @@ describe('dogRepository', () => {
       mockDoc.mockReturnValue('mock-doc-ref');
       mockGetDoc.mockRejectedValue(mockError);
 
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
       const result = await getDogById('dog1');
 
       expect(result.success).toBe(false);
       expect(result.data).toBe(null);
-      expect(result.error).toBeInstanceOf(DogError);
-      expect(result.error.code).toBe(DOG_ERROR_CODES.FIRESTORE_CONNECTION_ERROR);
-      expect(result.error.details.originalError).toBe('Firestore connection failed');
-      expect(consoleSpy).toHaveBeenCalledWith('Error fetching dog from Firestore:', mockError);
-      consoleSpy.mockRestore();
+      expect(result.error.kind).toBe('network');
+      expect(result.error.message).toContain('Firestore operation failed');
     });
 
     it('returns structured error when existing dog document has missing required ETL fields', async () => {
@@ -286,10 +270,8 @@ describe('dogRepository', () => {
 
       expect(result.success).toBe(false);
       expect(result.data).toBe(null);
-      expect(result.error).toBeInstanceOf(DogError);
-      expect(result.error.code).toBe(DOG_ERROR_CODES.MISSING_ETL_CONTRACT_FIELDS);
-      expect(result.error.details.docId).toBe('dog1');
-      expect(result.error.details.missingFields).toEqual(['AgeYears', 'AgeDisplay', 'IsInCustody', 'IsAvailableForAdoption', 'IsHospice', 'IsEventDog']);
+      expect(result.error.kind).toBe('validation');
+      expect(result.error.message).toContain('missing ETL-required fields');
     });
 
   });

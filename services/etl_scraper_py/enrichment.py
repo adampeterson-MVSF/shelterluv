@@ -63,14 +63,17 @@ def _merge_data_sources(
     """Merge all data sources into a single dict."""
     merged = {**api_animal, **scraped, **(foster_info or {}), **(event_info or {})}
 
-    # For critical fields, prefer valid scraped values over invalid API values
+    # For critical fields, prefer API values over scraped values (API is authoritative)
     critical_fields = ["Status", "Name", "ID"]
     for field in critical_fields:
-        api_value = api_animal.get(field, "")
-        scraped_value = scraped.get(field, "")
+        api_value = api_animal.get(field)
+        scraped_value = scraped.get(field)
 
-        # If API value is empty/invalid and scraped value is valid, use scraped value
-        if (not api_value or api_value == "" or api_value == "UNKNOWN") and scraped_value and scraped_value != "":
+        # Prefer API value if it exists and is not empty/unknown
+        if api_value and api_value != "" and api_value != "UNKNOWN":
+            merged[field] = api_value
+        elif scraped_value and scraped_value != "":
+            # Only use scraped value if API value is missing/invalid
             merged[field] = scraped_value
 
 

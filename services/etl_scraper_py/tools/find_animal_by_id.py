@@ -10,10 +10,10 @@ import os
 import sys
 from typing import Any, Dict, Optional
 
-from ..api import get_all_animals_in_custody
-from ..project_safety import guard_dev_only
-from ..errors import ApiError
-from ..secret_manager import get_shelterluv_creds
+from api import get_all_animals_in_custody
+from project_safety import guard_dev_only
+from errors import ApiError
+from secret_manager import get_shelterluv_creds
 
 
 def find_animal_by_id(api_key: str, animal_id: str) -> Optional[Dict[str, Any]]:

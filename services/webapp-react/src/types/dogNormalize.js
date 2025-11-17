@@ -38,12 +38,12 @@ function buildNormalizedDogObject(doc, data) {
     "IsInCustody": data["IsInCustody"], "IsAvailableForAdoption": data["IsAvailableForAdoption"],
     "IsHospice": data["IsHospice"], "IsEventDog": data["IsEventDog"],
     "Breed": data["Breed"], "Size": data["Size"], "Gender": data["Gender"],
-    "Description": data["Description"], "Photos": data["Photos"] || [],
+    "Description": data["Description"], "Photos": data["Photos"],
     "CaseManager": data["CaseManager"], "Location": data["Location"], "Stage": data["Stage"],
     "Weight": data["Weight"], "FosterName": data["FosterName"], "FosterPhone": data["FosterPhone"],
-    "FosterEmail": data["FosterEmail"], "Treatments": data["Treatments"] || [],
-    "Attributes": data["Attributes"] || [], "BehavioralAttributes": data["BehavioralAttributes"] || [],
-    "PhysicalAttributes": data["PhysicalAttributes"] || [], "ScrapeError": data["ScrapeError"],
+    "FosterEmail": data["FosterEmail"], "Treatments": data["Treatments"],
+    "Attributes": data["Attributes"], "BehavioralAttributes": data["BehavioralAttributes"],
+    "PhysicalAttributes": data["PhysicalAttributes"], "ScrapeError": data["ScrapeError"],
     "MemosRawHTML": data["MemosRawHTML"], "PersonalityNotes": data["PersonalityNotes"],
     "IntakeNotes": data["IntakeNotes"], "MedicalNotes": data["MedicalNotes"],
     "MedicalHistory": data["MedicalHistory"] || null,
@@ -68,16 +68,23 @@ function buildNormalizedDogObject(doc, data) {
 /**
  * Normalizes a Firestore document into a Dog object.
  * All semantic flags are computed by ETL and stored in Firestore - no recomputation here.
- * ETL contract: required fields must always be present. Always throws on contract violations.
- * UI will fail fast if ETL breaks the contract - no defensive defaults.
+ * ETL contract: required fields must always be present. Validates contract in development only.
+ * Production trusts ETL to provide valid data - no defensive defaults needed.
  * @param {Object} doc - Firestore document
  * @returns {Dog} Normalized dog object with ETL-computed flags
  */
 export function normalizeDog(doc) {
   const data = doc.data();
 
-  validateRequiredFields(doc, data);
-  validateETLContract(doc, data);
+  if (!data) {
+    throw new Error('Dog document missing data');
+  }
+
+  // Only validate ETL contract in development - production trusts ETL
+  if (import.meta.env.MODE !== 'production') {
+    validateRequiredFields(doc, data);
+    validateETLContract(doc, data);
+  }
 
   return buildNormalizedDogObject(doc, data);
 }
@@ -88,5 +95,5 @@ export function normalizeDog(doc) {
  * @returns {string|null} Primary photo URL or null if no photos
  */
 export function getPrimaryPhoto(dog) {
-  return (dog.Photos && dog.Photos[0]) || null;
+  return dog.Photos[0] || null;
 }

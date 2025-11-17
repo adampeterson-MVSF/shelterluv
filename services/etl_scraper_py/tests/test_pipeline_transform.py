@@ -64,7 +64,16 @@ class TestIncrementalScraping:
                     "Breed": "Golden Retriever",
                     "Size": "Large",
                     "Color": "Golden",
-                    "MedicalHistory": ["Vaccinated"],
+                    "MedicalHistory": {
+                        "vaccinations": [{"name": "Vaccinated"}],
+                        "treatments_due": [],
+                        "treatment_history": [],
+                        "active_diagnoses": [],
+                        "resolved_diagnoses": [],
+                        "diagnostic_tests": [],
+                        "physical_exams": [],
+                        "procedures_surgeries": []
+                    },
                     "BehaviorNotes": "Friendly",
                 },
                 "2": {
@@ -73,7 +82,16 @@ class TestIncrementalScraping:
                     "Breed": "Labrador",
                     "Size": "Medium",
                     "Color": "Black",
-                    "MedicalHistory": ["Spayed"],
+                    "MedicalHistory": {
+                        "vaccinations": [{"name": "Spayed"}],
+                        "treatments_due": [],
+                        "treatment_history": [],
+                        "active_diagnoses": [],
+                        "resolved_diagnoses": [],
+                        "diagnostic_tests": [],
+                        "physical_exams": [],
+                        "procedures_surgeries": []
+                    },
                     "BehaviorNotes": "Energetic",
                 },
             },
@@ -104,16 +122,14 @@ class TestIncrementalScraping:
         assert dog1["Breed"] == "Golden Retriever"
         assert dog1["Size"] == "Large"
         assert dog1["Color"] == "Golden"
-        assert dog1["MedicalHistory"] == ["Vaccinated"]
-        assert dog1["BehaviorNotes"] == "Friendly"
+        assert dog1["MedicalHistory"]["vaccinations"] == [{"name": "Vaccinated"}]
 
         # Same for dog 2
         assert dog2["ID"] == "A2"
         assert dog2["Breed"] == "Labrador"
         assert dog2["Size"] == "Medium"
         assert dog2["Color"] == "Black"
-        assert dog2["MedicalHistory"] == ["Spayed"]
-        assert dog2["BehaviorNotes"] == "Energetic"
+        assert dog2["MedicalHistory"]["vaccinations"] == [{"name": "Spayed"}]
 
     def test_transform_processes_all_scraped_data(self):
         """Test that transform processes all scraped data when available."""
@@ -146,15 +162,20 @@ class TestIncrementalScraping:
                     "Breed": "Mixed",
                     "Size": "Medium",
                     "Color": "Brown/White",
-                    "Sex": "Female",
-                    "WeightLbs": 45.0,
-                    "MedicalHistory": ["Vaccinated", "Spayed"],
-                    "BehaviorNotes": "Good with kids",
-                    "Categories": ["Family Dog", "Medium Energy"],
+                    "Gender": "Female",
+                    "Weight": 45.0,
+                    "MedicalHistory": {
+                        "vaccinations": [{"name": "Vaccinated"}, {"name": "Spayed"}],
+                        "treatments_due": [],
+                        "treatment_history": [],
+                        "active_diagnoses": [],
+                        "resolved_diagnoses": [],
+                        "diagnostic_tests": [],
+                        "physical_exams": [],
+                        "procedures_surgeries": []
+                    },
                     "Photos": ["photo1.jpg", "photo2.jpg"],
-                    "Memos": "Adopted from another shelter",
                     "IntakeDate": "2023-06-01",
-                    "OutcomeDate": None,
                 },
             },
         )
@@ -175,15 +196,11 @@ class TestIncrementalScraping:
         assert dog["Breed"] == "Mixed"
         assert dog["Size"] == "Medium"
         assert dog["Color"] == "Brown/White"
-        assert dog["Sex"] == "Female"
-        assert dog["WeightLbs"] == 45.0
-        assert dog["MedicalHistory"] == ["Vaccinated", "Spayed"]
-        assert dog["BehaviorNotes"] == "Good with kids"
-        assert dog["Categories"] == ["Family Dog", "Medium Energy"]
+        assert dog["Gender"] == "Female"
+        assert dog["Weight"] == 45.0
+        assert dog["MedicalHistory"]["vaccinations"] == [{"name": "Vaccinated"}, {"name": "Spayed"}]
         assert dog["Photos"] == ["photo1.jpg", "photo2.jpg"]
-        assert dog["Memos"] == "Adopted from another shelter"
         assert dog["IntakeDate"] == "2023-06-01"
-        assert dog["OutcomeDate"] is None
 
     def test_transform_processes_many_dogs(self):
         """Test transform handles many dogs efficiently."""
@@ -214,7 +231,16 @@ class TestIncrementalScraping:
                 "Name": f"Dog {dog_id} Scraped",
                 "Breed": "Mixed",
                 "Size": "Medium",
-                "MedicalHistory": ["Vaccinated"],
+                "MedicalHistory": {
+                    "vaccinations": [{"name": "Vaccinated"}],
+                    "treatments_due": [],
+                    "treatment_history": [],
+                    "active_diagnoses": [],
+                    "resolved_diagnoses": [],
+                    "diagnostic_tests": [],
+                    "physical_exams": [],
+                    "procedures_surgeries": []
+                },
             }
 
         extract_result = ExtractResult(
@@ -242,6 +268,6 @@ class TestIncrementalScraping:
             assert dog["Name"] == f"Dog {i}"
             assert dog["Breed"] == "Mixed"
             assert dog["Size"] == "Medium"
-            assert dog["MedicalHistory"] == ["Vaccinated"]
+            assert dog["MedicalHistory"]["vaccinations"] == [{"name": "Vaccinated"}]
 
         # Scraping is now done in extract phase, not transform

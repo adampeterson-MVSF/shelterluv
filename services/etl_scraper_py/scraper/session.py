@@ -9,7 +9,7 @@ from typing import Optional
 
 from playwright.sync_api import Browser, Page, sync_playwright
 
-from ..errors import ScraperError
+from errors import ScraperError
 
 # Login-related selectors
 SELECTORS = {

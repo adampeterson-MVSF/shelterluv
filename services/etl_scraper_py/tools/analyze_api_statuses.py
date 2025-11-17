@@ -22,9 +22,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 # Add ETL service path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from ..api import BASE_URL, get_all_animals_in_custody
-from ..schema import DOG_SCHEMA, _normalize_status, get_normalized_statuses
-from ..secret_manager import get_shelterluv_creds
+from api import BASE_URL, get_all_animals_in_custody
+from schema import DOG_SCHEMA, _normalize_status, get_normalized_statuses
+from secret_manager import get_shelterluv_creds
 
 
 def analyze_statuses_from_user_input():

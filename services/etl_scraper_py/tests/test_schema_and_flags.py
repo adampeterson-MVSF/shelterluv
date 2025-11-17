@@ -30,6 +30,7 @@ from schema import (
     get_required_fields,
     validate_dog_record,
 )
+from normalization import normalize_basic_fields
 
 
 class TestStatusNormalization:
@@ -304,6 +305,79 @@ class TestETLRequiredFieldsEmission:
         # All produced dogs should pass schema validation
         for dog in result.dogs:
             validate_dog_record(dog)  # Should not raise
+
+
+class TestBasicFieldNormalization:
+    """Test basic field normalization including array defaults."""
+
+    def test_normalize_basic_fields_ensures_arrays(self):
+        """Test that normalize_basic_fields guarantees all schema-defined arrays are present and are arrays."""
+        raw_dog = {
+            "Internal-ID": "123",
+            "Name": "Test Dog",
+            "Age": "2 years",
+            # Missing all array fields
+        }
+
+        result = normalize_basic_fields(raw_dog)
+
+        # All schema-defined array fields should be guaranteed to be arrays
+        assert isinstance(result["Photos"], list)
+        assert isinstance(result["Treatments"], list)
+        assert isinstance(result["Attributes"], list)
+        assert isinstance(result["BehavioralAttributes"], list)
+        assert isinstance(result["PhysicalAttributes"], list)
+
+        # They should be empty arrays when missing from input
+        assert result["Photos"] == []
+        assert result["Treatments"] == []
+        assert result["Attributes"] == []
+        assert result["BehavioralAttributes"] == []
+        assert result["PhysicalAttributes"] == []
+
+    def test_normalize_basic_fields_preserves_existing_arrays(self):
+        """Test that normalize_basic_fields preserves existing array values."""
+        raw_dog = {
+            "Internal-ID": "123",
+            "Name": "Test Dog",
+            "Age": "2 years",
+            "Photos": ["photo1.jpg", "photo2.jpg"],
+            "Treatments": [{"date": "2023-01-01", "treatment": "Vaccination"}],
+            "Attributes": ["Friendly", "Energetic"],
+            "BehavioralAttributes": ["Cat-friendly"],
+            "PhysicalAttributes": ["Healthy"]
+        }
+
+        result = normalize_basic_fields(raw_dog)
+
+        # Existing arrays should be preserved
+        assert result["Photos"] == ["photo1.jpg", "photo2.jpg"]
+        assert result["Treatments"] == [{"date": "2023-01-01", "treatment": "Vaccination"}]
+        assert result["Attributes"] == ["Friendly", "Energetic"]
+        assert result["BehavioralAttributes"] == ["Cat-friendly"]
+        assert result["PhysicalAttributes"] == ["Healthy"]
+
+    def test_normalize_basic_fields_converts_non_arrays_to_empty_arrays(self):
+        """Test that normalize_basic_fields converts non-array values to empty arrays."""
+        raw_dog = {
+            "Internal-ID": "123",
+            "Name": "Test Dog",
+            "Age": "2 years",
+            "Photos": "not-an-array",
+            "Treatments": 42,
+            "Attributes": None,
+            "BehavioralAttributes": "string-value",
+            "PhysicalAttributes": {"key": "value"}
+        }
+
+        result = normalize_basic_fields(raw_dog)
+
+        # Non-array values should be converted to empty arrays
+        assert result["Photos"] == []
+        assert result["Treatments"] == []
+        assert result["Attributes"] == []
+        assert result["BehavioralAttributes"] == []
+        assert result["PhysicalAttributes"] == []
 
 
 class TestAuthLogic:

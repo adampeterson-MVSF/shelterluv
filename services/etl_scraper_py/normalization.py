@@ -24,10 +24,12 @@ def normalize_basic_fields(raw: Dict[str, Any]) -> Dict[str, Any]:
         age_value = str(age_value)
         result["Age"] = age_value
 
-    # Always compute AgeYears/AgeDisplay, even if Age is missing/None
-    age_years = _normalize_age_years(age_value)  # will return 0.0 on None/invalid
-    result["AgeYears"] = age_years
-    result["AgeDisplay"] = _build_age_display(age_years)
+    # Compute AgeYears/AgeDisplay if not already present or if Age field exists
+    existing_age_years = result.get("AgeYears")
+    if existing_age_years is None or age_value is not None:
+        age_years = _normalize_age_years(age_value)  # will return 0.0 on None/invalid
+        result["AgeYears"] = age_years
+        result["AgeDisplay"] = _build_age_display(age_years)
 
     # Normalize Size and Status
     if "Size" in result:
@@ -35,11 +37,11 @@ def normalize_basic_fields(raw: Dict[str, Any]) -> Dict[str, Any]:
     if "Status" in result:
         result["Status"] = normalize_status_from_schema(result["Status"])
 
-    # Ensure arrays are lists
-    if "Photos" not in result or not isinstance(result["Photos"], list):
-        result["Photos"] = []
-    if "Treatments" not in result or not isinstance(result["Treatments"], list):
-        result["Treatments"] = []
+    # Ensure arrays are lists - ETL owns all shape defaults for schema-defined arrays
+    array_fields = ["Photos", "Treatments", "Attributes", "BehavioralAttributes", "PhysicalAttributes"]
+    for field in array_fields:
+        if field not in result or not isinstance(result[field], list):
+            result[field] = []
 
     return result
 

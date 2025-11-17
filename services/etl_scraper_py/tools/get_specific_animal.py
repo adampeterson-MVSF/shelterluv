@@ -7,10 +7,10 @@ import os
 import sys
 from typing import Any, Dict
 
-from ..api import get_animal_by_internal_id
-from ..project_safety import guard_dev_only
-from ..errors import ApiError
-from ..secret_manager import get_shelterluv_creds
+from api import get_animal_by_internal_id
+from project_safety import guard_dev_only
+from errors import ApiError
+from secret_manager import get_shelterluv_creds
 
 
 def get_animal_by_id(api_key: str, animal_id: str) -> Dict[str, Any]:

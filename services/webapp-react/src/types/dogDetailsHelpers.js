@@ -117,7 +117,7 @@ export function shapeAdoptionAttributes(dog) {
  * @returns {Array<string>} Array of behavioral attributes
  */
 export function getBehavioralAttributes(dog) {
-  return dog.BehavioralAttributes || [];
+  return dog.BehavioralAttributes;
 }
 
 /**
@@ -126,7 +126,7 @@ export function getBehavioralAttributes(dog) {
  * @returns {Array<string>} Array of physical attributes
  */
 export function getPhysicalAttributes(dog) {
-  return dog.PhysicalAttributes || [];
+  return dog.PhysicalAttributes;
 }
 
 /**

@@ -127,7 +127,11 @@ describe('Schema Synchronization', () => {
         expect(fieldDef.type).toBe('array');
 
         if (field === 'Photos') {
-          expect(fieldDef.items).toEqual({ type: 'string' });
+          expect(fieldDef.items).toEqual({
+            type: 'string',
+            format: 'uri',
+            description: expect.stringContaining('URL to dog photo')
+          });
         }
       });
     });

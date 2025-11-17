@@ -244,7 +244,7 @@ def assert_size_order_matches_schema() -> None:
     """
     try:
         # Import the generated DOG_SIZES from dog_types.py
-        from .dog_types import DOG_SIZES
+        from dog_types import DOG_SIZES
         expected_order = DOG_SIZES
     except ImportError:
         # Fallback to hardcoded order if dog_types.py not available

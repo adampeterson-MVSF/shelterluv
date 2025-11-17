@@ -33,7 +33,7 @@ function usePhotoModalKeyboard(onClose, onNext, onPrevious) {
 function PhotoModal({ photos, currentIndex, dogName, onClose, onNext, onPrevious }) {
   usePhotoModalKeyboard(onClose, onNext, onPrevious);
 
-  if (!photos || photos.length === 0 || currentIndex < 0 || currentIndex >= photos.length) {
+  if (photos.length === 0 || currentIndex < 0 || currentIndex >= photos.length) {
     return null;
   }
 
@@ -99,7 +99,7 @@ function createPhotoNavigation(setFullscreenIndex, total) {
 export default function PhotoGallery({ photos, dogName }) {
   const [fullscreenIndex, setFullscreenIndex] = useState(null);
 
-  if (!photos || photos.length === 0) return null;
+  if (photos.length === 0) return null;
 
   const { openFullscreen, closeFullscreen, nextPhoto, previousPhoto } = createPhotoNavigation(
     setFullscreenIndex,

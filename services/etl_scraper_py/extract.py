@@ -3,7 +3,7 @@ ETL extract phase: Fetch all raw data from ShelterLuv.
 Pure functions that gather data without processing it.
 """
 
-from .concurrency import execute_concurrent_chunks
+from concurrency import execute_concurrent_chunks
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Set
 

@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from config import EnvProfile, EtlConfig, SecretsConfig, SecretsMode
+from extract import ExtractConfig
 from pipeline import (
     ExtractResult,
     LoadResult,

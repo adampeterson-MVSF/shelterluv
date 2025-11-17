@@ -28,8 +28,8 @@ def scrape_in_custody_ids_via_api(username: str, password: str) -> Set[str]:
         ScraperError: If API calls fail
     """
     # Import here to avoid circular imports
-    from ..api import get_all_animals_in_custody
-    from ..secret_manager import get_shelterluv_creds
+    from api import get_all_animals_in_custody
+    from secret_manager import get_shelterluv_creds
 
     try:
         creds = get_shelterluv_creds()

@@ -14,6 +14,7 @@ const {
   getNormalizedProfileMap,
   getProjectSafetyMap,
   getCrossLanguageConfig,
+  loadConfigFromObject,
   clearCache
 } = require('./configData');
 

@@ -13,7 +13,7 @@ from typing import Dict, Any, List
 # Raw schema data (normalized from schema.json)
 SCHEMA_ARTIFACT = {
   "checksum": "65ad864d",
-  "generated_at": "2025-11-17T19:32:22.887Z",
+  "generated_at": "2025-11-17T20:49:39.322Z",
   "generator": "writers.js",
   "version": "1.3.0",
   "title": "Dog",

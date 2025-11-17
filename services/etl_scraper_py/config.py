@@ -30,7 +30,7 @@ class EnvProfile(Enum):
     STAGING = "staging"
     E2E = "e2e"
     DEMO = "demo"
-    PROD = "prod"
+    MAIN = "main"
 
     def is_safe(self) -> bool:
         """

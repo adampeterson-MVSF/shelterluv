@@ -154,110 +154,91 @@ def scrape_in_custody_data(username: str, password: str) -> Dict[str, Dict[str, 
             # Wait for content to load
             page.wait_for_timeout(2000)
 
-            # Parse animals from the DOM using data-cy attributes
-            # Find all animal row elements with data-cy attributes
+            # Try multiple strategies to find animal rows
+            animal_data = {}
+
+            # Strategy 1: Try the current data-cy approach
             animal_rows = page.locator('[data-cy^="animal-row-"]')
             animal_count = animal_rows.count()
+
+            if animal_count == 0:
+                # Strategy 2: If no data-cy attributes, try table rows
+                print("No data-cy attributes found, trying table rows...")
+                animal_rows = page.locator("tbody tr")
+                animal_count = animal_rows.count()
+                print(f"Found {animal_count} table rows")
+
+            print(f"Using {animal_count} animal rows for processing")
 
             for i in range(min(animal_count, 200)):  # Limit to 200 for safety
                 try:
                     row = animal_rows.nth(i)
+
+                    # Extract ShelterLuv internal ID - try multiple methods
+                    shelterluv_id = None
+
+                    # Method 1: From data-cy attribute
                     data_cy = row.get_attribute("data-cy")
-
                     if data_cy and data_cy.startswith("animal-row-"):
-                        # Extract ShelterLuv internal ID from data-cy attribute
                         shelterluv_id = data_cy.replace("animal-row-", "")
-
-                        # Verify this is actually an in-custody animal by checking for Muttville ID
-                        is_muttville_animal = False
+                    else:
+                        # Method 2: Look for MVSF-A- in links
                         muttville_links = row.locator('a[href*="/animal/MVSF-A-"]')
                         if muttville_links.count() > 0:
                             href = muttville_links.first.get_attribute("href")
                             if href and "/animal/MVSF-A-" in href:
-                                is_muttville_animal = True
+                                # Extract ID from URL like /animal/MVSF-A-12345
+                                parts = href.split("MVSF-A-")
+                                if len(parts) > 1:
+                                    shelterluv_id = parts[1].split('/')[0]
                         else:
-                            # Fallback: try to find MVSF-A- text in the row
+                            # Method 3: Look for MVSF-A- in text and extract number
                             row_text = row.inner_text()
                             if "MVSF-A-" in row_text:
-                                is_muttville_animal = True
+                                # Find the pattern MVSF-A- followed by digits
+                                import re
+                                match = re.search(r'MVSF-A-(\d+)', row_text)
+                                if match:
+                                    shelterluv_id = match.group(1)
 
-                        if not is_muttville_animal:
-                            continue  # Skip non-Muttville animals
+                    if not shelterluv_id:
+                        continue  # Skip rows without identifiable IDs
 
-                        # Extract data from the grid-based layout using specific selectors
-                        row_data = {}
+                    # Extract basic data - try to get as much as possible
+                    row_data = {"Internal-ID": shelterluv_id}
 
-                        try:
-                            # Intake date (hidden on smaller screens, lg:inline-flex)
-                            intake_elem = row.locator("div.col-span-2.hidden.lg\\:inline-flex")
-                            intake_text = (
-                                intake_elem.inner_text().strip() if intake_elem.count() > 0 else ""
-                            )
-                            row_data["Intake"] = intake_text
+                    try:
+                        # Look for name and other data
+                        links = row.locator('a')
+                        if links.count() > 0:
+                            first_link = links.first
+                            link_text = first_link.inner_text().strip()
+                            if link_text and "MVSF-A-" in link_text:
+                                row_data["Name"] = link_text
 
-                            # Name from the link - be more specific to avoid the profile photo link
-                            name_link = row.locator("a.group.link")
-                            name_text = (
-                                name_link.inner_text().strip() if name_link.count() > 0 else ""
-                            )
-                            row_data["Name"] = name_text
+                        # Get all text from the row for status detection
+                        row_text = row.inner_text()
+                        row_data["RawText"] = row_text
 
-                            # ID from the specific div with the right class
-                            id_elem = row.locator("div.sm\\:col-span-2")
-                            row_data["ID"] = (
-                                id_elem.inner_text().strip() if id_elem.count() > 0 else ""
-                            )
+                        # Try to extract status - look for common status words
+                        text_lower = row_text.lower()
+                        if "available" in text_lower:
+                            row_data["Status"] = "AVAILABLE"
+                        elif "pending" in text_lower:
+                            row_data["Status"] = "PENDING"
+                        elif "hold" in text_lower:
+                            row_data["Status"] = "HOLD"
+                        elif "adopted" in text_lower:
+                            row_data["Status"] = "ADOPTED"
+                        else:
+                            row_data["Status"] = "UNKNOWN"
 
-                            # For now, let's just extract what we can reliably get
-                            # The table structure is complex and may vary
-                            # We'll get the detailed data during profile scraping instead
+                    except Exception as e:
+                        # If data extraction fails, at least store the ID
+                        row_data["Status"] = "UNKNOWN"
 
-                            # Species - try to find "Dog" text
-                            species_texts = row.locator("div").all()
-                            for div in species_texts[:10]:  # Check first 10 divs
-                                text = div.inner_text().strip()
-                                if text == "Dog" or text == "Cat":
-                                    row_data["Species"] = text
-                                    break
-
-                            # Age - look for patterns like "12Y/0M/22D"
-                            age_candidates = row.locator("div")
-                            for i in range(min(age_candidates.count(), 10)):
-                                text = age_candidates.nth(i).inner_text().strip()
-                                if "Y/" in text and "M/" in text:
-                                    row_data["Age"] = text
-                                    break
-
-                            # Sex - look for Male/Female
-                            sex_candidates = row.locator("div")
-                            for i in range(min(sex_candidates.count(), 10)):
-                                text = sex_candidates.nth(i).inner_text().strip()
-                                if text in ["Male", "Female"]:
-                                    row_data["Sex"] = text
-                                    break
-
-                            # Status - look for Available/Adopted/etc. and map to schema enums
-                            status_candidates = row.locator("p")
-                            for i in range(min(status_candidates.count(), 5)):
-                                text = status_candidates.nth(i).inner_text().strip()
-                                if text == "Available":
-                                    row_data["Status"] = "AVAILABLE"
-                                    break
-                                elif text == "Adopted":
-                                    row_data["Status"] = "ADOPTED"
-                                    break
-                                elif text == "Pending":
-                                    row_data["Status"] = "PENDING"
-                                    break
-                                elif text == "Hold":
-                                    row_data["Status"] = "HOLD"
-                                    break
-
-                        except Exception as e:
-                            # If extraction fails, continue with minimal data
-                            row_data = {"FoundInUI": True, "ShelterLuvID": shelterluv_id}
-
-                        animal_data[shelterluv_id] = row_data
+                    # Store the animal data
+                    animal_data[shelterluv_id] = row_data
 
                 except Exception:
                     continue  # Skip malformed rows

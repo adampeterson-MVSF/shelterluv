@@ -50,8 +50,8 @@
     "demo": {
       "gcp_project": "muttville-demo"
     },
-    "prod": {
-      "gcp_project": "muttville-prod"
+    "main": {
+      "gcp_project": "muttville"
     }
   },
   "safe_profiles": [

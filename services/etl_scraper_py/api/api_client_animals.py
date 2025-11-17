@@ -12,8 +12,9 @@ from .api_client_base import BASE_URL, _make_api_request, _validate_animal_recor
 
 def _filter_animals_in_custody(animals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Filter animals to only include those that might be in custody."""
-    excluded_statuses = {"Transferred Out", "Serviced Out", "ADOPTED", "Deceased"}
-    return [animal for animal in animals if animal.get("Status", "") not in excluded_statuses]
+    # Only include animals that are currently at the shelter and available for adoption
+    included_statuses = {"AVAILABLE", "PENDING", "HOLD", "UNKNOWN"}
+    return [animal for animal in animals if animal.get("Status", "") in included_statuses]
 
 
 def get_all_animals_in_custody(api_key: str, max_animals: int = 1000) -> List[Dict[str, Any]]:

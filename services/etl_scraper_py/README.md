@@ -56,7 +56,7 @@ etl_scraper_py/
 
 The ETL pipeline uses unified configuration from `common/config.json`:
 
-- **Environment Profiles**: `python_env_profiles` maps profile names (`dev`, `staging`, `e2e`, `demo`, `prod`) to GCP project IDs
+- **Environment Profiles**: `python_env_profiles` maps profile names (`dev`, `staging`, `e2e`, `demo`, `main`) to GCP project IDs
 - **Safe Profiles**: `safe_profiles` lists profiles allowed for development operations
 - **Environment Variables**: `env_profiles.etl` defines required/optional env vars
 
@@ -180,7 +180,7 @@ SHELTERLUV_PASS=your-password
 SHELTERLUV_API_KEY=your-api-key
 
 # Optional
-ENV_PROFILE=dev|staging|e2e|demo|prod
+ENV_PROFILE=dev|staging|e2e|demo|main
 SKIP_EVENTS_PEOPLE=false  # Override default (true) to fetch events/people data
 DISABLE_API_RATE_LIMITING=1  # For testing
 ```

@@ -14,7 +14,7 @@ def test_single_scrape(target_internal_id=None):
 
     # Force environment mode for secrets
     os.environ['DISABLE_SECRET_MANAGER'] = '1'
-    os.environ['ENV_PROFILE'] = 'prod'
+    os.environ['ENV_PROFILE'] = 'main'
 
     # Get configuration
     config = EtlConfig.from_env()

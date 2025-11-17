@@ -54,7 +54,7 @@ def run_shelterluv_etl(request) -> Tuple[Dict[str, Any], int]:
 
     try:
         # Create production config for Cloud Function
-        config = EtlConfig.from_env(overrides={"env_profile": "prod"})
+        config = EtlConfig.from_env(overrides={"env_profile": "main"})
 
         # Get credentials using config
         creds = get_shelterluv_creds(config.secrets)

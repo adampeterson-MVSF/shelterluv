@@ -70,7 +70,7 @@ Examples:
     )
     parser.add_argument(
         "--env-profile",
-        choices=["dev", "staging", "e2e", "demo", "prod"],
+        choices=["dev", "staging", "e2e", "demo", "main"],
         help="Override environment profile",
     )
 

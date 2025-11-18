@@ -35,22 +35,28 @@ function mapDogErrorToUnion(dogError) {
 
 /**
  * @typedef {Object} DogError
- * @property {'not_found'|'permission'|'network'|'validation'|'unknown'} kind - Error kind for UI handling
+ * @property {'not_found'|'permission'|'network'|'validation'|'unknown'|'cancelled'} kind - Error kind for UI handling
  * @property {string} message - Human-readable error message
  */
 
 /**
  * Fetches all dogs from Firestore.
  * Fails on malformed documents - trusts ETL to provide schema-compliant data.
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<DogResult>} Result object with success/data or error
  */
-export async function getDogs() {
+export async function getDogs(signal) {
   try {
     const dogsCollection = collection(db, 'dogs');
     const dogsSnapshot = await getDocs(dogsCollection);
     const dogsList = [];
 
     for (const doc of dogsSnapshot.docs) {
+      // Check if request was aborted before expensive normalization
+      if (signal?.aborted) {
+        return { success: false, data: null, error: { kind: 'cancelled', message: 'Request was cancelled' } };
+      }
+
       // Trust ETL - fail on malformed documents
       const normalizedDog = normalizeDog(doc);
       dogsList.push(normalizedDog);
@@ -68,13 +74,19 @@ export async function getDogs() {
  * Fetches a single dog by ID from Firestore
  * Fails on malformed documents - trusts ETL to provide schema-compliant data.
  * @param {string} id - Dog document ID
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<DogResult>} Result object with success/data or error
  */
-export async function getDogById(id) {
+export async function getDogById(id, signal) {
   try {
     const { doc, getDoc } = await import('firebase/firestore');
     const dogDocRef = doc(db, 'dogs', id);
     const dogDoc = await getDoc(dogDocRef);
+
+    // Check if request was aborted before processing
+    if (signal?.aborted) {
+      return { success: false, data: null, error: { kind: 'cancelled', message: 'Request was cancelled' } };
+    }
 
     if (!dogDoc.exists()) {
       return { success: true, data: null };

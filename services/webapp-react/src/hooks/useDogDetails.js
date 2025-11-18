@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { getDogById } from '../repositories/dogRepository';
-import { useCancellableRequest, createRequestToken, checkRequestCancelled } from './useCancellableRequest';
 
 /**
  * Processes the result from getDogById and returns processed state
@@ -34,9 +33,6 @@ export function useDogDetails(id) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Track the current fetch request to prevent race conditions
-  const requestRef = useCancellableRequest();
-
   useEffect(() => {
     if (!id) {
       setError({ kind: 'error', message: 'No dog ID provided' });
@@ -45,8 +41,8 @@ export function useDogDetails(id) {
       return;
     }
 
-    // Create new request token (cancels any previous request)
-    const requestToken = createRequestToken(requestRef);
+    // Create AbortController for this request
+    const controller = new AbortController();
 
     // Reset state for new fetch
     setLoading(true);
@@ -56,32 +52,22 @@ export function useDogDetails(id) {
     // Fetch data
     (async () => {
       try {
-        const result = await getDogById(id);
-
-        // Check if this request was cancelled
-        if (checkRequestCancelled(requestToken, setLoading)) {
-          return;
-        }
+        const result = await getDogById(id, controller.signal);
 
         const { dog: newDog, error: newError } = processDogResult(result, id);
         setDog(newDog);
         setError(newError);
 
       } catch (err) {
-        // Check if this request was cancelled
-        if (checkRequestCancelled(requestToken, setLoading)) {
-          return;
-        }
-
         setError({ kind: 'error', message: err.message || 'Failed to fetch dog' });
         setDog(null);
       } finally {
-        // Only clear loading if this is still the current request
-        if (requestRef.current === requestToken) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     })();
+
+    // Cleanup: abort request on unmount or id change
+    return () => controller.abort();
 
   }, [id]);
 

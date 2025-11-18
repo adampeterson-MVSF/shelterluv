@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDogs } from '../repositories/dogRepository';
-import { useCancellableRequest, createRequestToken, checkRequestCancelled } from './useCancellableRequest';
 
 /**
  * @typedef {Object} UseDogsReturn
@@ -25,23 +24,12 @@ export function useDogs(authPermissions, options = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Track the current fetch request to prevent race conditions
-  const requestRef = useCancellableRequest();
-
-  const fetchDogs = useCallback(async () => {
-    // Create new request token (cancels any previous request)
-    const requestToken = createRequestToken(requestRef);
-
+  const fetchDogs = useCallback(async (signal) => {
     setLoading(true);
     setError(null);
 
     try {
-      const result = await getDogs();
-
-      // Check if this request was cancelled
-      if (checkRequestCancelled(requestToken, setLoading)) {
-        return;
-      }
+      const result = await getDogs(signal);
 
       if (result.success) {
         setAllDogs(result.data);
@@ -51,23 +39,16 @@ export function useDogs(authPermissions, options = {}) {
         setAllDogs([]);
       }
     } catch (err) {
-      // Check if this request was cancelled
-      if (checkRequestCancelled(requestToken, setLoading)) {
-        return;
-      }
-
       setError(err);
       setAllDogs([]);
     } finally {
-      // Only clear loading if this is still the current request
-      if (requestRef.current === requestToken) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, []);
 
   const refetch = useCallback(() => {
-    fetchDogs();
+    const controller = new AbortController();
+    fetchDogs(controller.signal);
   }, [fetchDogs]);
 
   // State machine for data fetching based on permissions
@@ -76,16 +57,16 @@ export function useDogs(authPermissions, options = {}) {
 
     if (authPermissions.canViewDogs) {
       // Fetch fresh data when authenticated
-      fetchDogs();
+      const controller = new AbortController();
+      fetchDogs(controller.signal);
+
+      // Cleanup: abort request on unmount or permission change
+      return () => controller.abort();
     } else if (authPermissions.shouldHideDogs) {
       // Clear stale data when not authenticated to prevent showing old data
       setAllDogs([]);
       setLoading(false);
       setError(null);
-      // Cancel any in-flight request
-      if (requestRef.current) {
-        requestRef.current.cancelled = true;
-      }
     }
     // 'loading' state: don't change data state
   }, [authPermissions.canViewDogs, authPermissions.shouldHideDogs, autoFetch, fetchDogs]);

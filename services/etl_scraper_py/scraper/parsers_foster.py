@@ -27,39 +27,14 @@ def scrape_foster_info(page) -> Dict[str, Any]:
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(3000)  # Initial wait
 
-        # Debug: Check current URL
-        current_url = page.url
-        print(f"DEBUG: Scraping foster info from URL: {current_url}")
-
         # Wait for Livewire components to load by waiting for wire:id elements
         try:
             page.locator('[wire\\:id]').first.wait_for(timeout=10000)
-            print("DEBUG: Livewire components loaded")
-        except Exception as e:
-            print(f"DEBUG: No Livewire components found or timeout: {e}")
+        except:
+            pass  # Livewire components may not be present
 
-        # Specifically wait for the location/foster component (from user's HTML)
-        try:
-            # The user's HTML shows wire:id="HFXFTuAppYRIVS4biMb1" for the foster component
-            foster_component = page.locator('[wire\\:id="HFXFTuAppYRIVS4biMb1"]').first
-            foster_component.wait_for(timeout=5000)
-            print("DEBUG: Foster component loaded")
-        except Exception as e:
-            print(f"DEBUG: Foster component not found or didn't load: {e}")
-
-        # Debug: Check for any wire:id elements on the page
-        try:
-            wire_elements = page.locator('[wire\\:id]').all()
-            print(f"DEBUG: Found {len(wire_elements)} wire:id elements")
-            for i, elem in enumerate(wire_elements[:3]):  # Show first 3
-                try:
-                    wire_id = elem.get_attribute('wire:id', timeout=1000)
-                    inner_text = elem.inner_text(timeout=1000).strip()[:100]  # First 100 chars
-                    print(f"DEBUG: wire:id element {i}: {wire_id} - text: '{inner_text}'")
-                except Exception as e:
-                    print(f"DEBUG: Error getting wire:id element {i}: {e}")
-        except Exception as e:
-            print(f"DEBUG: Error finding wire:id elements: {e}")
+        # Wait for potential AJAX requests that load foster data
+        page.wait_for_timeout(3000)
 
         # Look for foster information in various possible structures
         # The HTML shows it's in a div with specific classes and contains "Foster:" text
@@ -67,71 +42,57 @@ def scrape_foster_info(page) -> Dict[str, Any]:
         # Try the specific wire:id component that contains foster info (from user's HTML)
         try:
             foster_component = page.locator('[wire\\:id="HFXFTuAppYRIVS4biMb1"]').first
-            print(f"DEBUG: Looking for specific wire:id component, count: {foster_component.count()}")
             if foster_component.count() > 0:
                 text_content = foster_component.inner_text(timeout=2000).strip()
-                print(f"DEBUG: Specific wire:id component text: '{text_content}'")
                 if 'Foster:' in text_content:
-                    print("DEBUG: Found 'Foster:' in specific wire:id component!")
                     # Found foster info! Look for the link inside
                     foster_link = foster_component.locator('a[href*="person/"]').first
-                    print(f"DEBUG: Foster links found in component: {foster_link.count()}")
 
                     if foster_link.count() > 0:
                         # Get the link href and text
                         href = foster_link.get_attribute('href', timeout=2000)
                         name = foster_link.inner_text(timeout=2000).strip()
-                        print(f"DEBUG: Found foster link: {name} -> {href}")
 
                         if href and name:
                             # Extract person ID from URL like "/person/MVSF-P-7213"
                             person_id_match = re.search(r'/person/([A-Z]+-P-\d+)', href)
                             if person_id_match:
                                 person_id = person_id_match.group(1)
-                                print(f"DEBUG: Extracted person ID: {person_id}")
 
                                 result['foster_name'] = name
                                 result['foster_person_id'] = person_id
                                 result['foster_profile_url'] = href
                                 result['in_foster'] = True
-                                print(f"DEBUG: SUCCESS! Returning foster info: {result}")
                                 return result  # Found it, return immediately
-        except Exception as e:
-            print(f"DEBUG: Error with specific wire:id method: {e}")
+        except:
             pass  # Continue to other methods
 
         # Try the exact selector from the user's HTML
         try:
             foster_containers = page.locator('div.flex.items-center.text-body-2.gap-2').all()
-            print(f"DEBUG: Found {len(foster_containers)} containers with exact selector")
-            for i, container in enumerate(foster_containers):
+            for container in foster_containers:
                 text_content = container.inner_text(timeout=2000).strip()
                 if 'Foster:' in text_content:
-                    print(f"DEBUG: Found 'Foster:' in container {i} text!")
                     # Found foster info! Look for the link inside
                     foster_link = container.locator('a[href*="person/"]').first
-                    print(f"DEBUG: Foster links found in container {i}: {foster_link.count()}")
 
                     if foster_link.count() > 0:
                         # Get the link href and text
                         href = foster_link.get_attribute('href', timeout=2000)
                         name = foster_link.inner_text(timeout=2000).strip()
-                        print(f"DEBUG: Found foster link in container {i}: {name} -> {href}")
 
                         if href and name:
                             # Extract person ID from URL like "/person/MVSF-P-7213"
                             person_id_match = re.search(r'/person/([A-Z]+-P-\d+)', href)
                             if person_id_match:
                                 person_id = person_id_match.group(1)
-                                print(f"DEBUG: Extracted person ID from container {i}: {person_id}")
 
                                 result['foster_name'] = name
                                 result['foster_person_id'] = person_id
                                 result['foster_profile_url'] = href
                                 result['in_foster'] = True
-                                print(f"DEBUG: SUCCESS! Returning foster info from container method: {result}")
                                 return result  # Found it, return immediately
-        except Exception:
+        except:
             pass  # Continue to other methods
 
         # Try multiple selectors that might contain foster info
@@ -255,7 +216,7 @@ def scrape_foster_info(page) -> Dict[str, Any]:
 
     except Exception as e:
         # Log but don't fail - foster info is optional
-        print(f"Warning: Could not scrape foster info: {e}")
+        pass
 
     return result
 

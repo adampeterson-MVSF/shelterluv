@@ -12,14 +12,8 @@ from .parsers_basic_info import (
     _extract_weight_info_from_medical_history
 )
 from .parsers_medical_history import (
-    _extract_vaccination_history,
-    _extract_treatments_due,
-    _extract_treatment_history,
-    _extract_active_diagnoses,
-    _extract_resolved_diagnoses,
-    _extract_diagnostic_tests,
-    _extract_physical_exams,
-    _extract_procedures_surgeries
+    MEDICAL_TABLE_CONFIG,
+    extract_generic_medical_table
 )
 
 
@@ -43,15 +37,9 @@ def extract_medical_history(page, result: Dict[str, Any]) -> None:
         _extract_previous_shelter_info_from_medical_history(page, result)
         _extract_weight_info_from_medical_history(page, result)
 
-        # Extract detailed medical history sections
-        _extract_vaccination_history(page, medical_data)
-        _extract_treatments_due(page, medical_data)
-        _extract_treatment_history(page, medical_data)
-        _extract_active_diagnoses(page, medical_data)
-        _extract_resolved_diagnoses(page, medical_data)
-        _extract_diagnostic_tests(page, medical_data)
-        _extract_physical_exams(page, medical_data)
-        _extract_procedures_surgeries(page, medical_data)
+        # Extract detailed medical history sections using configuration
+        for table_key in MEDICAL_TABLE_CONFIG.keys():
+            extract_generic_medical_table(page, table_key, medical_data)
 
         # Store medical data if any was found
         if any(medical_data.values()):

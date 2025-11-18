@@ -47,9 +47,6 @@ function AttributesTab({ dog }) {
         ))}
       </ul>
 
-      <AttributeSection title="Microchip" items={microchipItems} keyPrefix="chip" />
-      <AttributeSection title="Altered Status" items={alteredItems} keyPrefix="altered" />
-
       {/* All published attributes in a single bulleted list */}
       {allPublishedAttributes.length > 0 && (
         <div className="attributes-section">
@@ -63,6 +60,9 @@ function AttributesTab({ dog }) {
           </ul>
         </div>
       )}
+
+      <AttributeSection title="Microchip" items={microchipItems} keyPrefix="chip" />
+      <AttributeSection title="Altered Status" items={alteredItems} keyPrefix="altered" />
     </>
   );
 }

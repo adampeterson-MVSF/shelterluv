@@ -138,6 +138,14 @@
             "phone": {
               "type": ["string", "null"],
               "description": "Foster parent's phone (restricted access)"
+            },
+            "personId": {
+              "type": ["string", "null"],
+              "description": "ShelterLuv person ID for the foster parent"
+            },
+            "profileUrl": {
+              "type": ["string", "null"],
+              "description": "ShelterLuv profile URL for the foster parent"
             }
           },
           "additionalProperties": false

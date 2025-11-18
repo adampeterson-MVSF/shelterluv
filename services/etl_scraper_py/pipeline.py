@@ -72,7 +72,7 @@ def compute_stats(
         dogs_skipped_unchanged=transform_result.skipped_count,
         dogs_written=load_result.dogs_written,
         dogs_deleted=load_result.dogs_deleted,
-        dogs_with_foster=sum(1 for d in transform_result.dogs if d.get("FosterName")),
+        dogs_with_foster=sum(1 for d in transform_result.dogs if ((d.get("foster") or {}).get("person") or {}).get("firstName")),
         events_fetch_failed=extract_result.events_failed,
         people_fetch_failed=extract_result.people_failed,
         partial_data=extract_result.events_failed or extract_result.people_failed,

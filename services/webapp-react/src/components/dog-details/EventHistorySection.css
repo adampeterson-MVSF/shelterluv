@@ -1,0 +1,165 @@
+.event-history-section {
+  margin-bottom: 2rem;
+}
+
+.event-history-section .section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.event-timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.event-timeline-item {
+  display: flex;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.event-timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.event-timeline-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 1rem;
+  z-index: 1;
+}
+
+.event-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #3498db;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 2px solid white;
+}
+
+.event-timeline-line {
+  width: 2px;
+  height: 1.5rem;
+  background: #e1e8ed;
+  margin-top: 0.5rem;
+}
+
+.event-timeline-content {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  border-left: 4px solid #3498db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.event-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.event-date {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-left: 1rem;
+}
+
+.event-person,
+.event-details,
+.event-status-change {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.event-person strong,
+.event-status-change strong {
+  color: #34495e;
+  font-weight: 600;
+}
+
+.event-details {
+  color: #555;
+  font-style: italic;
+}
+
+.no-data-message {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+.no-data-message p {
+  margin: 0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .event-timeline {
+    padding-left: 1.5rem;
+  }
+
+  .event-timeline-content {
+    padding: 0.75rem;
+  }
+
+  .event-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .event-date {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+
+  .event-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .event-timeline {
+    padding-left: 1rem;
+  }
+
+  .event-timeline-content {
+    padding: 0.5rem;
+  }
+
+  .event-title {
+    font-size: 1rem;
+  }
+
+  .event-date {
+    font-size: 0.85rem;
+  }
+}

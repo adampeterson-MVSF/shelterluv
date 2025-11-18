@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { MedicalHistorySections } from './MedicalHistorySections';
+import { EventHistorySection } from './EventHistorySection';
+import { WeightHistorySection } from './WeightHistorySection';
+import { CategoryHistorySection } from './CategoryHistorySection';
+import { BehavioralAssessmentsSection } from './BehavioralAssessmentsSection';
+import { CompatibilityWarningsSection } from './CompatibilityWarningsSection';
+import { AttachedDocumentsSection } from './AttachedDocumentsSection';
 import {
   shapeBasicAttributes,
   shapeMicrochipAttributes,
@@ -168,16 +174,78 @@ MedicalTab.propTypes = {
   dog: PropTypes.object.isRequired
 };
 
+function HistoryTab({ dog }) {
+  return (
+    <div className="history-tab-content">
+      <EventHistorySection eventHistory={dog.EventHistory} />
+      <WeightHistorySection weightHistory={dog.WeightHistory} />
+      <CategoryHistorySection categoryHistory={dog.CategoryHistory} />
+    </div>
+  );
+}
+
+HistoryTab.propTypes = {
+  dog: PropTypes.object.isRequired
+};
+
+function BehaviorTab({ dog }) {
+  const { user } = useContext(AuthContext);
+  const hasStaffAccess = user && (user.role === 'staff' || user.role === 'volunteer' || user.role === 'admin');
+
+  return (
+    <div className="behavior-tab-content">
+      <BehavioralAssessmentsSection behavioralAssessments={dog.BehavioralAssessments} />
+      {!hasStaffAccess && (
+        <div className="behavior-note">
+          <p>Additional behavioral information may be available to Muttville staff and volunteers.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+BehaviorTab.propTypes = {
+  dog: PropTypes.object.isRequired
+};
+
+function WarningsTab({ dog }) {
+  return (
+    <div className="warnings-tab-content">
+      <CompatibilityWarningsSection compatibilityWarnings={dog.CompatibilityWarnings} />
+    </div>
+  );
+}
+
+WarningsTab.propTypes = {
+  dog: PropTypes.object.isRequired
+};
+
+function DocumentsTab({ dog }) {
+  return (
+    <div className="documents-tab-content">
+      <AttachedDocumentsSection attachedDocuments={dog.AttachedDocuments} />
+    </div>
+  );
+}
+
+DocumentsTab.propTypes = {
+  dog: PropTypes.object.isRequired
+};
+
 export function DogNotesSection({ dog }) {
   const [activeTab, setActiveTab] = useState('attributes');
-  const tabs = ['attributes', 'personality', 'intake', 'medical', 'adoption'];
+  const tabs = ['attributes', 'personality', 'intake', 'medical', 'adoption', 'history', 'behavior', 'warnings', 'documents'];
 
   const tabComponents = {
     attributes: AttributesTab,
     personality: PersonalityTab,
     intake: IntakeTab,
     medical: MedicalTab,
-    adoption: AdoptionTab
+    adoption: AdoptionTab,
+    history: HistoryTab,
+    behavior: BehaviorTab,
+    warnings: WarningsTab,
+    documents: DocumentsTab
   };
 
   const ActiveTabComponent = tabComponents[activeTab];

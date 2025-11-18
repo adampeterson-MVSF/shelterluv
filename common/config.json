@@ -58,7 +58,8 @@
     "dev",
     "staging",
     "e2e",
-    "demo"
+    "demo",
+    "main"
   ],
   "roles": [
     "viewer",

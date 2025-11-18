@@ -16,7 +16,7 @@ def _extract_microchip_info(page, result: Dict[str, Any]) -> None:
     try:
         # Microchip number
         microchip_selectors = [
-            SELECTORS.microchip_number,
+            SELECTORS["microchip_number"],
             ".microchip-number",
             "[data-microchip]",
             ".chip-number"
@@ -25,7 +25,7 @@ def _extract_microchip_info(page, result: Dict[str, Any]) -> None:
 
         # Microchip issuer
         issuer_selectors = [
-            SELECTORS.microchip_issuer,
+            SELECTORS["microchip_issuer"],
             ".microchip-issuer",
             ".chip-issuer"
         ]
@@ -33,7 +33,7 @@ def _extract_microchip_info(page, result: Dict[str, Any]) -> None:
 
         # Microchip implant date
         implant_selectors = [
-            SELECTORS.microchip_implant_date,
+            SELECTORS["microchip_implant_date"],
             ".microchip-implant-date",
             ".chip-implant-date"
         ]
@@ -47,7 +47,7 @@ def _extract_weight_info(page, result: Dict[str, Any]) -> None:
     """Extract weight information and normalize it."""
     try:
         weight_selectors = [
-            SELECTORS.weight,
+            SELECTORS["weight"],
             ".weight",
             ".animal-weight",
             "[data-weight]"
@@ -67,7 +67,7 @@ def _extract_previous_shelter_info(page, result: Dict[str, Any]) -> None:
     try:
         # Previous shelter ID
         prev_id_selectors = [
-            SELECTORS.previous_shelter_id,
+            SELECTORS["previous_shelter_id"],
             ".previous-shelter-id",
             ".prev-shelter-id"
         ]
@@ -75,7 +75,7 @@ def _extract_previous_shelter_info(page, result: Dict[str, Any]) -> None:
 
         # Previous shelter type
         prev_type_selectors = [
-            SELECTORS.previous_shelter_type,
+            SELECTORS["previous_shelter_type"],
             ".previous-shelter-type",
             ".prev-shelter-type"
         ]
@@ -83,7 +83,7 @@ def _extract_previous_shelter_info(page, result: Dict[str, Any]) -> None:
 
         # Previous shelter issuer
         prev_issuer_selectors = [
-            SELECTORS.previous_shelter_issuer,
+            SELECTORS["previous_shelter_issuer"],
             ".previous-shelter-issuer",
             ".prev-shelter-issuer"
         ]

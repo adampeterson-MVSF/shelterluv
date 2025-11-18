@@ -5,6 +5,7 @@
 
 const { assertSchemaStructure, generateSchemaChecksum, enumerateStatuses, enumerateSizes, enumerateRequiredFields, enumerateFieldOwnership, enumerateTerminalStatuses, getSizeOrdering, extractSchemaMetadata } = require('./loadConfig');
 const { generateStatusMapping, generateSizeConfig, generateDogTypesHeader, generatePythonDogTypes, generateConfigArtifact, generatePythonConfigArtifact, generateSchemaArtifact, generatePythonSchemaArtifact } = require('./transformSchema');
+const { generateTypescriptDogTypes } = require('./generateTypes');
 
 /**
  * Canonical list of all generated artifact files.
@@ -47,6 +48,7 @@ function generateAllArtifacts(schemaContent, options = {}) {
     statusMapping: generateStatusMapping(schema, schemaContent),
     sizeConfig: generateSizeConfig(schema, schemaContent),
     dogTypesHeader: generateDogTypesHeader(schemaContent, options),
+    typescriptDogTypes: generateTypescriptDogTypes(schema, schemaContent),
     pythonDogTypes: generatePythonDogTypes(schema, schemaContent)
   };
 }
@@ -222,8 +224,8 @@ function writeArtifactsToDisk(options = {}) {
     generatorFileName: path.basename(__filename)
   }));
 
-  // Update TypeScript types with new header
-  updateTypescriptTypesHeader(dogTypesPath, schemaContent, { writeFile, readFile });
+  // Write TypeScript types
+  writeFile(dogTypesPath, artifacts.typescriptDogTypes);
 
   // Write Python types
   writeFile(pythonDogTypesPath, artifacts.pythonDogTypes);

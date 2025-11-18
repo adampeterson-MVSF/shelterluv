@@ -518,6 +518,191 @@
       "x-group": "enrichment",
       "x-ownership": "scraper"
     },
+    "EventHistory": {
+      "type": "array",
+      "description": "[DERIVED] Complete event timeline for this dog including adoptions, returns, status changes, and foster assignments",
+      "x-group": "derived",
+      "x-ownership": "etl",
+      "items": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "description": "Type of event (Adoption, Adoption Return, Pending Adoption, Available, etc.)"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date when the event occurred"
+          },
+          "associated_person": {
+            "type": "string",
+            "description": "Person associated with the event (case manager, adopter, etc.)"
+          },
+          "details": {
+            "type": "string",
+            "description": "Additional details about the event"
+          },
+          "status_change": {
+            "type": "string",
+            "description": "Status change resulting from this event"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "WeightHistory": {
+      "type": "array",
+      "description": "[DERIVED] Historical weight measurements with dates",
+      "x-group": "derived",
+      "x-ownership": "etl",
+      "items": {
+        "type": "object",
+        "properties": {
+          "weight": {
+            "type": "string",
+            "description": "Weight measurement (e.g., '7.3 kg', '16 lbs')"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date of weight measurement"
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["kg", "lbs"],
+            "description": "Unit of measurement"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "CategoryHistory": {
+      "type": "array",
+      "description": "[DERIVED] History of category assignments (Adoption, Volunteer, Events, etc.)",
+      "x-group": "derived",
+      "x-ownership": "etl",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Category name (Adoption, Volunteer, Events, etc.)"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date when category was assigned"
+          },
+          "assigned_by": {
+            "type": "string",
+            "description": "Person who assigned the category"
+          },
+          "details": {
+            "type": "string",
+            "description": "Additional details about the category assignment"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "BehavioralAssessments": {
+      "type": "array",
+      "description": "[DERIVED] Structured behavioral assessment results and plans",
+      "x-group": "derived",
+      "x-ownership": "etl",
+      "items": {
+        "type": "object",
+        "properties": {
+          "assessment_type": {
+            "type": "string",
+            "description": "Type of behavioral assessment"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date of assessment"
+          },
+          "assessor": {
+            "type": "string",
+            "description": "Person who performed the assessment"
+          },
+          "results": {
+            "type": "string",
+            "description": "Assessment results and findings"
+          },
+          "recommendations": {
+            "type": "string",
+            "description": "Behavioral recommendations and plans"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "CompatibilityWarnings": {
+      "type": "array",
+      "description": "[DERIVED] Structured compatibility warnings and disclaimers from ShelterLuv",
+      "x-group": "derived",
+      "x-ownership": "etl",
+      "items": {
+        "type": "object",
+        "properties": {
+          "warning_type": {
+            "type": "string",
+            "description": "Type of compatibility warning (Cat Compatibility, Kid Compatibility, etc.)"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["Unknown", "Caution", "Not Recommended"],
+            "description": "Severity level of the warning"
+          },
+          "details": {
+            "type": "string",
+            "description": "Detailed information about the compatibility concern"
+          },
+          "date_noted": {
+            "type": "string",
+            "format": "date",
+            "description": "When this warning was documented"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "AttachedDocuments": {
+      "type": "array",
+      "description": "[DERIVED] List of documents and files attached to this dog's record",
+      "x-group": "derived",
+      "x-ownership": "etl",
+      "items": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Name of the attached file"
+          },
+          "file_type": {
+            "type": "string",
+            "description": "Type of file (photo, document, etc.)"
+          },
+          "upload_date": {
+            "type": "string",
+            "format": "date",
+            "description": "When the file was uploaded"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description or notes about the file"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to access the file"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "PreviousShelterId": {
       "type": "string",
       "description": "[SCRAPED] Previous shelter ID - scraped from ShelterLuv intake/outcome section.",

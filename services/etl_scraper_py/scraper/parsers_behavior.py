@@ -104,3 +104,162 @@ def extract_behavioral_keywords_from_memos(memos_text: str) -> Dict[str, str]:
         result["BehaviorPlaygroups"] = memos_text
 
     return result
+
+
+def extract_behavioral_assessments(page) -> List[Dict[str, Any]]:
+    """Extract structured behavioral assessments from the behavioral section."""
+    assessments = []
+
+    try:
+        # Look for behavioral assessment sections
+        assessment_selectors = [
+            ".behavioral-assessments",
+            "[data-section='behavioral'] .assessment",
+            ".behavior .assessment",
+            "[id*='behavior'] .assessment"
+        ]
+
+        for section_sel in assessment_selectors:
+            try:
+                assessment_elements = page.locator(f"{section_sel}").all()
+                for element in assessment_elements:
+                    try:
+                        # Extract assessment details
+                        assessment_data = _extract_single_behavioral_assessment(element)
+                        if assessment_data:
+                            assessments.append(assessment_data)
+
+                    except Exception:
+                        continue
+
+                if assessments:
+                    break
+
+            except Exception:
+                continue
+
+        # Also check for behavioral plans section
+        plan_selectors = [
+            ".behavior-plans",
+            "[data-section='behavioral'] .plan",
+            ".behavior .plan"
+        ]
+
+        for plan_sel in plan_selectors:
+            try:
+                plan_elements = page.locator(f"{plan_sel}").all()
+                for element in plan_elements:
+                    try:
+                        plan_data = _extract_behavioral_plan(element)
+                        if plan_data:
+                            assessments.append(plan_data)
+
+                    except Exception:
+                        continue
+
+            except Exception:
+                continue
+
+    except Exception as e:
+        print(f"Error extracting behavioral assessments: {e}")
+
+    return assessments
+
+
+def _extract_single_behavioral_assessment(element) -> Dict[str, Any]:
+    """Extract a single behavioral assessment from an element."""
+    try:
+        # Try to find assessment type, date, assessor, etc.
+        assessment = {
+            "assessment_type": "",
+            "date": "",
+            "assessor": "",
+            "results": "",
+            "recommendations": ""
+        }
+
+        # Look for headers or titles
+        title_element = element.locator("h3, h4, .title, .assessment-type").first
+        if title_element.count() > 0:
+            assessment["assessment_type"] = title_element.inner_text(timeout=1000).strip()
+
+        # Look for date information
+        date_selectors = ["[data-date]", ".date", "time", "[datetime]"]
+        for date_sel in date_selectors:
+            try:
+                date_element = element.locator(date_sel).first
+                if date_element.count() > 0:
+                    assessment["date"] = date_element.inner_text(timeout=1000).strip()
+                    break
+            except Exception:
+                continue
+
+        # Look for assessor information
+        assessor_selectors = [".assessor", ".by", "[data-assessor]"]
+        for assessor_sel in assessor_selectors:
+            try:
+                assessor_element = element.locator(assessor_sel).first
+                if assessor_element.count() > 0:
+                    assessment["assessor"] = assessor_element.inner_text(timeout=1000).strip()
+                    break
+            except Exception:
+                continue
+
+        # Extract content as results
+        content_selectors = [".content", ".results", ".assessment-content", "p"]
+        content_parts = []
+        for content_sel in content_selectors:
+            try:
+                content_elements = element.locator(content_sel).all()
+                for content_el in content_elements:
+                    text = content_el.inner_text(timeout=1000).strip()
+                    if text:
+                        content_parts.append(text)
+            except Exception:
+                continue
+
+        assessment["results"] = " ".join(content_parts)
+
+        # If we have meaningful data, return the assessment
+        if assessment["assessment_type"] or assessment["results"]:
+            return assessment
+
+    except Exception:
+        pass
+
+    return None
+
+
+def _extract_behavioral_plan(element) -> Dict[str, Any]:
+    """Extract a behavioral plan from an element."""
+    try:
+        plan = {
+            "assessment_type": "Behavioral Plan",
+            "date": "",
+            "assessor": "",
+            "results": "",
+            "recommendations": ""
+        }
+
+        # Extract plan content
+        content_element = element.locator(".content, .plan-content, p").first
+        if content_element.count() > 0:
+            plan["recommendations"] = content_element.inner_text(timeout=1000).strip()
+
+        # Look for date/assessor info
+        meta_element = element.locator(".meta, .info, small").first
+        if meta_element.count() > 0:
+            meta_text = meta_element.inner_text(timeout=1000).strip()
+            # Simple parsing - could be enhanced
+            if "by" in meta_text.lower():
+                parts = meta_text.split("by")
+                if len(parts) > 1:
+                    plan["assessor"] = parts[1].strip()
+
+        if plan["recommendations"]:
+            return plan
+
+    except Exception:
+        pass
+
+    return None

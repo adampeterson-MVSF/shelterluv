@@ -1,0 +1,279 @@
+.compatibility-warnings-section {
+  margin-bottom: 2rem;
+  border: 2px solid #e74c3c;
+  border-radius: 12px;
+  background: #fff5f5;
+  overflow: hidden;
+}
+
+.compatibility-warnings-section .section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e74c3c;
+  margin: 0;
+  padding: 1rem 1.5rem;
+  background: #ffeaea;
+  border-bottom: 1px solid #f5c6cb;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Compatibility Intro */
+.compatibility-intro {
+  padding: 1.5rem;
+  background: white;
+  border-bottom: 1px solid #f5c6cb;
+}
+
+.compatibility-intro h3 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.compatibility-intro > p {
+  margin: 0 0 1.5rem 0;
+  color: #495057;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.compatibility-legend {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.legend-icon {
+  font-size: 1.1rem;
+}
+
+/* Warnings Content */
+.warnings-content {
+  padding: 1.5rem;
+}
+
+.warnings-group {
+  margin-bottom: 2rem;
+}
+
+.warnings-group:last-child {
+  margin-bottom: 0;
+}
+
+.warnings-group-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.warnings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Warning Cards */
+.warning-card {
+  background: white;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.warning-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.warning-card.severity-high {
+  border-color: #e74c3c;
+  background: #fff5f5;
+}
+
+.warning-card.severity-medium {
+  border-color: #f39c12;
+  background: #fffbf0;
+}
+
+.warning-card.severity-unknown {
+  border-color: #95a5a6;
+  background: #f8f9fa;
+}
+
+.warning-header {
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.warning-header.severity-high {
+  background: #ffeaea;
+  border-bottom-color: #f5c6cb;
+}
+
+.warning-header.severity-medium {
+  background: #fff5e6;
+  border-bottom-color: #ffeaa7;
+}
+
+.warning-header.severity-unknown {
+  background: #f8f9fa;
+  border-bottom-color: #dee2e6;
+}
+
+.warning-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.warning-title-section {
+  flex: 1;
+  margin: 0 1rem;
+}
+
+.warning-type {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.warning-severity-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.warning-date {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  font-weight: 500;
+  text-align: right;
+}
+
+.warning-content {
+  padding: 1.25rem;
+}
+
+.warning-details h5 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.warning-details p {
+  margin: 0;
+  color: #495057;
+  line-height: 1.5;
+}
+
+/* Warnings Footer */
+.warnings-footer {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.warnings-footer p {
+  margin: 0;
+  color: #495057;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.warnings-footer strong {
+  color: #2c3e50;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .compatibility-warnings-section {
+    border-width: 1px;
+    border-radius: 8px;
+  }
+
+  .compatibility-warnings-section .section-title {
+    padding: 1rem;
+    font-size: 1.1rem;
+  }
+
+  .compatibility-intro {
+    padding: 1rem;
+  }
+
+  .compatibility-legend {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .warnings-content {
+    padding: 1rem;
+  }
+
+  .warning-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .warning-title-section {
+    margin: 0;
+    width: 100%;
+  }
+
+  .warning-date {
+    text-align: left;
+    align-self: flex-end;
+  }
+
+  .warning-content {
+    padding: 1rem;
+  }
+
+  .warnings-footer {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .warning-type {
+    font-size: 1rem;
+  }
+
+  .warning-severity-badge {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .compatibility-legend {
+    gap: 0.5rem;
+  }
+
+  .legend-item {
+    font-size: 0.85rem;
+  }
+}

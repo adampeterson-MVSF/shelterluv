@@ -53,6 +53,27 @@ SELECTORS: Dict[str, Any] = {
     },
     # CSS selectors for elements that might change
     "attributes_badges": '[class*="badge" i], [class*="chip" i]',
+    # Basic info selectors
+    "microchip_number": ".microchip-number, [data-microchip], .chip-number",
+    "microchip_issuer": ".microchip-issuer, .chip-issuer",
+    "microchip_implant_date": ".microchip-implant-date, .chip-implant-date",
+    "weight": ".weight, .animal-weight, [data-weight]",
+    "previous_shelter_id": ".previous-shelter-id, .prev-shelter-id",
+    "previous_shelter_type": ".previous-shelter-type, .prev-shelter-type",
+    "previous_shelter_issuer": ".previous-shelter-issuer, .prev-shelter-issuer",
+    # History selectors
+    "history_section": ".history-section, [data-section*='history']",
+    "weight_table": ".space-y-2 .align-middle table, .weight-history table",
+    "categories_table": ".categories-history table, [data-categories] table",
+    # Medical data table selectors
+    "vaccination_table": ".vaccinations-table, .vaccination-history table",
+    "treatments_due_table": ".treatments-due table, .due-treatments table",
+    "treatment_history_table": ".treatment-history table, .treatment-records table",
+    "active_diagnoses_table": ".active-diagnoses table, .current-diagnoses table",
+    "resolved_diagnoses_table": ".resolved-diagnoses table, .past-diagnoses table",
+    "diagnostic_tests_table": ".diagnostic-tests table, .lab-tests table",
+    "physical_exams_table": ".physical-exams table, .exam-records table",
+    "procedures_table": ".procedures-surgeries table, .surgical-procedures table",
     # ARIA roles used for table parsing
     "table_roles": {
         "columnheader": "columnheader",

@@ -12,18 +12,23 @@
 .dog-notes-tabs {
   display: flex;
   border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .notes-tab {
-  flex: 1;
-  padding: 0.75rem;
+  flex: 0 0 auto;
+  min-width: 80px;
+  padding: 0.75rem 0.5rem;
   border: none;
   background: transparent;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   border-bottom: 2px solid transparent;
   color: var(--color-muted-text);
   cursor: pointer;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .notes-tab-active {
@@ -91,6 +96,29 @@
   border: 1px solid #d1d5db;
 }
 
+/* New tab content styling */
+.history-tab-content,
+.behavior-tab-content,
+.warnings-tab-content,
+.documents-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.behavior-note {
+  background: #e8f4f8;
+  border: 1px solid #bee5eb;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #0c5460;
+  font-size: 0.9rem;
+}
+
+.behavior-note p {
+  margin: 0;
+}
+
 /* Responsive adjustments for notes */
 @media (max-width: 768px) {
   .attributes-badges-list {
@@ -100,5 +128,18 @@
   .attribute-badge {
     font-size: 0.75rem;
     padding: 0.2rem 0.5rem;
+  }
+
+  .notes-tab {
+    min-width: 70px;
+    padding: 0.6rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .history-tab-content,
+  .behavior-tab-content,
+  .warnings-tab-content,
+  .documents-tab-content {
+    gap: 1.5rem;
   }
 }

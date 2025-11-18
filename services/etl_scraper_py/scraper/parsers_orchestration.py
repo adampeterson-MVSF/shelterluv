@@ -9,7 +9,14 @@ from typing import Any, Dict
 
 # Import all the domain-specific parsers
 from .parsers_profile import scrape_overview_fields, scrape_sex_weight_fields, scrape_size_age_fields
-from .parsers_history import scrape_intake_outcome_fields
+from .parsers_history import (
+    scrape_intake_outcome_fields,
+    extract_event_history,
+    extract_weight_history,
+    extract_category_history,
+    extract_compatibility_warnings,
+    extract_attached_documents
+)
 from .parsers_basic_info import _extract_age_panel
 from .parsers_profile import (
     _extract_header_profile_block, _extract_status_from_page, _extract_case_manager_from_categories
@@ -18,6 +25,7 @@ from .parsers_media import _extract_photos_documents
 from .parsers_attributes import _extract_attributes_disclaimers, _derive_categories_from_attributes
 from .parsers_memos import _extract_memos_section
 from .parsers_medical_history import _extract_medical_history
+from .parsers_behavior import extract_behavioral_assessments
 
 
 def scrape_animal_record_summary_comprehensive(page, internal_id: str) -> Dict[str, Any]:
@@ -99,6 +107,20 @@ def scrape_animal_record_summary_comprehensive(page, internal_id: str) -> Dict[s
 
         # 9. Derive additional categories from attributes
         _derive_categories_from_attributes(result)
+
+        # 10. Extract comprehensive history data
+        result["EventHistory"] = extract_event_history(page)
+        result["WeightHistory"] = extract_weight_history(page)
+        result["CategoryHistory"] = extract_category_history(page)
+
+        # 11. Extract compatibility warnings from disclaimers
+        result["CompatibilityWarnings"] = extract_compatibility_warnings(page)
+
+        # 12. Extract attached documents
+        result["AttachedDocuments"] = extract_attached_documents(page)
+
+        # 13. Extract behavioral assessments
+        result["BehavioralAssessments"] = extract_behavioral_assessments(page)
 
         return result
 

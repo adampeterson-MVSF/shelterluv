@@ -62,7 +62,7 @@ def _extract_vaccination_history(page, medical_data: Dict[str, Any]) -> None:
     try:
         # Look for vaccination table
         vaccination_table_selectors = [
-            SELECTORS.vaccination_table,
+            SELECTORS["vaccination_table"],
             ".vaccinations-table",
             ".vaccination-history table",
             "[data-vaccinations] table"
@@ -117,7 +117,7 @@ def _extract_treatments_due(page, medical_data: Dict[str, Any]) -> None:
     try:
         # Look for treatments due table
         treatments_due_selectors = [
-            SELECTORS.treatments_due_table,
+            SELECTORS["treatments_due_table"],
             ".treatments-due table",
             ".due-treatments table",
             "[data-treatments-due] table"
@@ -155,7 +155,7 @@ def _extract_treatment_history(page, medical_data: Dict[str, Any]) -> None:
     try:
         # Look for treatment history table
         treatment_history_selectors = [
-            SELECTORS.treatment_history_table,
+            SELECTORS["treatment_history_table"],
             ".treatment-history table",
             ".treatment-records table",
             "[data-treatment-history] table"
@@ -195,7 +195,7 @@ def _extract_active_diagnoses(page, medical_data: Dict[str, Any]) -> None:
     try:
         # Look for active diagnoses table
         active_diagnoses_selectors = [
-            SELECTORS.active_diagnoses_table,
+            SELECTORS["active_diagnoses_table"],
             ".active-diagnoses table",
             ".current-diagnoses table",
             "[data-active-diagnoses] table"
@@ -232,7 +232,7 @@ def _extract_resolved_diagnoses(page, medical_data: Dict[str, Any]) -> None:
     try:
         # Look for resolved diagnoses table
         resolved_diagnoses_selectors = [
-            SELECTORS.resolved_diagnoses_table,
+            SELECTORS["resolved_diagnoses_table"],
             ".resolved-diagnoses table",
             ".past-diagnoses table",
             "[data-resolved-diagnoses] table"
@@ -270,7 +270,7 @@ def _extract_diagnostic_tests(page, medical_data: Dict[str, Any]) -> None:
     try:
         # Look for diagnostic tests table
         diagnostic_tests_selectors = [
-            SELECTORS.diagnostic_tests_table,
+            SELECTORS["diagnostic_tests_table"],
             ".diagnostic-tests table",
             ".lab-tests table",
             "[data-diagnostic-tests] table"
@@ -315,7 +315,7 @@ def _extract_physical_exams(page, medical_data: Dict[str, Any]) -> None:
     try:
         # Look for physical exams table
         physical_exams_selectors = [
-            SELECTORS.physical_exams_table,
+            SELECTORS["physical_exams_table"],
             ".physical-exams table",
             ".exam-records table",
             "[data-physical-exams] table"
@@ -352,7 +352,7 @@ def _extract_procedures_surgeries(page, medical_data: Dict[str, Any]) -> None:
     try:
         # Look for procedures/surgeries table
         procedures_selectors = [
-            SELECTORS.procedures_table,
+            SELECTORS["procedures_table"],
             ".procedures-surgeries table",
             ".surgical-procedures table",
             "[data-procedures] table"

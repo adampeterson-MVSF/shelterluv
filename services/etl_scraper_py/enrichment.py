@@ -18,6 +18,15 @@ from schema import (
     _normalize_status,
     validate_dog_record,
 )
+from schema_artifact import SCHEMA_ARTIFACT
+
+# Field ownership metadata for merge decisions
+_FIELD_OWNERSHIP = SCHEMA_ARTIFACT.get("fieldOwnership", {})
+
+
+def _is_missing(value: Any) -> bool:
+    """Check if a value is considered missing/empty."""
+    return value is None or value == "" or value == [] or value == {}
 
 
 def build_dog_record(
@@ -60,25 +69,75 @@ def _merge_data_sources(
     event_info: Dict[str, Any] = None,
     memo_html: str = "",
 ) -> Dict[str, Any]:
-    """Merge all data sources into a single dict."""
-    merged = {**api_animal, **scraped, **(foster_info or {}), **(event_info or {})}
+    """Merge all data sources into a single dict.
 
-    # For critical fields, prefer API values over scraped values (API is authoritative)
-    critical_fields = ["Status", "Name", "ID"]
-    for field in critical_fields:
+    Rules:
+    - API is authoritative for fields marked ownership=api
+    - Scraper is authoritative for fields marked ownership=scraper
+    - For everything else, scraper only fills in missing API values
+    """
+
+    # 1) Start with API as the base – this is the source of truth.
+    merged: Dict[str, Any] = dict(api_animal)
+
+    # 2) Enrich with ETL-derived data (foster/events) – these don't exist in API.
+    if foster_info:
+        merged.update(foster_info)
+    if event_info:
+        merged.update(event_info)
+
+    # 3) Use scraper as a patch layer, guided by fieldOwnership.
+    for field, scraped_value in scraped.items():
+        # MemosRawHTML handled explicitly below; don't fight with memo_html param.
+        if field == "MemosRawHTML":
+            continue
+
+        owner_info = _FIELD_OWNERSHIP.get(field, {})
+        owner = owner_info.get("ownership")
+        api_value = merged.get(field)
+
+        if owner == "scraper":
+            # Scraper is canonical for these; API either doesn't have them
+            # or uses a type we can't consume (e.g. Attributes object vs list).
+            # Always use scraped value if available, otherwise remove API value entirely.
+            if not _is_missing(scraped_value):
+                merged[field] = scraped_value
+            elif field in merged:
+                # If scraped didn't provide this scraper-owned field, remove any API value
+                del merged[field]
+
+        elif owner == "api":
+            # API wins. Only let scraper fill in truly missing API values.
+            if _is_missing(api_value) and not _is_missing(scraped_value):
+                merged[field] = scraped_value
+
+        else:
+            # ownership = "etl" or unknown – treat scraper as a gap filler.
+            if _is_missing(api_value) and not _is_missing(scraped_value):
+                merged[field] = scraped_value
+
+    # 4) Remove any scraper-owned fields that exist in API but weren't provided by scraper
+    for field in list(merged.keys()):
+        if field == "MemosRawHTML":
+            continue
+
+        owner_info = _FIELD_OWNERSHIP.get(field, {})
+        owner = owner_info.get("ownership")
+
+        if owner == "scraper" and field not in scraped:
+            # This scraper-owned field exists in API but scraper didn't provide it
+            del merged[field]
+
+    # 5) Identity & status: still hard-pin from API when sane.
+    for field in ("Status", "Name", "ID"):
         api_value = api_animal.get(field)
-        scraped_value = scraped.get(field)
-
-        # Prefer API value if it exists and is not empty/unknown
-        if api_value and api_value != "" and api_value != "UNKNOWN":
+        if api_value and api_value != "UNKNOWN":
             merged[field] = api_value
-        elif scraped_value and scraped_value != "":
-            # Only use scraped value if API value is missing/invalid
-            merged[field] = scraped_value
 
-
+    # 6) MemosRawHTML: explicitly set from memo_html param (API or scrape).
     if memo_html:
         merged["MemosRawHTML"] = memo_html
+
     return merged
 
 

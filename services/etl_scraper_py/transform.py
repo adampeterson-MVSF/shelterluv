@@ -7,9 +7,10 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal
 
-from enrichment import build_dog_record
+from dog_schema import from_shelterluv_api
 from errors import SchemaValidationError, ScraperError
 from foster_mapping import build_event_maps, build_foster_maps
+from schema import validate_dog_record_nested
 
 MemosMode = Literal["none", "api"]
 
@@ -81,7 +82,7 @@ def _build_dog_records(
     event_map: Dict[str, Dict[str, Any]],
     memos_data: Dict[str, str],
 ) -> tuple[List[Dict[str, Any]], int]:
-    """Build validated dog records from all available data."""
+    """Build validated dog records from all available data using new structured schema."""
     import logging
 
     logger = logging.getLogger(__name__)
@@ -93,24 +94,102 @@ def _build_dog_records(
         if not internal_id:
             continue
 
-        # Get scraped data (may be empty or have error)
-        scraped_data = scraped_map.get(str(internal_id), {})
-
-        # Get foster info
-        foster_info = foster_map.get(str(internal_id), {})
-        # Get event info
-        event_info = event_map.get(str(internal_id), {})
-
-        # Get memo HTML from scraped data (summary page) or fallback to extracted memos
-        memo_html = scraped_data.get("MemosRawHTML", memos_data.get(str(internal_id), ""))
-
         try:
-            dog_record = build_dog_record(
-                animal, scraped_data, foster_info, event_info, memo_html=memo_html
-            )
+            # Start with API data transformed to new structured schema
+            dog_record = from_shelterluv_api(animal)
+
+            # Apply scraped data selectively (API-first approach)
+            _apply_scraped_data(dog_record, scraped_map.get(str(internal_id), {}))
+
+            # Apply foster/event enrichment
+            _apply_foster_event_data(dog_record, foster_map.get(str(internal_id), {}), event_map.get(str(internal_id), {}))
+
+            # Validate against nested schema
+            validate_dog_record_nested(dog_record)
+
             dogs.append(dog_record)
-        except SchemaValidationError as e:
+
+        except Exception as e:
             logger.warning("Skipping invalid dog %s: %s", internal_id, e)
             invalid_count += 1
 
     return dogs, invalid_count
+
+
+def _apply_scraped_data(dog_record: Dict[str, Any], scraped_data: Dict[str, Any]) -> None:
+    """Apply scraped data to dog record, following API-first approach."""
+    if not scraped_data:
+        return
+
+    # Attributes - scraper owned, API may have different format
+    if "Attributes" in scraped_data:
+        # Convert scraped attributes list to structured format
+        scraped_attrs = scraped_data["Attributes"]
+        if isinstance(scraped_attrs, list):
+            dog_record["attributes"]["raw"] = [
+                {
+                    "attributeName": attr,
+                    "internalId": dog_record["internalId"],
+                    "publish": "Yes",  # Assume scraped attributes are publishable
+                }
+                for attr in scraped_attrs
+            ]
+
+    # Behavioral attributes - scraper owned
+    if "BehavioralAttributes" in scraped_data:
+        behavioral_attrs = scraped_data["BehavioralAttributes"]
+        if isinstance(behavioral_attrs, list):
+            # Add to attributes.raw if not already present
+            existing_names = {attr["attributeName"] for attr in dog_record["attributes"]["raw"]}
+            for attr in behavioral_attrs:
+                if attr not in existing_names:
+                    dog_record["attributes"]["raw"].append({
+                        "attributeName": attr,
+                        "internalId": dog_record["internalId"],
+                        "publish": "Yes",
+                    })
+
+    # Medical notes - enrich content
+    if "MedicalNotes" in scraped_data and scraped_data["MedicalNotes"]:
+        if dog_record["content"]["description"]:
+            dog_record["content"]["description"] += f"\n\nMedical Notes: {scraped_data['MedicalNotes']}"
+        else:
+            dog_record["content"]["description"] = scraped_data["MedicalNotes"]
+
+    # Personality notes - enrich content
+    if "PersonalityNotes" in scraped_data and scraped_data["PersonalityNotes"]:
+        if dog_record["content"]["description"]:
+            dog_record["content"]["description"] += f"\n\nAbout {dog_record['name']}: {scraped_data['PersonalityNotes']}"
+        else:
+            dog_record["content"]["description"] = scraped_data["PersonalityNotes"]
+
+
+def _apply_foster_event_data(
+    dog_record: Dict[str, Any],
+    foster_info: Dict[str, Any],
+    event_info: Dict[str, Any]
+) -> None:
+    """Apply foster and event enrichment data."""
+    # Foster information - may override API AssociatedPerson if more complete
+    if foster_info:
+        dog_record["foster"]["inFoster"] = True
+        if "FosterName" in foster_info:
+            # Parse name if available
+            name = foster_info["FosterName"]
+            if name:
+                # Simple name splitting - could be enhanced
+                name_parts = name.split()
+                dog_record["foster"]["person"] = {
+                    "firstName": " ".join(name_parts[:-1]) if len(name_parts) > 1 else name,
+                    "lastName": name_parts[-1] if len(name_parts) > 1 else "",
+                    "relationshipType": "Foster",
+                    "outDate": None,
+                }
+
+        # Contact info (restricted fields)
+        if "FosterEmail" in foster_info:
+            if dog_record["foster"]["person"]:
+                dog_record["foster"]["person"]["email"] = foster_info["FosterEmail"]
+        if "FosterPhone" in foster_info:
+            if dog_record["foster"]["person"]:
+                dog_record["foster"]["person"]["phone"] = foster_info["FosterPhone"]

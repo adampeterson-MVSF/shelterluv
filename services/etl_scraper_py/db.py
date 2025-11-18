@@ -101,15 +101,15 @@ def write_dogs(dogs_data: List[Dict[str, Any]], dry_run: bool = False) -> Dict[s
         chunk_written = 0
 
         for dog in chunk:
-            internal_id = dog.get("Internal-ID")
+            internal_id = dog.get("internalId")
             if not internal_id:
                 continue
 
-            # Enforce Internal-ID consistency
+            # Enforce internalId consistency
             doc_id = str(internal_id)
-            if doc_id != str(dog["Internal-ID"]):
+            if doc_id != str(dog["internalId"]):
                 raise ValueError(
-                    f"Internal-ID mismatch: doc_id={doc_id}, dog.Internal-ID={dog['Internal-ID']}"
+                    f"internalId mismatch: doc_id={doc_id}, dog.internalId={dog['internalId']}"
                 )
 
             # Add ETL metadata to the dog record

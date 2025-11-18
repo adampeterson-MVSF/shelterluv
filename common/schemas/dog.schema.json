@@ -720,6 +720,436 @@
       "description": "[SCRAPED] Previous shelter issuer - scraped from ShelterLuv intake/outcome section.",
       "x-group": "enrichment",
       "x-ownership": "scraper"
+    },
+    "Disclaimers": {
+      "type": "array",
+      "description": "[SCRAPED] Behavior and compatibility disclaimers from ShelterLuv - displayed as bulleted list under Attributes tab",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Disclaimer title (e.g., 'Cat Compatibility - Unknown', 'Energy Level - Moderate Exercise')"
+          },
+          "content": {
+            "type": "string",
+            "description": "Detailed disclaimer content/description"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["compatibility", "behavior", "medical", "housing", "other"],
+            "description": "Category of disclaimer for grouping"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "WebsiteMemo": {
+      "type": "object",
+      "description": "[SCRAPED] Kennel Card / Website Memo content - displayed under Personality tab",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "properties": {
+        "author": {
+          "type": "string",
+          "description": "Person who wrote the memo"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date the memo was written"
+        },
+        "content": {
+          "type": "string",
+          "description": "Full memo content"
+        }
+      },
+      "additionalProperties": false
+    },
+    "MicrochipInfo": {
+      "type": "object",
+      "description": "[SCRAPED] Microchip identification information",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "properties": {
+        "number": {
+          "type": "string",
+          "description": "Microchip number"
+        },
+        "issued_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date microchip was issued"
+        },
+        "issuer": {
+          "type": "string",
+          "description": "Microchip issuer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RabiesTag": {
+      "type": "object",
+      "description": "[SCRAPED] Rabies vaccination tag information",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "properties": {
+        "number": {
+          "type": "string",
+          "description": "Rabies tag number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "VaccinationHistory": {
+      "type": "array",
+      "description": "[SCRAPED] Complete vaccination history with details",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "vaccine": {
+            "type": "string",
+            "description": "Vaccine name (e.g., 'Rabies', 'DHPP', 'Bordetella')"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date vaccine was administered"
+          },
+          "expiration_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Vaccine expiration date"
+          },
+          "route": {
+            "type": "string",
+            "description": "Administration route (e.g., 'SQ', 'IN')"
+          },
+          "site": {
+            "type": "string",
+            "description": "Injection site"
+          },
+          "lot_number": {
+            "type": "string",
+            "description": "Vaccine lot number"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Completed", "Scheduled", "Overdue"],
+            "description": "Vaccination status"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "TreatmentsDue": {
+      "type": "array",
+      "description": "[SCRAPED] Treatments and medications currently due or scheduled",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "treatment": {
+            "type": "string",
+            "description": "Treatment name"
+          },
+          "dosage": {
+            "type": "string",
+            "description": "Dosage instructions"
+          },
+          "frequency": {
+            "type": "string",
+            "description": "Frequency of administration"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date treatment is due"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Overdue", "Due", "Completed"],
+            "description": "Treatment status"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "TreatmentHistory": {
+      "type": "array",
+      "description": "[SCRAPED] Complete treatment history with details",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "treatment": {
+            "type": "string",
+            "description": "Treatment name"
+          },
+          "dosage": {
+            "type": "string",
+            "description": "Dosage administered"
+          },
+          "frequency": {
+            "type": "string",
+            "description": "Frequency of administration"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Treatment start date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Treatment end date (if applicable)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Completed", "In Progress", "Cancelled"],
+            "description": "Treatment status"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional treatment notes"
+          },
+          "veterinarian": {
+            "type": "string",
+            "description": "Veterinarian who administered treatment"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "Diagnoses": {
+      "type": "array",
+      "description": "[SCRAPED] Active and resolved medical diagnoses",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "description": "Medical condition/diagnosis"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["Dental/Periodontal Disease", "Cardiovascular", "Skin", "Other"],
+            "description": "Diagnosis category"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Active", "Resolved", "Diagnosed"],
+            "description": "Diagnosis status"
+          },
+          "diagnosed_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date diagnosis was made"
+          },
+          "resolved_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date diagnosis was resolved (if applicable)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the diagnosis"
+          },
+          "veterinarian": {
+            "type": "string",
+            "description": "Veterinarian who made the diagnosis"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "DiagnosticTests": {
+      "type": "array",
+      "description": "[SCRAPED] Diagnostic test history (CBC, Chem, Heartworm, ECHO, etc.)",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "test_type": {
+            "type": "string",
+            "description": "Type of diagnostic test"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date test was performed"
+          },
+          "results": {
+            "type": "string",
+            "description": "Test results"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Completed", "Pending", "Scheduled"],
+            "description": "Test status"
+          },
+          "veterinarian": {
+            "type": "string",
+            "description": "Veterinarian who ordered/performed the test"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional test notes"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "PhysicalExams": {
+      "type": "array",
+      "description": "[SCRAPED] Physical examination history",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "exam_type": {
+            "type": "string",
+            "description": "Type of physical exam"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date and time of exam"
+          },
+          "veterinarian": {
+            "type": "string",
+            "description": "Veterinarian who performed the exam"
+          },
+          "clinic": {
+            "type": "string",
+            "description": "Clinic where exam was performed"
+          },
+          "subjective": {
+            "type": "string",
+            "description": "Subjective findings"
+          },
+          "objective": {
+            "type": "string",
+            "description": "Objective findings"
+          },
+          "assessment": {
+            "type": "string",
+            "description": "Assessment/diagnosis"
+          },
+          "plan": {
+            "type": "string",
+            "description": "Treatment plan"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "Procedures": {
+      "type": "array",
+      "description": "[SCRAPED] Surgical procedures and treatments performed",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "procedure": {
+            "type": "string",
+            "description": "Procedure name (e.g., 'Dental Prophylaxis', 'Spay/Neuter')"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date procedure was performed"
+          },
+          "surgeon": {
+            "type": "string",
+            "description": "Person who performed the procedure"
+          },
+          "clinic": {
+            "type": "string",
+            "description": "Clinic where procedure was performed"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Detailed procedure notes"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Completed", "Scheduled", "Cancelled"],
+            "description": "Procedure status"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "MedicalMemos": {
+      "type": "array",
+      "description": "[SCRAPED] Medical memos and chronological notes from medical history",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date of the medical memo"
+          },
+          "author": {
+            "type": "string",
+            "description": "Person who wrote the memo"
+          },
+          "content": {
+            "type": "string",
+            "description": "Full memo content"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "AttachedDocuments": {
+      "type": "array",
+      "description": "[SCRAPED] Attached document files (PDFs, images) with metadata",
+      "x-group": "enrichment",
+      "x-ownership": "scraper",
+      "items": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Original filename"
+          },
+          "file_type": {
+            "type": "string",
+            "enum": ["PDF", "Image", "Document", "Other"],
+            "description": "Type of file"
+          },
+          "upload_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date file was uploaded"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to access the file"
+          },
+          "description": {
+            "type": "string",
+            "description": "File description or notes"
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "required": [

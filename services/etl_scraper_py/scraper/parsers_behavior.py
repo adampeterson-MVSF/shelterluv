@@ -112,31 +112,19 @@ def extract_behavioral_assessments(page) -> List[Dict[str, Any]]:
 
     try:
         # Look for behavioral assessment sections
-        assessment_selectors = [
-            ".behavioral-assessments",
-            "[data-section='behavioral'] .assessment",
-            ".behavior .assessment",
-            "[id*='behavior'] .assessment"
-        ]
+        assessment_header = page.locator("h1:has-text('Behavior Assessments')")
+        if assessment_header.count() > 0:
+            # Look for assessment elements after the behavior assessments header
+            assessment_elements = page.locator("h1:has-text('Behavior Assessments') ~ div .border-l-8").all()
+            for element in assessment_elements:
+                try:
+                    # Extract assessment details
+                    assessment_data = _extract_single_behavioral_assessment(element)
+                    if assessment_data:
+                        assessments.append(assessment_data)
 
-        for section_sel in assessment_selectors:
-            try:
-                assessment_elements = page.locator(f"{section_sel}").all()
-                for element in assessment_elements:
-                    try:
-                        # Extract assessment details
-                        assessment_data = _extract_single_behavioral_assessment(element)
-                        if assessment_data:
-                            assessments.append(assessment_data)
-
-                    except Exception:
-                        continue
-
-                if assessments:
-                    break
-
-            except Exception:
-                continue
+                except Exception:
+                    continue
 
         # Also check for behavioral plans section
         plan_selectors = [

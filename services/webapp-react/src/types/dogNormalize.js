@@ -62,7 +62,26 @@ function buildNormalizedDogObject(doc, data) {
     "ConditionAtIntake": data["ConditionAtIntake"], "JurisdictionIntake": data["JurisdictionIntake"],
     "JurisdictionOutcome": data["JurisdictionOutcome"], "RabiesTagNumber": data["RabiesTagNumber"],
     "PreviousShelterId": data["PreviousShelterId"], "PreviousShelterType": data["PreviousShelterType"],
-    "PreviousShelterIssuer": data["PreviousShelterIssuer"]
+    "PreviousShelterIssuer": data["PreviousShelterIssuer"],
+    // New structured data fields
+    "EventHistory": data["EventHistory"] || [],
+    "WeightHistory": data["WeightHistory"] || [],
+    "CategoryHistory": data["CategoryHistory"] || [],
+    "BehavioralAssessments": data["BehavioralAssessments"] || [],
+    "CompatibilityWarnings": data["CompatibilityWarnings"] || [],
+    "AttachedDocuments": data["AttachedDocuments"] || [],
+    "Disclaimers": data["Disclaimers"] || [],
+    "WebsiteMemo": data["WebsiteMemo"] || {},
+    "MicrochipInfo": data["MicrochipInfo"] || {},
+    "RabiesTag": data["RabiesTag"] || {},
+    "VaccinationHistory": data["VaccinationHistory"] || [],
+    "TreatmentsDue": data["TreatmentsDue"] || [],
+    "TreatmentHistory": data["TreatmentHistory"] || [],
+    "Diagnoses": data["Diagnoses"] || [],
+    "DiagnosticTests": data["DiagnosticTests"] || [],
+    "PhysicalExams": data["PhysicalExams"] || [],
+    "Procedures": data["Procedures"] || [],
+    "MedicalMemos": data["MedicalMemos"] || []
   };
 
   // Add computed display fields to make components completely dumb

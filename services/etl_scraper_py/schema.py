@@ -12,6 +12,8 @@ from jsonschema import Draft7Validator
 # Schema will be loaded lazily when first accessed
 _DOG_SCHEMA = None
 _DOG_VALIDATOR = None
+_DOG_SCHEMA_NESTED = None
+_DOG_VALIDATOR_NESTED = None
 
 
 def _get_dog_schema() -> Dict[str, Any]:
@@ -32,6 +34,26 @@ def _get_dog_validator() -> Draft7Validator:
     if _DOG_VALIDATOR is None:
         _DOG_VALIDATOR = Draft7Validator(_get_dog_schema())
     return _DOG_VALIDATOR
+
+
+def _get_dog_schema_nested() -> Dict[str, Any]:
+    """Load and return the nested dog schema, caching it for subsequent calls."""
+    global _DOG_SCHEMA_NESTED
+    if _DOG_SCHEMA_NESTED is None:
+        schema_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "common", "schemas", "dog.schema.nested.json"
+        )
+        with open(schema_path) as f:
+            _DOG_SCHEMA_NESTED = json.load(f)
+    return _DOG_SCHEMA_NESTED
+
+
+def _get_dog_validator_nested() -> Draft7Validator:
+    """Load and return the nested dog validator, caching it for subsequent calls."""
+    global _DOG_VALIDATOR_NESTED
+    if _DOG_VALIDATOR_NESTED is None:
+        _DOG_VALIDATOR_NESTED = Draft7Validator(_get_dog_schema_nested())
+    return _DOG_VALIDATOR_NESTED
 
 
 def _normalize_size(size: str) -> str:
@@ -235,6 +257,15 @@ def validate_dog_record(dog_dict: Dict[str, Any]) -> None:
     errors = sorted(_get_dog_validator().iter_errors(dog_dict), key=lambda e: e.path)
     if errors:
         raise SchemaValidationError(f"Schema validation failed for dog {dog_dict.get('Internal-ID')}: {errors[0].message}")
+
+
+def validate_dog_record_nested(dog_dict: Dict[str, Any]) -> None:
+    """Validate a dog record against the nested schema. Raises SchemaValidationError on failure."""
+    from errors import SchemaValidationError
+
+    errors = sorted(_get_dog_validator_nested().iter_errors(dog_dict), key=lambda e: e.path)
+    if errors:
+        raise SchemaValidationError(f"Schema validation failed for dog {dog_dict.get('internalId')}: {errors[0].message}")
 
 
 def assert_size_order_matches_schema() -> None:

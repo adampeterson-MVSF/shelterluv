@@ -61,6 +61,25 @@ function AttributesTab({ dog }) {
       <AttributeSection title="Behavior Attributes" items={behavioralAttributes} keyPrefix="behav" />
       <AttributeSection title="Physical Attributes" items={physicalAttributes} keyPrefix="phys" />
 
+      {/* Disclaimers Section */}
+      {dog.Disclaimers && dog.Disclaimers.length > 0 && (
+        <div className="attributes-section">
+          <h3 className="attributes-section-title">Additional Information</h3>
+          <ul className="attributes-list">
+            {dog.Disclaimers.map((disclaimer, i) => (
+              <li key={`disclaimer-${i}`}>
+                <strong>{disclaimer.title}</strong>
+                {disclaimer.content && (
+                  <div style={{ marginTop: '4px', fontSize: '0.9em', color: '#666' }}>
+                    {disclaimer.content}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {hasBadges && (
         <div className="attributes-badges">
           <h3 className="attributes-badges-title">All Attributes</h3>
@@ -133,14 +152,34 @@ AdoptionTab.propTypes = {
 
 function PersonalityTab({ dog }) {
   const hasNotes = dog.PersonalityNotes && dog.PersonalityNotes !== 'Not Available';
+  const hasWebsiteMemo = dog.WebsiteMemo && dog.WebsiteMemo.content;
 
-  if (!hasNotes) {
-    return <p className="notes-paragraph">No personality notes available.</p>;
+  if (!hasNotes && !hasWebsiteMemo) {
+    return <p className="notes-paragraph">No personality information available.</p>;
   }
 
   return (
     <div className="personality-notes">
-      <p className="notes-paragraph">{dog.PersonalityNotes}</p>
+      {hasWebsiteMemo && (
+        <div className="website-memo-section">
+          <h4 style={{ fontWeight: 'bold', marginBottom: '8px' }}>About {dog.Name}</h4>
+          {dog.WebsiteMemo.author && dog.WebsiteMemo.date && (
+            <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '12px' }}>
+              Written by {dog.WebsiteMemo.author} on {dog.WebsiteMemo.date}
+            </div>
+          )}
+          <div style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+            {dog.WebsiteMemo.content}
+          </div>
+        </div>
+      )}
+
+      {hasNotes && (
+        <div className="personality-notes-section" style={{ marginTop: hasWebsiteMemo ? '24px' : '0' }}>
+          {hasWebsiteMemo && <h4 style={{ fontWeight: 'bold', marginBottom: '8px' }}>Additional Notes</h4>}
+          <p className="notes-paragraph">{dog.PersonalityNotes}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -151,13 +190,229 @@ PersonalityTab.propTypes = {
 
 function MedicalTab({ dog }) {
   const { hasMedicalHistory, hasMedicalNotes } = checkMedicalInfo(dog);
+  const hasStructuredMedicalData = (
+    (dog.MicrochipInfo && Object.keys(dog.MicrochipInfo).length > 0) ||
+    (dog.RabiesTag && Object.keys(dog.RabiesTag).length > 0) ||
+    (dog.VaccinationHistory && dog.VaccinationHistory.length > 0) ||
+    (dog.TreatmentsDue && dog.TreatmentsDue.length > 0) ||
+    (dog.TreatmentHistory && dog.TreatmentHistory.length > 0) ||
+    (dog.Diagnoses && dog.Diagnoses.length > 0) ||
+    (dog.DiagnosticTests && dog.DiagnosticTests.length > 0) ||
+    (dog.PhysicalExams && dog.PhysicalExams.length > 0) ||
+    (dog.Procedures && dog.Procedures.length > 0) ||
+    (dog.MedicalMemos && dog.MedicalMemos.length > 0)
+  );
 
-  if (!hasMedicalHistory && !hasMedicalNotes) {
+  if (!hasMedicalHistory && !hasMedicalNotes && !hasStructuredMedicalData) {
     return <p className="notes-paragraph">No medical information available.</p>;
   }
 
   return (
     <div className="medical-notes">
+      {/* Microchip Information */}
+      {dog.MicrochipInfo && dog.MicrochipInfo.number && (
+        <div className="medical-section">
+          <h3 className="section-title">🆔 Microchip Information</h3>
+          <div className="section-content">
+            <ul className="attributes-list">
+              <li><strong>Number:</strong> {dog.MicrochipInfo.number}</li>
+              {dog.MicrochipInfo.issued_date && <li><strong>Issued:</strong> {dog.MicrochipInfo.issued_date}</li>}
+              {dog.MicrochipInfo.issuer && <li><strong>Issuer:</strong> {dog.MicrochipInfo.issuer}</li>}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Rabies Tag */}
+      {dog.RabiesTag && dog.RabiesTag.number && (
+        <div className="medical-section">
+          <h3 className="section-title">🏷️ Rabies Tag</h3>
+          <div className="section-content">
+            <p><strong>Number:</strong> {dog.RabiesTag.number}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Vaccination History */}
+      {dog.VaccinationHistory && dog.VaccinationHistory.length > 0 && (
+        <div className="medical-section">
+          <h3 className="section-title">💉 Vaccination History</h3>
+          <div className="section-content">
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8f9fa' }}>
+                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #dee2e6' }}>Vaccine</th>
+                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #dee2e6' }}>Date</th>
+                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #dee2e6' }}>Expires</th>
+                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #dee2e6' }}>Route</th>
+                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #dee2e6' }}>Site</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dog.VaccinationHistory.map((vacc, i) => (
+                    <tr key={i}>
+                      <td style={{ padding: '8px', border: '1px solid #dee2e6' }}>{vacc.vaccine}</td>
+                      <td style={{ padding: '8px', border: '1px solid #dee2e6' }}>{vacc.date}</td>
+                      <td style={{ padding: '8px', border: '1px solid #dee2e6' }}>{vacc.expiration_date || 'N/A'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #dee2e6' }}>{vacc.route || 'N/A'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #dee2e6' }}>{vacc.site || 'N/A'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Treatments Due */}
+      {dog.TreatmentsDue && dog.TreatmentsDue.length > 0 && (
+        <div className="medical-section">
+          <h3 className="section-title">⏰ Treatments Due</h3>
+          <div className="section-content">
+            <ul className="attributes-list">
+              {dog.TreatmentsDue.map((treatment, i) => (
+                <li key={i}>
+                  <strong>{treatment.treatment}</strong>
+                  <div style={{ fontSize: '0.9em', color: treatment.status === 'Overdue' ? '#dc3545' : '#666', marginTop: '4px' }}>
+                    {treatment.dosage} • {treatment.frequency} • Due: {treatment.due_date} ({treatment.status})
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Treatment History */}
+      {dog.TreatmentHistory && dog.TreatmentHistory.length > 0 && (
+        <div className="medical-section">
+          <h3 className="section-title">📋 Treatment History</h3>
+          <div className="section-content">
+            {dog.TreatmentHistory.map((treatment, i) => (
+              <div key={i} style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1em' }}>{treatment.treatment}</h4>
+                <div style={{ fontSize: '0.9em', color: '#666' }}>
+                  {treatment.dosage && <div><strong>Dosage:</strong> {treatment.dosage}</div>}
+                  {treatment.frequency && <div><strong>Frequency:</strong> {treatment.frequency}</div>}
+                  {(treatment.start_date || treatment.end_date) && (
+                    <div><strong>Dates:</strong> {treatment.start_date || 'N/A'} to {treatment.end_date || 'Ongoing'}</div>
+                  )}
+                  {treatment.status && <div><strong>Status:</strong> {treatment.status}</div>}
+                  {treatment.veterinarian && <div><strong>Veterinarian:</strong> {treatment.veterinarian}</div>}
+                  {treatment.notes && <div style={{ marginTop: '8px' }}><strong>Notes:</strong> {treatment.notes}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Diagnoses */}
+      {dog.Diagnoses && dog.Diagnoses.length > 0 && (
+        <div className="medical-section">
+          <h3 className="section-title">🔍 Diagnoses</h3>
+          <div className="section-content">
+            {dog.Diagnoses.map((diagnosis, i) => (
+              <div key={i} style={{ marginBottom: '12px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: diagnosis.status === 'Active' ? '#dc3545' : '#28a745' }}>
+                  {diagnosis.condition} ({diagnosis.status})
+                </h4>
+                <div style={{ fontSize: '0.9em', color: '#666' }}>
+                  <div><strong>Category:</strong> {diagnosis.category}</div>
+                  {diagnosis.diagnosed_date && <div><strong>Diagnosed:</strong> {diagnosis.diagnosed_date}</div>}
+                  {diagnosis.resolved_date && <div><strong>Resolved:</strong> {diagnosis.resolved_date}</div>}
+                  {diagnosis.veterinarian && <div><strong>Veterinarian:</strong> {diagnosis.veterinarian}</div>}
+                  {diagnosis.description && <div style={{ marginTop: '8px' }}><strong>Details:</strong> {diagnosis.description}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Diagnostic Tests */}
+      {dog.DiagnosticTests && dog.DiagnosticTests.length > 0 && (
+        <div className="medical-section">
+          <h3 className="section-title">🧪 Diagnostic Tests</h3>
+          <div className="section-content">
+            {dog.DiagnosticTests.map((test, i) => (
+              <div key={i} style={{ marginBottom: '12px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                <h4 style={{ margin: '0 0 8px 0' }}>{test.test_type} ({test.status})</h4>
+                <div style={{ fontSize: '0.9em', color: '#666' }}>
+                  <div><strong>Date:</strong> {test.date}</div>
+                  {test.veterinarian && <div><strong>Veterinarian:</strong> {test.veterinarian}</div>}
+                  {test.results && <div style={{ marginTop: '8px' }}><strong>Results:</strong> {test.results}</div>}
+                  {test.notes && <div style={{ marginTop: '8px' }}><strong>Notes:</strong> {test.notes}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Physical Exams */}
+      {dog.PhysicalExams && dog.PhysicalExams.length > 0 && (
+        <div className="medical-section">
+          <h3 className="section-title">👨‍⚕️ Physical Exams</h3>
+          <div className="section-content">
+            {dog.PhysicalExams.map((exam, i) => (
+              <div key={i} style={{ marginBottom: '12px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                <h4 style={{ margin: '0 0 8px 0' }}>{exam.exam_type}</h4>
+                <div style={{ fontSize: '0.9em', color: '#666' }}>
+                  {exam.date && <div><strong>Date:</strong> {exam.date}</div>}
+                  {exam.veterinarian && <div><strong>Veterinarian:</strong> {exam.veterinarian}</div>}
+                  {exam.clinic && <div><strong>Clinic:</strong> {exam.clinic}</div>}
+                  {exam.subjective && <div style={{ marginTop: '8px' }}><strong>Subjective:</strong> {exam.subjective}</div>}
+                  {exam.objective && <div style={{ marginTop: '8px' }}><strong>Objective:</strong> {exam.objective}</div>}
+                  {exam.assessment && <div style={{ marginTop: '8px' }}><strong>Assessment:</strong> {exam.assessment}</div>}
+                  {exam.plan && <div style={{ marginTop: '8px' }}><strong>Plan:</strong> {exam.plan}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Procedures */}
+      {dog.Procedures && dog.Procedures.length > 0 && (
+        <div className="medical-section">
+          <h3 className="section-title">🔧 Procedures</h3>
+          <div className="section-content">
+            {dog.Procedures.map((procedure, i) => (
+              <div key={i} style={{ marginBottom: '12px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                <h4 style={{ margin: '0 0 8px 0' }}>{procedure.procedure} ({procedure.status})</h4>
+                <div style={{ fontSize: '0.9em', color: '#666' }}>
+                  <div><strong>Date:</strong> {procedure.date}</div>
+                  {procedure.surgeon && <div><strong>Surgeon:</strong> {procedure.surgeon}</div>}
+                  {procedure.clinic && <div><strong>Clinic:</strong> {procedure.clinic}</div>}
+                  {procedure.notes && <div style={{ marginTop: '8px' }}><strong>Notes:</strong> {procedure.notes}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Medical Memos */}
+      {dog.MedicalMemos && dog.MedicalMemos.length > 0 && (
+        <div className="medical-section">
+          <h3 className="section-title">📝 Medical Memos</h3>
+          <div className="section-content">
+            {dog.MedicalMemos.map((memo, i) => (
+              <div key={i} style={{ marginBottom: '12px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '8px' }}>
+                  {memo.date} by {memo.author}
+                </div>
+                <div style={{ whiteSpace: 'pre-wrap' }}>{memo.content}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Original Medical Notes */}
       {hasMedicalNotes && (
         <div className="medical-section">
           <h3 className="section-title">📝 Medical Notes</h3>
@@ -166,6 +421,8 @@ function MedicalTab({ dog }) {
           </div>
         </div>
       )}
+
+      {/* Original Medical History */}
       <MedicalHistorySections medicalHistory={dog.MedicalHistory} />
     </div>
   );

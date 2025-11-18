@@ -62,9 +62,9 @@ SELECTORS: Dict[str, Any] = {
     "previous_shelter_type": ".previous-shelter-type, .prev-shelter-type",
     "previous_shelter_issuer": ".previous-shelter-issuer, .prev-shelter-issuer",
     # History selectors
-    "history_section": ".history-section, [data-section*='history']",
-    "weight_table": ".space-y-2 .align-middle table, .weight-history table",
-    "categories_table": ".categories-history table, [data-categories] table",
+    "history_section": "h1:has-text('History')",
+    "weight_table": "h2:has-text('Weight')",
+    "categories_table": "h4:has-text('Categories')",
     # Medical data table selectors
     "vaccination_table": ".vaccinations-table, .vaccination-history table",
     "treatments_due_table": ".treatments-due table, .due-treatments table",

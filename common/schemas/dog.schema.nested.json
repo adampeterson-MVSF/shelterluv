@@ -1,0 +1,355 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://muttville.org/schemas/dog-nested.json",
+  "title": "Dog (Nested Schema)",
+  "description": "Structured Dog schema with nested fields for API-first data model. Groups related data logically for better UI organization.",
+  "version": "2.0.0",
+  "type": "object",
+  "properties": {
+    "internalId": {
+      "type": "string",
+      "description": "ShelterLuv internal unique identifier"
+    },
+    "publicId": {
+      "type": "string",
+      "description": "ShelterLuv public animal ID displayed to users"
+    },
+    "name": {
+      "type": "string",
+      "description": "Dog's name"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["Dog"],
+      "description": "Animal type (currently only Dog supported)"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["available", "adopted", "pending", "hold", "in_custody", "unknown"],
+      "description": "Current status in shelter system"
+    },
+    "inFoster": {
+      "type": "boolean",
+      "description": "Whether dog is currently in foster care"
+    },
+    "lastIntakeAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp when dog was last taken into custody"
+    },
+    "lastUpdatedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp when dog record was last updated in ShelterLuv"
+    },
+    "physical": {
+      "type": "object",
+      "description": "Physical characteristics and vital information",
+      "properties": {
+        "breed": {
+          "type": "string",
+          "description": "Dog's breed"
+        },
+        "ageDays": {
+          "type": "integer",
+          "description": "Age in days"
+        },
+        "dob": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Date of birth"
+        },
+        "sex": {
+          "type": "string",
+          "enum": ["Male", "Female", "Unknown"],
+          "description": "Dog's sex"
+        },
+        "sizeLabel": {
+          "type": "string",
+          "description": "Size category (e.g., 'Small (0-24)', 'Medium (25-49)')"
+        },
+        "color": {
+          "type": "string",
+          "description": "Coat color"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Coat pattern/markings"
+        },
+        "weightLbs": {
+          "type": ["number", "null"],
+          "description": "Weight in pounds"
+        },
+        "altered": {
+          "type": ["boolean", "null"],
+          "description": "Whether dog is spayed/neutered"
+        }
+      },
+      "additionalProperties": false
+    },
+    "location": {
+      "type": "object",
+      "description": "Current location information",
+      "properties": {
+        "raw": {
+          "type": "object",
+          "description": "Full ShelterLuv CurrentLocation object"
+        },
+        "label": {
+          "type": ["string", "null"],
+          "description": "Normalized display label (e.g., 'Muttville HQ', 'Foster home')"
+        }
+      },
+      "additionalProperties": false
+    },
+    "foster": {
+      "type": "object",
+      "description": "Foster care information",
+      "properties": {
+        "inFoster": {
+          "type": "boolean",
+          "description": "Whether dog is in foster care"
+        },
+        "person": {
+          "type": ["object", "null"],
+          "description": "Foster parent information",
+          "properties": {
+            "firstName": {
+              "type": ["string", "null"],
+              "description": "Foster parent's first name"
+            },
+            "lastName": {
+              "type": ["string", "null"],
+              "description": "Foster parent's last name"
+            },
+            "relationshipType": {
+              "type": ["string", "null"],
+              "description": "Relationship type (usually 'Foster')"
+            },
+            "outDate": {
+              "type": ["string", "null"],
+              "format": "date-time",
+              "description": "When foster relationship ends"
+            },
+            "email": {
+              "type": ["string", "null"],
+              "description": "Foster parent's email (restricted access)"
+            },
+            "phone": {
+              "type": ["string", "null"],
+              "description": "Foster parent's phone (restricted access)"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "media": {
+      "type": "object",
+      "description": "Photos and videos",
+      "properties": {
+        "coverPhoto": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "description": "Primary photo URL (CoverPhoto or first photo)"
+        },
+        "photos": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "description": "Photo URL"
+          },
+          "description": "Array of photo URLs"
+        },
+        "videos": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "description": "Video URL"
+          },
+          "description": "Array of video URLs"
+        }
+      },
+      "additionalProperties": false
+    },
+    "attributes": {
+      "type": "object",
+      "description": "Behavioral attributes and compatibility information",
+      "properties": {
+        "raw": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "attributeName": {
+                "type": "string",
+                "description": "Attribute name (e.g., 'Cat-friendly')"
+              },
+              "internalId": {
+                "type": "string",
+                "description": "ShelterLuv internal ID for this attribute"
+              },
+              "publish": {
+                "type": "string",
+                "enum": ["Yes", "No"],
+                "description": "Whether this attribute should be published publicly"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Raw attribute data from ShelterLuv API"
+        },
+        "compatibility": {
+          "type": "object",
+          "description": "Derived compatibility flags (populated from raw attributes)",
+          "properties": {
+            "cat": {
+              "type": ["string", "null"],
+              "enum": ["yes", "no", "unknown"],
+              "description": "Cat compatibility assessment"
+            },
+            "dog": {
+              "type": ["string", "null"],
+              "enum": ["yes", "no", "unknown"],
+              "description": "Dog compatibility assessment"
+            },
+            "kid": {
+              "type": ["string", "null"],
+              "enum": ["yes", "no", "unknown"],
+              "description": "Child compatibility assessment"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "medical": {
+      "type": "object",
+      "description": "Medical information and identification",
+      "properties": {
+        "microchips": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Microchip ID number"
+              },
+              "issuer": {
+                "type": ["string", "null"],
+                "description": "Microchip issuer/brand"
+              },
+              "implantedAt": {
+                "type": ["string", "null"],
+                "format": "date-time",
+                "description": "When microchip was implanted"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Microchip information"
+        }
+      },
+      "additionalProperties": true
+    },
+    "content": {
+      "type": "object",
+      "description": "Written content and descriptions",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Dog's biography/description (may include personality and medical notes)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "admin": {
+      "type": "object",
+      "description": "Administrative and organizational information",
+      "properties": {
+        "adoptionFeeGroup": {
+          "type": ["string", "null"],
+          "description": "Adoption fee group/category"
+        },
+        "litterGroupId": {
+          "type": ["string", "null"],
+          "description": "Litter group identifier"
+        },
+        "previousIds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "idValue": {
+                "type": "string",
+                "description": "Previous ID value"
+              },
+              "issuingShelter": {
+                "type": ["string", "null"],
+                "description": "Shelter that issued the ID"
+              },
+              "type": {
+                "type": "string",
+                "description": "Type of previous ID"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Previous shelter/rescue IDs with metadata"
+        }
+      },
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "description": "ETL source metadata and debugging information",
+      "properties": {
+        "lastIntakeUnixTime": {
+          "type": ["number", "null"],
+          "description": "Original LastIntakeUnixTime from API"
+        },
+        "lastUpdatedUnixTime": {
+          "type": ["number", "null"],
+          "description": "Original LastUpdatedUnixTime from API"
+        },
+        "dobUnixTime": {
+          "type": ["number", "null"],
+          "description": "Original DOBUnixTime from API"
+        },
+        "raw": {
+          "type": "object",
+          "description": "Complete original API response for debugging"
+        },
+        "syncedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this record was last synced from ShelterLuv"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "internalId",
+    "publicId",
+    "name",
+    "type",
+    "status",
+    "inFoster",
+    "physical",
+    "location",
+    "foster",
+    "media",
+    "attributes",
+    "medical",
+    "content",
+    "admin",
+    "source"
+  ],
+  "additionalProperties": false
+}

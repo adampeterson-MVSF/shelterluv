@@ -5,7 +5,7 @@ This module provides functions to use the official ShelterLuv REST API
 to get animals currently in custody.
 """
 
-from typing import Dict, Set
+from typing import Any, Dict, Set
 
 from errors import ScraperError
 
@@ -42,51 +42,41 @@ def scrape_in_custody_ids_via_api(username: str, password: str) -> Set[str]:
         raise ScraperError(f"Failed to get in-custody IDs via official API: {e}")
 
 
-def scrape_in_custody_data_via_api(creds: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+def scrape_in_custody_data_via_api(api_key: str) -> Dict[str, Dict[str, Any]]:
     """
     Get comprehensive data for animals currently in custody using the official REST API.
 
-    This function uses the official ShelterLuv API endpoints to get all animals
-    and returns a dict mapping Internal IDs to basic animal data.
+    This function uses the official ShelterLuv API endpoints to get all in-custody dogs
+    and returns a dict mapping Internal IDs to full animal data from /animals/{id}.
 
     Args:
-        creds: ShelterLuv credentials dict with api_key
+        api_key: ShelterLuv API key
 
     Returns:
-        Dict mapping Internal IDs to dicts containing basic animal data
+        Dict mapping Internal IDs to dicts containing full animal data
 
     Raises:
         ScraperError: If API calls fail
     """
     # Import here to avoid circular imports
-    from api import get_all_animals_in_custody
+    from api import get_all_animals_in_custody, get_animals_by_ids
 
     try:
-        # Use the official API to get all animals in custody
-        # Temporarily increase cap to see how many animals there are
-        animals_in_custody = get_all_animals_in_custody(creds["api_key"], max_animals=2000)
+        # 1. Get all in-custody dogs (dogs-only after API client changes)
+        animals_in_custody = get_all_animals_in_custody(api_key)
 
-        # Convert to dict format expected by extract.py
-        animal_data = {}
+        # 2. Collect Internal-IDs
+        internal_ids = []
         for animal in animals_in_custody:
-            internal_id = str(animal["Internal-ID"])
-            # Convert API field names to the format expected by the scraper
-            animal_data[internal_id] = {
-                "Internal-ID": internal_id,
-                "ID": animal.get("ID", ""),
-                "Name": animal.get("Name", ""),
-                "Status": animal.get("Status", ""),
-                "IntakeDate": animal.get("IntakeDate", ""),
-                "Location": animal.get("Location", ""),
-                "Stage": animal.get("Stage", ""),
-                "Breed": animal.get("Breed", ""),
-                "Gender": animal.get("Gender", ""),
-                "Size": animal.get("Size", ""),
-                "Weight": animal.get("Weight", ""),
-                "Age": animal.get("Age", ""),
-            }
+            internal_id = str(animal.get("Internal-ID") or animal.get("InternalID"))
+            if internal_id:
+                internal_ids.append(internal_id)
 
-        return animal_data
+        # 3. Fetch full detail per dog via /animals/{internal_id}
+        animals_by_id = get_animals_by_ids(internal_ids, api_key)
+
+        # 4. Return canonical "animals_by_id" mapping used by the rest of the ETL
+        return animals_by_id
 
     except Exception as e:
         raise ScraperError(f"Failed to get in-custody data via official API: {e}")

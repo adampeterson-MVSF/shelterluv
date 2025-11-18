@@ -19,27 +19,29 @@ def _filter_animals_in_custody(animals: List[Dict[str, Any]]) -> List[Dict[str, 
 
 def get_all_animals_in_custody(api_key: str, max_animals: int = 1000) -> List[Dict[str, Any]]:
     """
-    Fetches all animals that might be in custody from the ShelterLuv API.
-    Applies minimal API-level filtering to include animals for scraping.
+    Fetches all in-custody dogs from the ShelterLuv API.
+    Uses API-level filtering for dogs in custody.
 
     Args:
         api_key: ShelterLuv API key
         max_animals: Maximum number of animals to fetch
 
     Returns:
-        List of animal dictionaries with basic info
+        List of dog dictionaries with full API data
     """
     headers = {"X-API-Key": api_key}
 
-    # Get all animals (paginated)
+    # Get all in-custody dogs (paginated)
     all_animals = []
-    page = 1
+    limit = 100
+    offset = 0
 
     while True:
         params = {
-            "page": page,
-            "per_page": 100,  # API max is 100 per page
-            "include": "Internal-ID,Name,Status,ID,IntakeDate,Location,Stage,Breed,Gender,Size,Weight,Age",
+            "status_type": "in custody",
+            "species": "Dog",
+            "limit": limit,
+            "offset": offset,
         }
 
         data = _make_api_request(f"{BASE_URL}/animals", headers, params)
@@ -54,19 +56,16 @@ def get_all_animals_in_custody(api_key: str, max_animals: int = 1000) -> List[Di
         if len(all_animals) >= max_animals:
             raise ApiError(f"Hit {max_animals}-animal cap")
 
-        # Check if there are more pages
-        if len(animals) < 100:
+        # Check if there are more results
+        if len(animals) < limit:
             break
 
-        page += 1
-
-    # Filter to likely in-custody animals
-    in_custody_animals = _filter_animals_in_custody(all_animals)
+        offset += limit
 
     # Validate records have required fields
-    _validate_animal_records(in_custody_animals)
+    _validate_animal_records(all_animals)
 
-    return in_custody_animals
+    return all_animals
 
 
 def get_animal_by_internal_id(internal_id: str, api_key: str) -> Dict[str, Any]:

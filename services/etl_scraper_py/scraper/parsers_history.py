@@ -106,50 +106,61 @@ def extract_event_history(page) -> List[Dict[str, Any]]:
 
     try:
         # Look for the History section with event timeline
-        history_section_selectors = [
-            SELECTORS.get("history_section", ".history-section"),
-            "[data-section='history']",
-            ".history-events",
-            "[id*='history']"
+        # Find the h1 with "History" text, then look for tables in the following content
+        history_header = page.locator("h1:has-text('History')")
+        if history_header.count() == 0:
+            return events
+
+        # Get the parent section containing the history header
+        history_section = history_header.locator("xpath=ancestor::div[contains(@class, 'space-y-4')]").first
+        if history_section.count() == 0:
+            return events
+
+        # Look for event tables within the history section
+        event_table_selectors = [
+            "table",
+            ".event-table",
+            "[data-testid*='event'] table"
         ]
 
-        for section_sel in history_section_selectors:
-            try:
-                # Look for event tables within the history section
-                event_table_selectors = [
-                    f"{section_sel} table",
-                    f"{section_sel} .event-table",
-                    "[data-testid*='event'] table"
-                ]
+        # Try to find the table directly after the History header
+        try:
+            # Use XPath to find table after History h1
+            table_xpath = "//h1[normalize-space()='History']/following::table[1]"
+            table_locator = page.locator(f"xpath={table_xpath}")
 
-                for table_sel in event_table_selectors:
-                    try:
-                        rows = extract_table_rows_as_dicts(
-                            page,
-                            table_sel,
-                            [".event-type", ".date", ".person", ".details", ".status"]
-                        )
+            if table_locator.count() > 0:
+                # Extract table data manually since extract_table_rows_as_dicts expects a selector
+                rows_locator = table_locator.locator("tbody tr")
+                rows = []
 
-                        if rows:
-                            for row in rows:
-                                event = {
-                                    "event_type": row.get("Event Type", row.get("Type", "")),
-                                    "date": normalize_date_string(row.get("Date", "")),
-                                    "associated_person": row.get("Person", row.get("Associated Person", "")),
-                                    "details": row.get("Details", ""),
-                                    "status_change": row.get("Status", row.get("Status Change", ""))
-                                }
-                                if event["event_type"] or event["date"]:
-                                    events.append(event)
-                            break
-                    except Exception:
-                        continue
+                for i in range(rows_locator.count()):
+                    row = rows_locator.nth(i)
+                    cells = row.locator("td")
+                    if cells.count() >= 5:  # Date, Visit#, Event, Person/Partner, Jurisdiction, User
+                        row_data = {
+                            "Date": cells.nth(0).inner_text().strip(),
+                            "Visit #": cells.nth(1).inner_text().strip(),
+                            "Event": cells.nth(2).inner_text().strip(),
+                            "Person/Partner": cells.nth(3).inner_text().strip(),
+                            "Jurisdiction": cells.nth(4).inner_text().strip(),
+                            "User": cells.nth(5).inner_text().strip() if cells.count() > 5 else ""
+                        }
+                        rows.append(row_data)
 
-                if events:
-                    break
-
-            except Exception:
-                continue
+                if rows:
+                    for row in rows:
+                        event = {
+                            "event_type": row.get("Event", ""),
+                            "date": normalize_date_string(row.get("Date", "")),
+                            "associated_person": row.get("Person/Partner", ""),
+                            "details": "",
+                            "status_change": ""
+                        }
+                        if event["event_type"] or event["date"]:
+                            events.append(event)
+        except Exception:
+            pass
 
     except Exception as e:
         print(f"Error extracting event history: {e}")
@@ -246,35 +257,44 @@ def extract_category_history(page) -> List[Dict[str, Any]]:
 
     try:
         # Look for categories table in history section
-        categories_table_selectors = [
-            SELECTORS.get("categories_table", ".categories-history table"),
-            ".categories-table",
-            "[data-categories] table",
-            ".history .categories table"
-        ]
+        # Find the Categories header and then the table
+        try:
+            categories_header = page.locator("h4:has-text('Categories')")
+            if categories_header.count() > 0:
+                # Look for table in the general vicinity after the categories header
+                table_locator = page.locator("h4:has-text('Categories') ~ div table").first
+                if table_locator.count() > 0:
+                        # Extract table data manually
+                        rows_locator = table_locator.locator("tbody tr")
+                        rows = []
 
-        for table_sel in categories_table_selectors:
-            try:
-                rows = extract_table_rows_as_dicts(
-                    page,
-                    table_sel,
-                    [".category", ".date", ".assigned-by", ".details"]
-                )
+                        for i in range(rows_locator.count()):
+                            row = rows_locator.nth(i)
+                            cells = row.locator("td")
+                            if cells.count() >= 5:  # Date, Category Type, Previous Value, New Value, User
+                                row_data = {
+                                    "Date": cells.nth(0).inner_text().strip(),
+                                    "Category Type": cells.nth(1).inner_text().strip(),
+                                    "Previous Value": cells.nth(2).inner_text().strip(),
+                                    "New Value": cells.nth(3).inner_text().strip(),
+                                    "User": cells.nth(4).inner_text().strip()
+                                }
+                                rows.append(row_data)
 
-                if rows:
-                    for row in rows:
-                        category_entry = {
-                            "category": row.get("Category", ""),
-                            "date": normalize_date_string(row.get("Date", "")),
-                            "assigned_by": row.get("Assigned By", row.get("Person", "")),
-                            "details": row.get("Details", "")
-                        }
-                        if category_entry["category"]:
-                            category_history.append(category_entry)
-                    break
-
-            except Exception:
-                continue
+                        if rows:
+                            for row in rows:
+                                category_entry = {
+                                    "category": row.get("Category Type", ""),
+                                    "date": normalize_date_string(row.get("Date", "")),
+                                    "old_value": row.get("Previous Value", ""),
+                                    "new_value": row.get("New Value", ""),
+                                    "assigned_by": row.get("User", ""),
+                                    "details": ""
+                                }
+                                if category_entry["category"]:
+                                    category_history.append(category_entry)
+        except Exception:
+            pass
 
     except Exception as e:
         print(f"Error extracting category history: {e}")
@@ -288,41 +308,37 @@ def extract_compatibility_warnings(page) -> List[Dict[str, Any]]:
 
     try:
         # Look for disclaimer sections with warnings
-        disclaimer_selectors = [
-            ".disclaimers .border-l-8",
-            "[data-section='disclaimers'] .warning",
-            ".disclaimers div[class*='border-l']"
-        ]
-
-        for disclaimer_sel in disclaimer_selectors:
-            try:
-                warning_elements = page.locator(disclaimer_sel).all()
+        # Find disclaimers section and extract warning blocks
+        try:
+            disclaimer_header = page.locator("h1:has-text('Disclaimers')")
+            if disclaimer_header.count() > 0:
+                # Look for warning elements after the disclaimers header
+                warning_elements = page.locator("h1:has-text('Disclaimers') ~ div .border-l-8").all()
                 for element in warning_elements:
                     try:
                         # Extract warning title and content
-                        title_element = element.locator("h3").first
-                        content_element = element.locator(".text-sm").first
+                            title_element = element.locator("h3").first
+                            content_element = element.locator(".text-sm").first
 
-                        if title_element.count() > 0 and content_element.count() > 0:
-                            title = title_element.inner_text(timeout=1000).strip()
-                            content = content_element.inner_text(timeout=1000).strip()
+                            if title_element.count() > 0 and content_element.count() > 0:
+                                title = title_element.inner_text(timeout=1000).strip()
+                                content = content_element.inner_text(timeout=1000).strip()
 
-                            # Parse warning type and severity from title
-                            warning_type, severity = _parse_warning_title(title)
+                                # Parse warning type and severity from title
+                                warning_type, severity = _parse_warning_title(title)
 
-                            warning = {
-                                "warning_type": warning_type,
-                                "severity": severity,
-                                "details": content,
-                                "date_noted": None  # Could be extracted from content if available
-                            }
-                            warnings.append(warning)
+                                warning = {
+                                    "warning_type": warning_type,
+                                    "severity": severity,
+                                    "details": content,
+                                    "date_noted": None  # Could be extracted from content if available
+                                }
+                                warnings.append(warning)
 
                     except Exception:
                         continue
-
-            except Exception:
-                continue
+        except Exception:
+            pass
 
     except Exception as e:
         print(f"Error extracting compatibility warnings: {e}")
@@ -336,20 +352,14 @@ def extract_attached_documents(page) -> List[Dict[str, Any]]:
 
     try:
         # Look for files section
-        files_section_selectors = [
-            ".files-section",
-            "[data-section='files']",
-            "#files",
-            ".attached-files"
-        ]
-
-        for section_sel in files_section_selectors:
-            try:
-                # Look for file links or entries
+        try:
+            files_header = page.locator("h1:has-text('Files')")
+            if files_header.count() > 0:
+                # Look for file links after the files header
                 file_selectors = [
-                    f"{section_sel} a[href*='shelterluv']",
-                    f"{section_sel} .file-entry",
-                    f"{section_sel} .document-link"
+                    "h1:has-text('Files') ~ div a[href*='signed/document']",
+                    "h1:has-text('Files') ~ div .flex.justify-between.items-center.text-sm.border-b a",
+                    "h1:has-text('Files') ~ div .flex.justify-between.items-center a"
                 ]
 
                 for file_sel in file_selectors:
@@ -357,9 +367,27 @@ def extract_attached_documents(page) -> List[Dict[str, Any]]:
                         file_elements = page.locator(file_sel).all()
                         for element in file_elements:
                             try:
-                                # Extract file information
-                                filename = element.inner_text(timeout=1000).strip()
-                                href = element.get_attribute("href", timeout=1000)
+                                # Handle different element types
+                                if "signed/document" in file_sel:
+                                    # Direct anchor tag
+                                    filename = element.inner_text(timeout=1000).strip()
+                                    href = element.get_attribute("href", timeout=1000)
+                                    date_element = element.locator("xpath=following-sibling::div[@class='text-black']").first
+                                    upload_date = None
+                                    if date_element.count() > 0:
+                                        upload_date = date_element.inner_text(timeout=1000).strip()
+                                else:
+                                    # Container div - find anchor inside
+                                    anchor = element.locator("a").first
+                                    if anchor.count() > 0:
+                                        filename = anchor.inner_text(timeout=1000).strip()
+                                        href = anchor.get_attribute("href", timeout=1000)
+                                        date_element = element.locator(".text-black").first
+                                        upload_date = None
+                                        if date_element.count() > 0:
+                                            upload_date = date_element.inner_text(timeout=1000).strip()
+                                    else:
+                                        continue
 
                                 if filename and href:
                                     # Determine file type from filename or URL
@@ -368,26 +396,23 @@ def extract_attached_documents(page) -> List[Dict[str, Any]]:
                                     document = {
                                         "filename": filename,
                                         "file_type": file_type,
-                                        "upload_date": None,  # Would need additional parsing
-                                        "description": "",  # Would need additional parsing
+                                        "upload_date": upload_date,
+                                        "description": "",  # Could be enhanced later
                                         "url": href
                                     }
                                     documents.append(document)
 
+                                if documents:
+                                    break
+
                             except Exception:
                                 continue
-
-                        if documents:
-                            break
 
                     except Exception:
                         continue
 
-                if documents:
-                    break
-
-            except Exception:
-                continue
+        except Exception:
+            pass
 
     except Exception as e:
         print(f"Error extracting attached documents: {e}")
@@ -463,3 +488,109 @@ def _determine_file_type(filename: str, url: str) -> str:
         return "document"
     else:
         return "file"
+
+
+def extract_disclaimers(page) -> list:
+    """Extract disclaimers section from ShelterLuv summary page."""
+    disclaimers = []
+
+    try:
+        # Find the disclaimers section
+        disclaimer_header = page.locator("h1:has-text('Disclaimers')")
+        if disclaimer_header.count() == 0:
+            return disclaimers
+
+        # Find all disclaimer items - they are descendants of sibling divs with border-l-8 border-green-600
+        disclaimer_items = page.locator("h1:has-text('Disclaimers') ~ div .border-l-8.border-green-600")
+
+        for i in range(disclaimer_items.count()):
+            try:
+                item = disclaimer_items.nth(i)
+                title_elem = item.locator("h3.text-sm.leading-tight.font-semibold")
+                content_elem = item.locator("div.text-sm.text-black")
+
+                title = title_elem.inner_text(timeout=1000).strip() if title_elem.count() > 0 else ""
+                content = content_elem.inner_text(timeout=1000).strip() if content_elem.count() > 0 else ""
+
+                if title:
+                    # Categorize the disclaimer based on content
+                    category = _categorize_disclaimer(title, content)
+
+                    disclaimers.append({
+                        "title": title,
+                        "content": content,
+                        "category": category
+                    })
+
+            except Exception as e:
+                print(f"Error extracting disclaimer {i}: {e}")
+                continue
+
+    except Exception as e:
+        print(f"Error extracting disclaimers: {e}")
+
+    return disclaimers
+
+
+def _categorize_disclaimer(title: str, content: str) -> str:
+    """Categorize a disclaimer based on its title and content."""
+    title_lower = title.lower()
+    content_lower = content.lower()
+
+    if any(word in title_lower for word in ['cat', 'dog', 'kid', 'child', 'family']):
+        return "compatibility"
+    elif any(word in title_lower for word in ['energy', 'exercise', 'activity', 'stair', 'house']):
+        return "housing"
+    elif any(word in title_lower for word in ['dental', 'heart', 'medical', 'disease']):
+        return "medical"
+    elif any(word in title_lower for word in ['potty', 'train', 'behavior', 'bark', 'lung', 'leash']):
+        return "behavior"
+    elif any(word in content_lower for word in ['intake', 'return', 'adoption']):
+        return "behavior"
+    else:
+        return "other"
+
+
+def extract_website_memo(page) -> dict:
+    """Extract website memo/kennel card content."""
+    website_memo = {}
+
+    try:
+        # Find the website memo section
+        memo_header = page.locator("h3:has-text('Kennel Card / Website Memo')")
+        if memo_header.count() == 0:
+            return website_memo
+
+        # Get the parent container
+        memo_container = memo_header.locator("xpath=ancestor::div[contains(@class, 'border-l-8')]").first
+        if memo_container.count() == 0:
+            return website_memo
+
+        # Extract author and date
+        author_date_elem = memo_container.locator("div.text-xs.text-gray-600")
+        author = ""
+        date = ""
+
+        if author_date_elem.count() > 0:
+            author_date_text = author_date_elem.inner_text(timeout=1000).strip()
+            # Parse "MM/DD/YYYY by Author Name"
+            if " by " in author_date_text:
+                date_part, author_part = author_date_text.split(" by ", 1)
+                date = date_part.strip()
+                author = author_part.strip()
+
+        # Extract content
+        content_elem = memo_container.locator("div.text-sm.text-black")
+        content = content_elem.inner_text(timeout=1000).strip() if content_elem.count() > 0 else ""
+
+        if author or date or content:
+            website_memo = {
+                "author": author,
+                "date": date,
+                "content": content
+            }
+
+    except Exception as e:
+        print(f"Error extracting website memo: {e}")
+
+    return website_memo

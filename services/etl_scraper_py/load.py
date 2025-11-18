@@ -33,7 +33,7 @@ def load(transform_result: TransformResult, dry_run: bool = False) -> LoadResult
         return LoadResult(dogs_written=0, dogs_deleted=deleted_count)
 
     # Get active IDs from processed dogs
-    active_ids = {dog["Internal-ID"] for dog in transform_result.dogs}
+    active_ids = {dog["internalId"] for dog in transform_result.dogs}
 
     # Write dogs and purge stale records in single operation
     load_stats = db.write_dogs_and_purge_stale(transform_result.dogs, active_ids, dry_run=dry_run)

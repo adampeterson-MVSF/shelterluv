@@ -15,16 +15,19 @@ from .parsers_history import (
     extract_weight_history,
     extract_category_history,
     extract_compatibility_warnings,
-    extract_attached_documents
+    extract_attached_documents,
+    extract_disclaimers,
+    extract_website_memo
 )
 from .parsers_basic_info import _extract_age_panel
 from .parsers_profile import (
     _extract_header_profile_block, _extract_status_from_page, _extract_case_manager_from_categories
 )
-from .parsers_media import _extract_photos_documents
+from .parsers_photos import _extract_photos_documents
 from .parsers_attributes import _extract_attributes_disclaimers, _derive_categories_from_attributes
 from .parsers_memos import _extract_memos_section
 from .parsers_medical_history import _extract_medical_history
+from .parsers_medical import extract_medical_history
 from .parsers_behavior import extract_behavioral_assessments
 
 
@@ -121,6 +124,16 @@ def scrape_animal_record_summary_comprehensive(page, internal_id: str) -> Dict[s
 
         # 13. Extract behavioral assessments
         result["BehavioralAssessments"] = extract_behavioral_assessments(page)
+
+        # 14. Extract disclaimers section
+        result["Disclaimers"] = extract_disclaimers(page)
+
+        # 15. Extract website memo/kennel card
+        result["WebsiteMemo"] = extract_website_memo(page)
+
+        # 16. Extract complete medical history
+        medical_data = extract_medical_history(page)
+        result.update(medical_data)
 
         return result
 

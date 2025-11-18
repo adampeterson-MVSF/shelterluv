@@ -12,7 +12,7 @@ from api import get_animal_events, get_animals_by_ids, get_people
 from api.api_client_memos import get_animals_memos_batch
 from errors import ApiError
 from scraper import ShelterLuvScraper
-from scraper.in_custody_api import scrape_in_custody_ids_via_api
+from scraper.in_custody_api import scrape_in_custody_ids_via_api, scrape_in_custody_data_via_api
 from scraper.in_custody_ids import scrape_in_custody_data, scrape_in_custody_ids
 
 MemosMode = Literal["none", "api"]
@@ -58,9 +58,9 @@ class ExtractResult:
 
 def extract(creds: Dict[str, str], config: ExtractConfig) -> ExtractResult:
     """
-    Extract all raw data needed for ETL: in-custody IDs, animals, events, people, and existing metadata.
+    Extract all raw data needed for ETL: in-custody dogs, events, people, and existing metadata.
     Pure function - all configuration comes from ExtractConfig.
-    Control flow is linear: in-custody IDs → core animals → events/people → memos → scraped map.
+    Control flow is linear: in-custody dogs via API → events/people → memos → scraped map.
 
     Args:
         creds: ShelterLuv API credentials dict
@@ -71,11 +71,11 @@ def extract(creds: Dict[str, str], config: ExtractConfig) -> ExtractResult:
 
     logger = logging.getLogger(__name__)
 
-    # Step 1: Scrape the in-custody data from ShelterLuv UI
-    logger.info("Scraping in-custody animal data from ShelterLuv UI...")
-    scraped_animal_data = scrape_in_custody_data(creds["username"], creds["password"])
-    in_custody_ids = set(scraped_animal_data.keys())
-    logger.info(f"Found {len(in_custody_ids)} animals currently in custody")
+    # Step 1: Fetch in-custody dogs via ShelterLuv API
+    logger.info("Fetching in-custody dogs via ShelterLuv API...")
+    animals_by_id = scrape_in_custody_data_via_api(creds["api_key"])
+    in_custody_ids = set(animals_by_id.keys())
+    logger.info(f"Fetched {len(in_custody_ids)} in-custody dogs via API")
 
     # Apply limit if specified (for testing)
     in_custody_ids = limit_animal_ids(in_custody_ids, config.animal_limit)
@@ -85,9 +85,9 @@ def extract(creds: Dict[str, str], config: ExtractConfig) -> ExtractResult:
         # Also limit the animals_by_id dict to match
         limited_animals_by_id = {}
         for internal_id in in_custody_ids:
-            if internal_id in scraped_animal_data:
-                limited_animals_by_id[internal_id] = scraped_animal_data[internal_id]
-        scraped_animal_data = limited_animals_by_id
+            if internal_id in animals_by_id:
+                limited_animals_by_id[internal_id] = animals_by_id[internal_id]
+        animals_by_id = limited_animals_by_id
 
     if not in_custody_ids:
         logger.warning("No animals found in custody - nothing to process")
@@ -101,24 +101,7 @@ def extract(creds: Dict[str, str], config: ExtractConfig) -> ExtractResult:
             scraped_map={},
         )
 
-    # Step 2: Create basic animal records from scraped UI data
-    # The animal-record-summary page will provide all detailed data we need
-    logger.info(f"Using {len(in_custody_ids)} animals from UI scrape (API fetch skipped)")
-
-    # Ensure each animal record has the required Internal-ID and ID fields
-    animals_by_id = {}
-    for internal_id, animal_data in scraped_animal_data.items():
-        # Create a clean record with required fields
-        animal_record = dict(animal_data)  # Copy all scraped data
-        animal_record["Internal-ID"] = internal_id  # Ensure Internal-ID is set
-        # The ID field should already be in the scraped data, but ensure it's there
-        if "ID" not in animal_record or not animal_record["ID"]:
-            # If ID is missing, we might need to derive it from the animal name or skip
-            # For now, set it to the internal_id as fallback
-            animal_record["ID"] = animal_record.get("ID", internal_id)
-        animals_by_id[internal_id] = animal_record
-
-    # Step 3: Fetch events & people (for foster info - still needed)
+    # Step 2: Fetch events & people (for foster info - still needed)
     events_failed = False
     events = []
     if not config.skip_events_people:
@@ -131,7 +114,7 @@ def extract(creds: Dict[str, str], config: ExtractConfig) -> ExtractResult:
     else:
         logger.info("Skipping events fetch (skip_events_people=True)")
 
-    # Step 4: Fetch people (for foster info)
+    # Step 3: Fetch people (for foster info)
     people_failed = False
     people = []
     if not config.skip_events_people:
@@ -144,12 +127,12 @@ def extract(creds: Dict[str, str], config: ExtractConfig) -> ExtractResult:
     else:
         logger.info("Skipping people fetch (skip_events_people=True)")
 
-    # Step 5: Skip existing metadata fetch for now - force fresh scraping
+    # Step 4: Skip existing metadata fetch for now - force fresh scraping
     internal_ids = list(animals_by_id.keys())
     existing_metadata = {}  # Empty dict means all dogs will be scraped
     logger.info("Skipping existing metadata fetch - all dogs will be scraped fresh")
 
-    # Step 6: Scrape comprehensive data from animal record summary pages
+    # Step 5: Scrape comprehensive data from animal record summary pages
     scraped_map = fetch_scraped_data(animals_by_id, existing_metadata, creds, config)
 
     return ExtractResult(

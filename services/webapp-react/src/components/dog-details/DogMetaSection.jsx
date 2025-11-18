@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { useAuth } from '../../contexts/AuthContext';
 
 function DogTreatmentsTable({ treatments }) {
   if (!treatments || treatments.length === 0) return null;
@@ -34,8 +35,8 @@ DogTreatmentsTable.propTypes = {
   treatments: PropTypes.array
 };
 
-export function DogMetaSection({ dog }) {
-  const metaItems = [
+function prepareMetaItems(dog) {
+  return [
     { label: 'Intake Date', value: dog.IntakeDate },
     { label: 'Location', value: dog.Location },
     { label: 'Stage', value: dog.Stage },
@@ -44,15 +45,42 @@ export function DogMetaSection({ dog }) {
     { label: 'Behavior Category', value: dog.BehaviorCategory },
     { label: 'Volunteer Category', value: dog.VolunteerCategory }
   ].filter((item) => item.value);
+}
 
-  const flagItems = [
+function prepareFlagItems(dog) {
+  return [
     { label: 'In Custody', value: dog.IsInCustody },
     { label: 'Available', value: dog.IsAvailableForAdoption },
     { label: 'Hospice', value: dog.IsHospice },
     { label: 'Event Dog', value: dog.IsEventDog }
   ];
+}
 
+function renderFosterSection(dog, isStaff) {
   const fosterDetails = dog.FosterName || dog.FosterEmail || dog.FosterPhone;
+
+  if (!fosterDetails || !isStaff) {
+    return null;
+  }
+
+  return (
+    <div className="attributes-section">
+      <h3 className="attributes-section-title">Foster Contact</h3>
+      <ul className="attributes-list">
+        {dog.FosterName && <li>Foster – {dog.FosterName}</li>}
+        {dog.FosterEmail && <li>Email – {dog.FosterEmail}</li>}
+        {dog.FosterPhone && <li>Phone – {dog.FosterPhone}</li>}
+      </ul>
+    </div>
+  );
+}
+
+export function DogMetaSection({ dog }) {
+  const { hasRole } = useAuth();
+  const isStaff = hasRole('staff');
+
+  const metaItems = prepareMetaItems(dog);
+  const flagItems = prepareFlagItems(dog);
 
   return (
     <section className="dog-meta-section">
@@ -67,16 +95,7 @@ export function DogMetaSection({ dog }) {
         </ul>
       )}
 
-      {fosterDetails && (
-        <div className="attributes-section">
-          <h3 className="attributes-section-title">Foster Contact</h3>
-          <ul className="attributes-list">
-            {dog.FosterName && <li>Foster – {dog.FosterName}</li>}
-            {dog.FosterEmail && <li>Email – {dog.FosterEmail}</li>}
-            {dog.FosterPhone && <li>Phone – {dog.FosterPhone}</li>}
-          </ul>
-        </div>
-      )}
+      {renderFosterSection(dog, isStaff)}
 
       <div className="attributes-badges-list" style={{ marginTop: '1rem', gap: '0.75rem' }}>
         {flagItems

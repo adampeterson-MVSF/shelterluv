@@ -118,6 +118,33 @@
   margin: 0;
 }
 
+.event-show-more {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e1e8ed;
+}
+
+.show-more-button {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.show-more-button:hover {
+  background: #2980b9;
+}
+
+.show-more-button:active {
+  background: #21618c;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .event-timeline {

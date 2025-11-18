@@ -1,6 +1,77 @@
 import PropTypes from 'prop-types';
 import './CategoryHistorySection.css';
 
+function getCategoryProgressInfo(category, value) {
+  const progressMaps = {
+    'Adoption Category': {
+      levels: ['Not Ready', 'Needs Work', 'Ready for Adoption', 'Adopted'],
+      colors: ['#e74c3c', '#f39c12', '#27ae60', '#2ecc71']
+    },
+    'Medical Category': {
+      levels: ['Critical', 'Unstable', 'Stable', 'Healthy'],
+      colors: ['#c0392b', '#e74c3c', '#f39c12', '#27ae60']
+    },
+    'Behavior Category': {
+      levels: ['High Risk', 'Moderate Risk', 'Low Risk', 'No Risk'],
+      colors: ['#c0392b', '#e67e22', '#f39c12', '#27ae60']
+    }
+  };
+
+  const progressInfo = progressMaps[category];
+  if (!progressInfo) return null;
+
+  const currentIndex = progressInfo.levels.indexOf(value);
+  if (currentIndex === -1) return null;
+
+  return {
+    currentIndex,
+    totalLevels: progressInfo.levels.length,
+    currentLevel: progressInfo.levels[currentIndex],
+    color: progressInfo.colors[currentIndex],
+    percentage: ((currentIndex + 1) / progressInfo.levels.length) * 100
+  };
+}
+
+function CategoryProgressBar({ category, value }) {
+  const progressInfo = getCategoryProgressInfo(category, value);
+
+  if (!progressInfo) return null;
+
+  return (
+    <div className="category-progress">
+      <div className="category-progress-bar">
+        <div
+          className="category-progress-fill"
+          style={{
+            width: `${progressInfo.percentage}%`,
+            backgroundColor: progressInfo.color
+          }}
+        />
+      </div>
+      <div className="category-progress-labels">
+        {Array.from({ length: progressInfo.totalLevels }, (_, i) => (
+          <span
+            key={i}
+            className={`category-progress-label ${
+              i <= progressInfo.currentIndex ? 'active' : ''
+            }`}
+            style={{
+              color: i <= progressInfo.currentIndex ? progressInfo.color : '#95a5a6'
+            }}
+          >
+            {i + 1}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+CategoryProgressBar.propTypes = {
+  category: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired
+};
+
 function formatCategoryDate(dateString) {
   if (!dateString) return 'Unknown date';
   try {
@@ -112,6 +183,7 @@ function CategorySummary({ categoryHistory }) {
             </div>
             <div className="category-summary-details">
               <div className="category-current-value">{info.current}</div>
+              <CategoryProgressBar category={category} value={info.current} />
               <div className="category-change-count">
                 {info.changes} change{info.changes !== 1 ? 's' : ''}
               </div>

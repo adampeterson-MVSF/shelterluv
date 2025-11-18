@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import PropTypes from 'prop-types';
 import './WeightHistorySection.css';
 
@@ -44,7 +44,7 @@ function processWeightData(weightData) {
   return { chartData, minWeight, maxWeight, chartHeight };
 }
 
-function WeightChart({ weightData }) {
+const WeightChart = memo(function WeightChart({ weightData }) {
   const { chartData, minWeight, maxWeight, chartHeight } = useMemo(() =>
     processWeightData(weightData), [weightData]
   );
@@ -57,7 +57,7 @@ function WeightChart({ weightData }) {
     );
   }
 
-  const chartWidth = Math.max(300, chartData.length * 60); // Minimum width, 60px per point
+  const chartWidth = Math.max(300, Math.min(chartData.length * 60, 800)); // Cap max width for performance
 
   return (
     <div className="weight-chart-container">
@@ -126,7 +126,7 @@ function WeightChart({ weightData }) {
       </div>
     </div>
   );
-}
+});
 
 WeightChart.propTypes = {
   weightData: PropTypes.arrayOf(

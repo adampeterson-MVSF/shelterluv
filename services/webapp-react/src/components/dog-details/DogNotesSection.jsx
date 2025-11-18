@@ -7,6 +7,7 @@ import { CategoryHistorySection } from './CategoryHistorySection';
 import { BehavioralAssessmentsSection } from './BehavioralAssessmentsSection';
 import { CompatibilityWarningsSection } from './CompatibilityWarningsSection';
 import { AttachedDocumentsSection } from './AttachedDocumentsSection';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   shapeBasicAttributes,
   shapeMicrochipAttributes,
@@ -189,8 +190,8 @@ HistoryTab.propTypes = {
 };
 
 function BehaviorTab({ dog }) {
-  const { user } = useContext(AuthContext);
-  const hasStaffAccess = user && (user.role === 'staff' || user.role === 'volunteer' || user.role === 'admin');
+  const { hasRole } = useAuth();
+  const hasStaffAccess = hasRole('staff');
 
   return (
     <div className="behavior-tab-content">

@@ -1,4 +1,3 @@
-import { useContext } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../../contexts/AuthContext';
 import './BehavioralAssessmentsSection.css';
@@ -115,8 +114,8 @@ function StaffOnlyMessage() {
 }
 
 export function BehavioralAssessmentsSection({ behavioralAssessments }) {
-  const { authState } = useAuth();
-  const hasStaffAccess = authState.kind === 'authenticated' && (authState.role === 'staff' || authState.role === 'volunteer' || authState.role === 'admin');
+  const { hasRole } = useAuth();
+  const hasStaffAccess = hasRole('staff');
 
   if (!behavioralAssessments || behavioralAssessments.length === 0) {
     if (!hasStaffAccess) {

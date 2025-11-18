@@ -16,7 +16,7 @@ except ImportError:
 
 # Set test-specific environment variables
 os.environ["E2E_LIVE_DB"] = "1"
-os.environ["GCP_PROJECT"] = "muttville"
+os.environ["ENV_PROFILE"] = "main"  # Use main profile which maps to muttville project
 os.environ["DOGS_COLLECTION"] = "dogs_e2e"
 os.environ["DISABLE_SECRET_MANAGER"] = "1"
 
@@ -29,8 +29,12 @@ if missing_vars:
     sys.exit(1)
 
 print("Environment variables set:")
+from config import EtlConfig
+config = EtlConfig.from_env()
+
 print(f"E2E_LIVE_DB: {os.environ.get('E2E_LIVE_DB')}")
-print(f"GCP_PROJECT: {os.environ.get('GCP_PROJECT')}")
+print(f"ENV_PROFILE: {os.environ.get('ENV_PROFILE')}")
+print(f"GCP_PROJECT (resolved): {config.project_id}")
 print(f"DOGS_COLLECTION: {os.environ.get('DOGS_COLLECTION')}")
 print(f"DISABLE_SECRET_MANAGER: {os.environ.get('DISABLE_SECRET_MANAGER')}")
 print(f"SHELTERLUV_USER: {os.environ.get('SHELTERLUV_USER')}")

@@ -25,7 +25,8 @@ from .parsers_profile import (
 )
 from .parsers_photos import _extract_photos_documents
 from .parsers_attributes import _extract_attributes_disclaimers, _derive_categories_from_attributes
-from .parsers_memos import _extract_memos_section
+from .parsers_foster import scrape_foster_info
+# from .parsers_memos import _extract_memos_section  # Function doesn't exist
 from .parsers_medical_history import _extract_medical_history
 from .parsers_medical import extract_medical_history
 from .parsers_behavior import extract_behavioral_assessments
@@ -84,56 +85,63 @@ def scrape_animal_record_summary_comprehensive(page, internal_id: str) -> Dict[s
     }
 
     try:
+        # Wait for dynamic content to load (Livewire components)
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(3000)  # Extra time for JS execution
+
         # 1. Extract header/basic profile information
         _extract_header_profile_block(page, result)
 
         # 2. Extract status (critical for schema validation)
         _extract_status_from_page(page, result)
 
-        # 3. Extract photos and documents
+        # 3. Extract foster information
+        foster_info = scrape_foster_info(page)
+        result.update(foster_info)
+
+        # 4. Extract photos and documents
         _extract_photos_documents(page, result)
 
-        # 4. Extract attributes and disclaimers
+        # 5. Extract attributes and disclaimers
         _extract_attributes_disclaimers(page, result)
 
-        # 5. Extract memos section
-        _extract_memos_section(page, result)
+        # 6. Extract memos section
+        # _extract_memos_section(page, result)  # Function doesn't exist
 
-        # 6. Extract medical history (comprehensive)
+        # 7. Extract medical history (comprehensive)
         _extract_medical_history(page, result)
 
-        # 7. Extract age panel information
+        # 8. Extract age panel information
         _extract_age_panel(page, result)
 
-        # 8. Extract case manager from categories
+        # 9. Extract case manager from categories
         _extract_case_manager_from_categories(page, result)
 
-        # 9. Derive additional categories from attributes
+        # 10. Derive additional categories from attributes
         _derive_categories_from_attributes(result)
 
-        # 10. Extract comprehensive history data
+        # 11. Extract comprehensive history data
         result["EventHistory"] = extract_event_history(page)
         result["WeightHistory"] = extract_weight_history(page)
         result["CategoryHistory"] = extract_category_history(page)
 
-        # 11. Extract compatibility warnings from disclaimers
+        # 12. Extract compatibility warnings from disclaimers
         result["CompatibilityWarnings"] = extract_compatibility_warnings(page)
 
-        # 12. Extract attached documents
+        # 13. Extract attached documents
         result["AttachedDocuments"] = extract_attached_documents(page)
 
-        # 13. Extract behavioral assessments
+        # 14. Extract behavioral assessments
         result["BehavioralAssessments"] = extract_behavioral_assessments(page)
 
-        # 14. Extract disclaimers section
+        # 15. Extract disclaimers section
         result["Disclaimers"] = extract_disclaimers(page)
 
-        # 15. Extract website memo/kennel card
+        # 16. Extract website memo/kennel card
         result["WebsiteMemo"] = extract_website_memo(page)
 
-        # 16. Extract complete medical history
-        medical_data = extract_medical_history(page)
-        result.update(medical_data)
+        # 17. Extract complete medical history
+        extract_medical_history(page, result)
 
         return result
 

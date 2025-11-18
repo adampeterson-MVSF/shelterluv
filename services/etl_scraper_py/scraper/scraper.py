@@ -6,7 +6,7 @@ Combines session management with data parsing to provide a complete scraping API
 
 from typing import Any, Dict
 
-from .navigation import SELECTORS
+from .navigation import SELECTORS, ShelterLuvNavigation
 from .parsers import ShelterLuvParsers
 from .session import ShelterLuvSession
 
@@ -29,7 +29,8 @@ class ShelterLuvScraper:
         """Initialize browser session and parsers."""
         self.session = ShelterLuvSession(self.username, self.password)
         self.session.__enter__()
-        self.parsers = ShelterLuvParsers(self.session.page, SELECTORS)
+        self.navigation = ShelterLuvNavigation(self.session.page)
+        self.parsers = ShelterLuvParsers(self.session.page, self.navigation)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -87,3 +88,21 @@ class ShelterLuvScraper:
             Dict containing detailed dog data
         """
         return self.parsers.scrape_dog_details(animal_id, internal_id)
+
+    def scrape_person_profile(self, person_id: str) -> Dict[str, Any]:
+        """
+        Scrape a person's profile page for additional contact information.
+
+        Args:
+            person_id: The ShelterLuv person ID (e.g., 'MVSF-P-7213')
+
+        Returns:
+            Dict containing person profile data
+        """
+        from .parsers_foster import scrape_person_profile
+
+        self.navigation.navigate_to_person_profile(person_id)
+        self.page.wait_for_load_state("domcontentloaded")
+        self.page.wait_for_timeout(2000)  # Wait for dynamic content
+
+        return scrape_person_profile(self.page, person_id)

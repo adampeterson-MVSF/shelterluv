@@ -97,7 +97,9 @@ def scrape_attributes_from_page(page, navigation) -> Dict[str, List[str]]:
 
         # Clean and categorize the attributes
         cleaned_attributes = [clean_attribute_text(attr) for attr in attributes if attr]
-        return categorize_attributes(cleaned_attributes)
+        result = categorize_attributes(cleaned_attributes)
+
+        return result
 
     except Exception as e:
         print(f"Error scraping attributes from page: {e}")

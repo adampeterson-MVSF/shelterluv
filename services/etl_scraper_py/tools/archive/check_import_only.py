@@ -22,7 +22,7 @@ except ImportError:
 
 # Set test-specific environment variables
 os.environ["E2E_LIVE_DB"] = "1"
-os.environ["GCP_PROJECT"] = "muttville"
+os.environ["ENV_PROFILE"] = "main"  # Use main profile which maps to muttville project
 os.environ["DOGS_COLLECTION"] = "dogs_e2e"
 os.environ["DISABLE_SECRET_MANAGER"] = "1"
 

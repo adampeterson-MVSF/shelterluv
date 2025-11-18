@@ -56,11 +56,11 @@ describe('dogRepository', () => {
         docs: [
           {
             id: 'dog1',
-            data: () => ({ 'Internal-ID': '1', name: 'Dog 1' })
+            data: () => ({ internalId: '1', name: 'Dog 1' })
           },
           {
             id: 'dog2',
-            data: () => ({ 'Internal-ID': '2', name: 'Dog 2' })
+            data: () => ({ internalId: '2', name: 'Dog 2' })
           }
         ]
       };
@@ -87,7 +87,7 @@ describe('dogRepository', () => {
         docs: [
           {
             id: 'dog1',
-            data: () => ({ name: 'Dog 1' }) // Missing Internal-ID
+            data: () => ({ name: 'Dog 1' }) // Missing internalId
           }
         ]
       };
@@ -96,7 +96,7 @@ describe('dogRepository', () => {
       mockGetDocs.mockResolvedValue(mockDogsSnapshot);
 
       // Mock normalizeDog to throw structured DogError
-      const expectedError = createMissingRequiredFieldError('dog1', 'Internal-ID');
+      const expectedError = createMissingRequiredFieldError('dog1', 'internalId');
       mockNormalizeDog.mockImplementation(() => {
         throw expectedError;
       });
@@ -142,11 +142,11 @@ describe('dogRepository', () => {
           {
             id: 'dog1',
             data: () => ({
-              'Internal-ID': '1',
-              'ID': 'EXT-1',
-              Name: 'Dog 1',
-              Status: 'AVAILABLE'
-              // Missing AgeYears, AgeDisplay, etc.
+              internalId: '1',
+              publicId: 'EXT-1',
+              name: 'Dog 1',
+              status: 'available'
+              // Missing physical, etc.
             })
           }
         ]
@@ -156,7 +156,7 @@ describe('dogRepository', () => {
       mockGetDocs.mockResolvedValue(mockDogsSnapshot);
 
       // Mock normalizeDog to throw structured DogError for ETL contract violation
-      const expectedError = createMissingETLFieldsError('dog1', ['AgeYears', 'AgeDisplay', 'IsInCustody', 'IsAvailableForAdoption', 'IsHospice', 'IsEventDog']);
+      const expectedError = createMissingETLFieldsError('dog1', ['physical']);
       mockNormalizeDog.mockImplementation(() => {
         throw expectedError;
       });
@@ -176,7 +176,7 @@ describe('dogRepository', () => {
       const mockDogDoc = {
         exists: () => true,
         id: 'dog1',
-        data: () => ({ 'Internal-ID': '1', name: 'Dog 1' })
+        data: () => ({ internalId: '1', name: 'Dog 1' })
       };
 
       const mockNormalizedDog = { id: '1', name: 'Dog 1' };
@@ -211,14 +211,14 @@ describe('dogRepository', () => {
       const mockDogDoc = {
         exists: () => true,
         id: 'dog1',
-        data: () => ({ name: 'Dog 1' }) // Missing Internal-ID
+        data: () => ({ name: 'Dog 1' }) // Missing internalId
       };
 
       mockDoc.mockReturnValue('mock-doc-ref');
       mockGetDoc.mockResolvedValue(mockDogDoc);
 
       // Mock normalizeDog to throw structured DogError for malformed documents
-      const expectedError = createMissingRequiredFieldError('dog1', 'Internal-ID');
+      const expectedError = createMissingRequiredFieldError('dog1', 'internalId');
       mockNormalizeDog.mockImplementation(() => {
         throw expectedError;
       });
@@ -249,11 +249,11 @@ describe('dogRepository', () => {
         exists: () => true,
         id: 'dog1',
         data: () => ({
-          'Internal-ID': '1',
-          'ID': 'EXT-1',
-          Name: 'Dog 1',
-          Status: 'AVAILABLE'
-          // Missing AgeYears, AgeDisplay, etc.
+          internalId: '1',
+          publicId: 'EXT-1',
+          name: 'Dog 1',
+          status: 'available'
+          // Missing physical, etc.
         })
       };
 
@@ -261,7 +261,7 @@ describe('dogRepository', () => {
       mockGetDoc.mockResolvedValue(mockDogDoc);
 
       // Mock normalizeDog to throw structured DogError for ETL contract violation
-      const expectedError = createMissingETLFieldsError('dog1', ['AgeYears', 'AgeDisplay', 'IsInCustody', 'IsAvailableForAdoption', 'IsHospice', 'IsEventDog']);
+      const expectedError = createMissingETLFieldsError('dog1', ['physical']);
       mockNormalizeDog.mockImplementation(() => {
         throw expectedError;
       });

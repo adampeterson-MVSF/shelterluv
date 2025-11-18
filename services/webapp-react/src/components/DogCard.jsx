@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
-import { getPrimaryPhoto } from '../types/dogNormalize';
+import { getPrimaryPhoto, getAgeDisplay } from '../types/dogNormalize';
 import { getStatusDisplay } from '../statusMapping.js';
 
 /**
@@ -19,22 +19,24 @@ export function DogCard({ dog }) {
   }
 
   const photoUrl = dog.primaryPhotoUrl || getPrimaryPhoto(dog) || '/placeholder-dog.png';
-  const statusDisplay = dog.statusDisplay || getStatusDisplay(dog.Status);
+  const statusDisplay = dog.statusDisplay || getStatusDisplay(dog.status);
+  const ageDisplay = dog.ageDisplay || getAgeDisplay(dog.physical?.ageDays);
 
   return (
     <Link to={`/dog/${dog.id}`} className="dog-card">
       <div className="dog-card-inner">
         <div className="dog-card-image">
-          <img src={photoUrl} alt={dog.Name} loading="lazy" />
+          <img src={photoUrl} alt={dog.name} loading="lazy" />
         </div>
         <div className="dog-card-content">
-          <h3 className="dog-card-name">{dog.Name}</h3>
-          <p className="dog-card-breed">{dog.Breed}</p>
+          <h3 className="dog-card-name">{dog.name}</h3>
+          <p className="dog-card-breed">{dog.physical?.breed}</p>
           <div className="dog-card-tags">
-            {dog.AgeDisplay && <span className="dog-tag">{dog.AgeDisplay}</span>}
-            {dog.Size && <span className="dog-tag">{dog.Size}</span>}
-            {dog.Gender && <span className="dog-tag">{dog.Gender}</span>}
-            {dog.Weight && <span className="dog-tag">{dog.Weight} lbs</span>}
+            {ageDisplay && <span className="dog-tag">{ageDisplay}</span>}
+            {dog.physical?.sizeLabel && <span className="dog-tag">{dog.physical.sizeLabel}</span>}
+            {dog.physical?.sex && <span className="dog-tag">{dog.physical.sex}</span>}
+            {dog.physical?.weightLbs && <span className="dog-tag">{dog.physical.weightLbs} lbs</span>}
+            {dog.inFoster && <span className="dog-tag foster">In Foster</span>}
           </div>
           {statusDisplay?.text && (
             <div className="dog-card-status">
@@ -54,17 +56,21 @@ export function DogCard({ dog }) {
 DogCard.propTypes = {
   dog: PropTypes.shape({
     id: PropTypes.string.isRequired,
-    Name: PropTypes.string,
-    Breed: PropTypes.string,
-    AgeDisplay: PropTypes.string,
-    Size: PropTypes.string,
-    Gender: PropTypes.string,
-    Weight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    Status: PropTypes.string,
+    name: PropTypes.string,
+    physical: PropTypes.shape({
+      breed: PropTypes.string,
+      ageDays: PropTypes.number,
+      sizeLabel: PropTypes.string,
+      sex: PropTypes.string,
+      weightLbs: PropTypes.number,
+    }),
+    inFoster: PropTypes.bool,
+    status: PropTypes.string,
     primaryPhotoUrl: PropTypes.string,
     statusDisplay: PropTypes.shape({
       text: PropTypes.string,
       className: PropTypes.string
-    })
+    }),
+    ageDisplay: PropTypes.string,
   }).isRequired
 };

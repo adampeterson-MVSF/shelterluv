@@ -23,13 +23,14 @@ from dotenv import load_dotenv
 load_dotenv(".env")
 load_dotenv(".env.local")
 
-# Set the Google Cloud project
-os.environ["GOOGLE_CLOUD_PROJECT"] = "muttville"
-
-from scrape_ui_dogs import get_ui_animal_ids, scrape_animals_from_ui
-
 from project_safety import guard_dev_only
 from config import EtlConfig
+
+# Set the Google Cloud project using config system
+config = EtlConfig.from_env()
+os.environ["GOOGLE_CLOUD_PROJECT"] = config.project_id
+
+from scrape_ui_dogs import get_ui_animal_ids, scrape_animals_from_ui
 
 # Import our modules after setting environment
 from pipeline import run_etl_process

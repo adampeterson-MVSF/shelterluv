@@ -13,48 +13,10 @@ from .parsers_fields import extract_text_by_selector, extract_text_by_selectors,
 
 def _extract_medical_history(page, result: Dict[str, Any]) -> None:
     """Extract complete medical history including all sections."""
-    try:
-        # Initialize medical data structure
-        medical_data = {
-            "vaccinations": [],
-            "treatments_due": [],
-            "treatment_history": [],
-            "active_diagnoses": [],
-            "resolved_diagnoses": [],
-            "diagnostic_tests": [],
-            "physical_exams": [],
-            "procedures_surgeries": []
-        }
-
-        # Extract vaccination history
-        _extract_vaccination_history(page, medical_data)
-
-        # Extract treatments due
-        _extract_treatments_due(page, medical_data)
-
-        # Extract treatment history
-        _extract_treatment_history(page, medical_data)
-
-        # Extract active diagnoses
-        _extract_active_diagnoses(page, medical_data)
-
-        # Extract resolved diagnoses
-        _extract_resolved_diagnoses(page, medical_data)
-
-        # Extract diagnostic tests
-        _extract_diagnostic_tests(page, medical_data)
-
-        # Extract physical exams
-        _extract_physical_exams(page, medical_data)
-
-        # Extract procedures/surgeries
-        _extract_procedures_surgeries(page, medical_data)
-
-        # Store medical data in result
-        result["MedicalHistory"] = medical_data
-
-    except Exception as e:
-        print(f"Error extracting medical history: {e}")
+    # This function has been unified into parsers_medical.extract_medical_history
+    # Keeping for backward compatibility but delegating to unified implementation
+    from .parsers_medical import extract_medical_history
+    extract_medical_history(page, result)
 
 
 def _extract_vaccination_history(page, medical_data: Dict[str, Any]) -> None:

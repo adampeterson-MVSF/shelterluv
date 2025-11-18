@@ -8,85 +8,79 @@ import { getStatusDisplay } from '../statusMapping.js';
 /**
  * Normalization functions for Dog objects
  *
- * ETL is the single source of truth for all semantic flags (IsInCustody, IsAvailableForAdoption, IsHospice, IsEventDog).
- * This function only normalizes shape and passes through ETL-computed flags.
+ * ETL is the single source of truth for all semantic flags.
+ * This function only normalizes shape and adds computed display fields.
  */
 
 function validateRequiredFields(doc, data) {
-  if (!data["Internal-ID"]) {
-    throw createMissingRequiredFieldError(doc.id, 'Internal-ID');
+  if (!data.internalId) {
+    throw createMissingRequiredFieldError(doc.id, 'internalId');
   }
 }
 
 function validateETLContract(doc, data) {
-  const requiredETLFields = [
-    'AgeYears', 'AgeDisplay', 'IsInCustody',
-    'IsAvailableForAdoption', 'IsHospice', 'IsEventDog'
-  ];
-
-  const missingFields = requiredETLFields.filter(field => data[field] === undefined);
+  // New nested schema has different required fields
+  const requiredFields = ['internalId', 'publicId', 'name', 'status', 'physical'];
+  const missingFields = requiredFields.filter(field => data[field] === undefined);
   if (missingFields.length > 0) {
     throw createMissingETLFieldsError(doc.id, missingFields);
   }
 }
 
 function buildNormalizedDogObject(doc, data) {
-  // All fields passed through from ETL - no transformation needed
+  // Pass through all nested fields from ETL - no transformation needed
   const dog = {
     id: doc.id,
-    "Internal-ID": data["Internal-ID"], "ID": data["ID"], "Name": data["Name"],
-    "Status": data["Status"], "AgeYears": data["AgeYears"], "AgeDisplay": data["AgeDisplay"],
-    "IsInCustody": data["IsInCustody"], "IsAvailableForAdoption": data["IsAvailableForAdoption"],
-    "IsHospice": data["IsHospice"], "IsEventDog": data["IsEventDog"],
-    "Breed": data["Breed"], "Size": data["Size"], "Gender": data["Gender"],
-    "Description": data["Description"], "Photos": data["Photos"],
-    "CaseManager": data["CaseManager"], "Location": data["Location"], "Stage": data["Stage"],
-    "Weight": data["Weight"], "FosterName": data["FosterName"], "FosterPhone": data["FosterPhone"],
-    "FosterEmail": data["FosterEmail"], "Treatments": data["Treatments"],
-    "Attributes": data["Attributes"], "BehavioralAttributes": data["BehavioralAttributes"],
-    "PhysicalAttributes": data["PhysicalAttributes"], "ScrapeError": data["ScrapeError"],
-    "MemosRawHTML": data["MemosRawHTML"], "PersonalityNotes": data["PersonalityNotes"],
-    "IntakeNotes": data["IntakeNotes"], "MedicalNotes": data["MedicalNotes"],
-    "MedicalHistory": data["MedicalHistory"] || null,
-    "AdoptionCategory": data["AdoptionCategory"], "MedicalCategory": data["MedicalCategory"],
-    "BehaviorCategory": data["BehaviorCategory"], "VolunteerCategory": data["VolunteerCategory"],
-    "FullAnimalProfile": data["FullAnimalProfile"], "IntakeDate": data["IntakeDate"],
-    "Species": data["Species"], "Color": data["Color"], "Pattern": data["Pattern"],
-    "DistinguishingMarks": data["DistinguishingMarks"], "AdoptionPrice": data["AdoptionPrice"],
-    "MicrochipNumber": data["MicrochipNumber"], "MicrochipIssuer": data["MicrochipIssuer"],
-    "MicrochipImplantDate": data["MicrochipImplantDate"], "AlteredBeforeArrival": data["AlteredBeforeArrival"],
-    "AlteredInCare": data["AlteredInCare"], "AgeGroup": data["AgeGroup"], "EstBirthdate": data["EstBirthdate"],
-    "IntakeType": data["IntakeType"], "IntakeSubtype": data["IntakeSubtype"],
-    "OutcomeType": data["OutcomeType"], "OutcomeSubtype": data["OutcomeSubtype"],
-    "AsilomarIntake": data["AsilomarIntake"], "AsilomarOutcome": data["AsilomarOutcome"],
-    "ConditionAtIntake": data["ConditionAtIntake"], "JurisdictionIntake": data["JurisdictionIntake"],
-    "JurisdictionOutcome": data["JurisdictionOutcome"], "RabiesTagNumber": data["RabiesTagNumber"],
-    "PreviousShelterId": data["PreviousShelterId"], "PreviousShelterType": data["PreviousShelterType"],
-    "PreviousShelterIssuer": data["PreviousShelterIssuer"],
-    // New structured data fields
-    "EventHistory": data["EventHistory"] || [],
-    "WeightHistory": data["WeightHistory"] || [],
-    "CategoryHistory": data["CategoryHistory"] || [],
-    "BehavioralAssessments": data["BehavioralAssessments"] || [],
-    "CompatibilityWarnings": data["CompatibilityWarnings"] || [],
-    "AttachedDocuments": data["AttachedDocuments"] || [],
-    "Disclaimers": data["Disclaimers"] || [],
-    "WebsiteMemo": data["WebsiteMemo"] || {},
-    "MicrochipInfo": data["MicrochipInfo"] || {},
-    "RabiesTag": data["RabiesTag"] || {},
-    "VaccinationHistory": data["VaccinationHistory"] || [],
-    "TreatmentsDue": data["TreatmentsDue"] || [],
-    "TreatmentHistory": data["TreatmentHistory"] || [],
-    "Diagnoses": data["Diagnoses"] || [],
-    "DiagnosticTests": data["DiagnosticTests"] || [],
-    "PhysicalExams": data["PhysicalExams"] || [],
-    "Procedures": data["Procedures"] || [],
-    "MedicalMemos": data["MedicalMemos"] || []
+    // Identity
+    internalId: data.internalId,
+    publicId: data.publicId,
+    name: data.name,
+    type: data.type,
+
+    // Status & lifecycle
+    status: data.status,
+    inFoster: data.inFoster,
+    lastIntakeAt: data.lastIntakeAt,
+    lastUpdatedAt: data.lastUpdatedAt,
+
+    // Physical
+    physical: data.physical,
+
+    // Location
+    location: data.location,
+
+    // People / relationships
+    foster: data.foster,
+
+    // Media
+    media: data.media,
+
+    // Attributes & tags
+    attributes: data.attributes,
+
+    // Medical / identification
+    medical: data.medical,
+
+    // Content
+    content: data.content,
+
+    // Admin / misc
+    admin: data.admin,
+
+    // Source metadata
+    source: data.source,
   };
 
   // Add computed display fields to make components completely dumb
   dog.primaryPhotoUrl = getPrimaryPhoto(dog);
-  dog.statusDisplay = getStatusDisplay(dog.Status);
+  dog.statusDisplay = getStatusDisplay(dog.status);
+
+  // Add legacy computed fields for backward compatibility during transition
+  dog.ageDisplay = getAgeDisplay(dog.physical.ageDays);
+  dog.isInCustody = dog.status !== 'adopted';
+  dog.isAvailableForAdoption = dog.status === 'available';
+  dog.isHospice = false; // TODO: derive from attributes or admin fields
+  dog.isEventDog = false; // TODO: derive from attributes or admin fields
 
   return dog;
 }
@@ -121,5 +115,29 @@ export function normalizeDog(doc) {
  * @returns {string|null} Primary photo URL or null if no photos
  */
 export function getPrimaryPhoto(dog) {
-  return (dog.Photos && dog.Photos[0]) || null;
+  return dog.media?.coverPhoto || (dog.media?.photos && dog.media.photos[0]) || null;
+}
+
+/**
+ * Gets human-readable age display from age in days
+ * @param {number} ageDays - Age in days
+ * @returns {string} Human-readable age string
+ */
+export function getAgeDisplay(ageDays) {
+  if (!ageDays || ageDays < 0) return 'Unknown';
+
+  const years = Math.floor(ageDays / 365);
+  const months = Math.floor((ageDays % 365) / 30);
+  const weeks = Math.floor((ageDays % 365 % 30) / 7);
+
+  if (years > 0) {
+    return years === 1 ? '1 year' : `${years} years`;
+  } else if (months > 0) {
+    return months === 1 ? '1 month' : `${months} months`;
+  } else if (weeks > 0) {
+    return weeks === 1 ? '1 week' : `${weeks} weeks`;
+  } else {
+    const days = Math.floor(ageDays);
+    return days === 1 ? '1 day' : `${days} days`;
+  }
 }

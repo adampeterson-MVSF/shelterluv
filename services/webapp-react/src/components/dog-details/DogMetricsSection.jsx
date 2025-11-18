@@ -19,21 +19,19 @@ Metric.propTypes = {
 
 export function DogMetricsSection({ dog }) {
   const additionalMetrics = [
-    dog.Color && <Metric key="color" label="Color" value={dog.Color} />,
-    dog.Pattern && <Metric key="pattern" label="Pattern" value={dog.Pattern} />,
-    dog.DistinguishingMarks && (
-      <Metric key="marks" label="Marks" value={dog.DistinguishingMarks} />
-    ),
-    dog.AgeGroup && <Metric key="age-group" label="Age Group" value={dog.AgeGroup} />
+    dog.physical?.color && <Metric key="color" label="Color" value={dog.physical.color} />,
+    dog.physical?.pattern && <Metric key="pattern" label="Pattern" value={dog.physical.pattern} />,
+    // TODO: Add distinguishing marks when available in schema
+    // dog.DistinguishingMarks && <Metric key="marks" label="Marks" value={dog.DistinguishingMarks} />,
   ].filter(Boolean);
 
   return (
     <>
       <div className="dog-metrics-row">
-        <Metric label="Size" value={dog.Size || 'Unknown'} />
-        <Metric label="Sex" value={dog.Gender || 'Unknown'} />
-        <Metric label="Weight" value={dog.Weight ? `${dog.Weight} pounds` : 'Unknown'} />
-        <Metric label="Age" value={dog.AgeDisplay || 'Unknown'} />
+        <Metric label="Size" value={dog.physical?.sizeLabel || 'Unknown'} />
+        <Metric label="Sex" value={dog.physical?.sex || 'Unknown'} />
+        <Metric label="Weight" value={dog.physical?.weightLbs ? `${dog.physical.weightLbs} pounds` : 'Unknown'} />
+        <Metric label="Age" value={dog.ageDisplay || 'Unknown'} />
       </div>
       {additionalMetrics.length > 0 && (
         <div className="dog-metrics-row">{additionalMetrics}</div>

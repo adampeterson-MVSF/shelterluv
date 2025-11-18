@@ -35,6 +35,7 @@ def build_dog_record(
     foster_info: Dict[str, Any] = None,
     event_info: Dict[str, Any] = None,
     memo_html: str = "",
+    scraped_foster_info: Dict[str, Any] = None,
 ) -> dict:
     """Build validated dog record. Multiple focused passes."""
 
@@ -45,7 +46,7 @@ def build_dog_record(
         raise SchemaValidationError(f"Missing required Internal-ID or ID for dog record")
 
     # Pass 1: Merge all data sources
-    merged = _merge_data_sources(api_animal, scraped, foster_info, event_info, memo_html)
+    merged = _merge_data_sources(api_animal, scraped, foster_info, event_info, memo_html, scraped_foster_info)
 
     # Pass 2: Normalize basic fields (age, size, status)
     normalized = normalize_basic_fields(merged)
@@ -68,6 +69,7 @@ def _merge_data_sources(
     foster_info: Dict[str, Any] = None,
     event_info: Dict[str, Any] = None,
     memo_html: str = "",
+    scraped_foster_info: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
     """Merge all data sources into a single dict.
 
@@ -81,7 +83,10 @@ def _merge_data_sources(
     merged: Dict[str, Any] = dict(api_animal)
 
     # 2) Enrich with ETL-derived data (foster/events) – these don't exist in API.
-    if foster_info:
+    # Prioritize scraped foster info over API-derived foster info
+    if scraped_foster_info:
+        merged.update(scraped_foster_info)
+    elif foster_info:
         merged.update(foster_info)
     if event_info:
         merged.update(event_info)

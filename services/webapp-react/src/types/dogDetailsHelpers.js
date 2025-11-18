@@ -14,23 +14,23 @@ export function shapeBasicAttributes(dog) {
   const attributes = [];
   const days = daysAtMuttville(dog);
 
-  const basicAttrs = [
-    { key: 'Breed', label: 'Breed' },
-    { key: 'Color', label: 'Color' },
-    { key: 'Pattern', label: 'Pattern' },
-    { key: 'DistinguishingMarks', label: 'Distinguishing Marks' },
-    { key: 'AgeGroup', label: 'Age Group' },
-    { key: 'EstBirthdate', label: 'Est. Birthdate' },
-    { key: 'Location', label: 'Location' },
-    { key: 'Stage', label: 'Stage' }
-  ];
+  // Basic attributes from physical section
+  if (dog.physical?.breed) attributes.push(`Breed – ${dog.physical.breed}`);
+  if (dog.physical?.color) attributes.push(`Color – ${dog.physical.color}`);
+  if (dog.physical?.pattern) attributes.push(`Pattern – ${dog.physical.pattern}`);
+  if (dog.physical?.sex) attributes.push(`Sex – ${dog.physical.sex}`);
+  if (dog.physical?.sizeLabel) attributes.push(`Size – ${dog.physical.sizeLabel}`);
+  if (dog.physical?.weightLbs) attributes.push(`Weight – ${dog.physical.weightLbs} lbs`);
+  if (dog.physical?.altered !== null && dog.physical?.altered !== undefined) {
+    attributes.push(`Altered – ${dog.physical.altered ? 'Yes' : 'No'}`);
+  }
 
-  basicAttrs.forEach(({ key, label }) => {
-    if (dog[key]) attributes.push(`${label} – ${dog[key]}`);
-  });
+  // Location
+  if (dog.location?.label) attributes.push(`Location – ${dog.location.label}`);
 
-  if (dog.Species && dog.Species !== dog.Breed) {
-    attributes.push(`Species – ${dog.Species}`);
+  // DOB if available
+  if (dog.physical?.dob) {
+    attributes.push(`Date of Birth – ${new Date(dog.physical.dob).toLocaleDateString()}`);
   }
 
   if (days > 0) {
@@ -46,11 +46,10 @@ export function shapeBasicAttributes(dog) {
  * @returns {Array<string>} Array of formatted microchip attributes
  */
 export function shapeMicrochipAttributes(dog) {
-  return [
-    dog.MicrochipNumber && `Microchip – ${dog.MicrochipNumber}`,
-    dog.MicrochipIssuer && `Issuer – ${dog.MicrochipIssuer}`,
-    dog.MicrochipImplantDate && `Implant Date – ${dog.MicrochipImplantDate}`
-  ].filter(Boolean);
+  const microchips = dog.medical?.microchips || [];
+  return microchips.map(chip =>
+    `Microchip – ${chip.id}${chip.issuer ? ` (Issuer: ${chip.issuer})` : ''}${chip.implantedAt ? ` (Implanted: ${new Date(chip.implantedAt).toLocaleDateString()})` : ''}`
+  );
 }
 
 /**
@@ -59,10 +58,13 @@ export function shapeMicrochipAttributes(dog) {
  * @returns {Array<string>} Array of formatted altered status attributes
  */
 export function shapeAlteredAttributes(dog) {
-  return [
-    dog.AlteredBeforeArrival && `Altered Before Arrival – ${dog.AlteredBeforeArrival}`,
-    dog.AlteredInCare && `Altered In Care – ${dog.AlteredInCare}`
-  ].filter(Boolean);
+  // The altered status is now in physical.altered
+  // For now, just return the current altered status
+  const altered = dog.physical?.altered;
+  if (altered !== null && altered !== undefined) {
+    return [`Altered – ${altered ? 'Yes' : 'No'}`];
+  }
+  return [];
 }
 
 /**
@@ -71,26 +73,25 @@ export function shapeAlteredAttributes(dog) {
  * @returns {Object} Object with intakeItems array and hasIntakeNotes boolean
  */
 export function shapeIntakeAttributes(dog) {
-  const intakeAttrs = [
-    { key: 'IntakeType', label: 'Intake Type' },
-    { key: 'IntakeSubtype', label: 'Intake Subtype' },
-    { key: 'IntakeDate', label: 'Intake Date' },
-    { key: 'ConditionAtIntake', label: 'Condition at Intake' },
-    { key: 'AsilomarIntake', label: 'Asilomar Intake' },
-    { key: 'JurisdictionIntake', label: 'Intake Jurisdiction' },
-    { key: 'RabiesTagNumber', label: 'Rabies Tag' },
-    { key: 'PreviousShelterId', label: 'Previous Shelter ID' },
-    { key: 'PreviousShelterType', label: 'Previous Shelter Type' },
-    { key: 'PreviousShelterIssuer', label: 'Previous Shelter Issuer' }
-  ];
+  const intakeItems = [];
 
-  const intakeItems = intakeAttrs
-    .filter(({ key }) => dog[key])
-    .map(({ key, label }) => `${label} – ${dog[key]}`);
+  // Intake date from lastIntakeAt
+  if (dog.lastIntakeAt) {
+    intakeItems.push(`Intake Date – ${new Date(dog.lastIntakeAt).toLocaleDateString()}`);
+  }
+
+  // Previous shelter IDs from admin section
+  if (dog.admin?.previousIds && dog.admin.previousIds.length > 0) {
+    dog.admin.previousIds.forEach(prevId => {
+      intakeItems.push(`Previous ID – ${prevId.idValue}${prevId.issuingShelter ? ` (${prevId.issuingShelter})` : ''}`);
+    });
+  }
+
+  // TODO: Add other intake fields when they're structured in the schema
 
   return {
     intakeItems,
-    hasIntakeNotes: Boolean(dog.IntakeNotes)
+    hasIntakeNotes: Boolean(dog.content?.description && dog.content.description.includes('Intake'))
   };
 }
 
@@ -100,15 +101,13 @@ export function shapeIntakeAttributes(dog) {
  * @returns {Array<string>} Array of formatted adoption attributes
  */
 export function shapeAdoptionAttributes(dog) {
-  return [
-    dog.AdoptionPrice && `Adoption Price – ${dog.AdoptionPrice}`,
-    dog.AdoptionCategory && `Adoption Category – ${dog.AdoptionCategory}`,
-    dog.OutcomeType && `Outcome Type – ${dog.OutcomeType}`,
-    dog.OutcomeSubtype && `Outcome Subtype – ${dog.OutcomeSubtype}`,
-    dog.OutcomeDate && `Outcome Date – ${dog.OutcomeDate}`,
-    dog.AsilomarOutcome && `Asilomar Outcome – ${dog.AsilomarOutcome}`,
-    dog.JurisdictionOutcome && `Outcome Jurisdiction – ${dog.JurisdictionOutcome}`
-  ].filter(Boolean);
+  // TODO: Implement adoption attributes when adoption data is structured
+  // For now, show adoption fee group if available
+  const items = [];
+  if (dog.admin?.adoptionFeeGroup) {
+    items.push(`Adoption Fee Group – ${dog.admin.adoptionFeeGroup}`);
+  }
+  return items;
 }
 
 /**
@@ -117,7 +116,11 @@ export function shapeAdoptionAttributes(dog) {
  * @returns {Array<string>} Array of behavioral attributes
  */
 export function getBehavioralAttributes(dog) {
-  return dog.BehavioralAttributes;
+  // Return published attributes that might be behavioral
+  // For now, return all published attributes - can categorize later
+  return (dog.attributes?.raw || [])
+    .filter(attr => attr.publish === 'Yes')
+    .map(attr => attr.attributeName);
 }
 
 /**
@@ -125,8 +128,10 @@ export function getBehavioralAttributes(dog) {
  * @param {Object} dog - Dog object
  * @returns {Array<string>} Array of physical attributes
  */
-export function getPhysicalAttributes(dog) {
-  return dog.PhysicalAttributes;
+export function getPhysicalAttributes(_dog) {
+  // For now, return empty array - physical attributes are handled elsewhere
+  // Can categorize attributes by type later if needed
+  return [];
 }
 
 /**

@@ -189,7 +189,7 @@ class EtlConfig:
 
     def is_prod(self) -> bool:
         """Check if this is a production environment."""
-        return self.env_profile == EnvProfile.PROD
+        return self.env_profile == EnvProfile.MAIN
 
     def is_dev_safe(self) -> bool:
         """Check if this configuration is safe for development operations."""

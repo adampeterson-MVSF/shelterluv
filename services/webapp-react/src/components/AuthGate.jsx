@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useAuth, isForbidden } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { AUTH_STATE_KINDS } from '../contexts/AuthContext';
 import {
   LoadingState,
@@ -35,7 +35,7 @@ export function AuthGate({
     return anonymousFallback || <AnonymousState />;
   }
   
-  if (isForbidden(authState)) {
+  if (authState.kind === AUTH_STATE_KINDS.FORBIDDEN) {
     return forbiddenFallback || <ForbiddenState />;
   }
 

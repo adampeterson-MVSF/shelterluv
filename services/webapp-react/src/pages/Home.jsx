@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { useDogs } from '../hooks/useDogs';
-import { useAuth, canViewDogs, shouldHideDogs } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { DogCard } from '../components/DogCard';
 import { AuthGate } from '../components/AuthGate';
 import {
@@ -39,16 +39,17 @@ function Home() {
 
   // Compute pure permission data from auth state
   const authPermissions = {
-    canViewDogs: canViewDogs(authState),
-    shouldHideDogs: shouldHideDogs(authState)
+    canViewDogs: authState.kind === 'authenticated',
+    shouldHideDogs: authState.kind === 'anonymous' || authState.kind === 'forbidden'
   };
 
   const { allDogs, loading, error } = useDogs(authPermissions);
 
   if (error) {
+    const errorMessage = error?.message || error?.toString() || 'An error occurred loading dogs';
     return (
       <AuthGate>
-        <ErrorState error={error} title="Error Loading Dogs" backText="Try refreshing" />
+        <ErrorState error={errorMessage} title="Error Loading Dogs" backText="Try refreshing" />
       </AuthGate>
     );
   }

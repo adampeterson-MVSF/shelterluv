@@ -172,10 +172,15 @@ class ShelterLuvNavigation:
 
     def navigate_to_animal_profile(self, animal_id: str) -> None:
         """Navigate to a specific animal's profile page."""
-        url = f"https://new.shelterluv.com/animals/{animal_id}"
+        url = f"https://new.shelterluv.com/animal/{animal_id}"
         self.page.goto(url)
 
     def navigate_to_memos_page(self, internal_id: str) -> None:
         """Navigate to the memos page for an animal."""
         url = f"https://new.shelterluv.com/animals/{internal_id}/memos"
+        self.page.goto(url)
+
+    def navigate_to_person_profile(self, person_id: str) -> None:
+        """Navigate to a specific person's profile page."""
+        url = f"https://new.shelterluv.com/person/{person_id}"
         self.page.goto(url)

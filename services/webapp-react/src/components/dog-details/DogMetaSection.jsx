@@ -37,29 +37,26 @@ DogTreatmentsTable.propTypes = {
 
 function prepareMetaItems(dog) {
   return [
-    { label: 'Intake Date', value: dog.IntakeDate },
-    { label: 'Location', value: dog.Location },
-    { label: 'Stage', value: dog.Stage },
-    { label: 'Adoption Category', value: dog.AdoptionCategory },
-    { label: 'Medical Category', value: dog.MedicalCategory },
-    { label: 'Behavior Category', value: dog.BehaviorCategory },
-    { label: 'Volunteer Category', value: dog.VolunteerCategory }
+    { label: 'Intake Date', value: dog.lastIntakeAt ? new Date(dog.lastIntakeAt).toLocaleDateString() : null },
+    { label: 'Location', value: dog.location?.label },
+    { label: 'Adoption Fee Group', value: dog.admin?.adoptionFeeGroup },
+    { label: 'Litter Group', value: dog.admin?.litterGroupId }
   ].filter((item) => item.value);
 }
 
 function prepareFlagItems(dog) {
   return [
-    { label: 'In Custody', value: dog.IsInCustody },
-    { label: 'Available', value: dog.IsAvailableForAdoption },
-    { label: 'Hospice', value: dog.IsHospice },
-    { label: 'Event Dog', value: dog.IsEventDog }
-  ];
+    { label: 'In Foster', value: dog.inFoster },
+    { label: 'Available', value: dog.status === 'available' },
+    { label: 'Altered', value: dog.physical?.altered }
+  ].filter(flag => flag.value !== null && flag.value !== undefined);
 }
 
 function renderFosterSection(dog, isStaff) {
-  const fosterDetails = dog.FosterName || dog.FosterEmail || dog.FosterPhone;
+  const fosterPerson = dog.foster?.person;
+  const hasFosterDetails = fosterPerson && (fosterPerson.firstName || fosterPerson.email || fosterPerson.phone);
 
-  if (!fosterDetails || !isStaff) {
+  if (!hasFosterDetails || !isStaff) {
     return null;
   }
 
@@ -67,9 +64,11 @@ function renderFosterSection(dog, isStaff) {
     <div className="attributes-section">
       <h3 className="attributes-section-title">Foster Contact</h3>
       <ul className="attributes-list">
-        {dog.FosterName && <li>Foster – {dog.FosterName}</li>}
-        {dog.FosterEmail && <li>Email – {dog.FosterEmail}</li>}
-        {dog.FosterPhone && <li>Phone – {dog.FosterPhone}</li>}
+        {(fosterPerson.firstName || fosterPerson.lastName) && (
+          <li>Foster – {[fosterPerson.firstName, fosterPerson.lastName].filter(Boolean).join(' ')}</li>
+        )}
+        {fosterPerson.email && <li>Email – {fosterPerson.email}</li>}
+        {fosterPerson.phone && <li>Phone – {fosterPerson.phone}</li>}
       </ul>
     </div>
   );
@@ -107,7 +106,7 @@ export function DogMetaSection({ dog }) {
           ))}
       </div>
 
-      <DogTreatmentsTable treatments={dog.Treatments} />
+      {/* TODO: Add treatments table when medical data is structured */}
     </section>
   );
 }

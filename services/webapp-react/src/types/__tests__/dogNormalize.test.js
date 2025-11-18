@@ -10,21 +10,33 @@ describe('normalizeDog', () => {
     const mockDoc = {
       id: 'test-dog-id',
       data: () => ({
-        'Internal-ID': '12345',
-        'ID': 'A001',
-        'Name': 'Buddy',
-        'Status': 'AVAILABLE',
-        'AgeYears': 3.5,
-        'AgeDisplay': '3 years',
-        'IsInCustody': true,
-        'IsAvailableForAdoption': true,
-        'IsHospice': false,
-        'IsEventDog': true,
-        'Breed': 'Golden Retriever',
-        'Size': 'Large',
-        'Gender': 'Male',
-        'Photos': [],
-        'Treatments': []
+        internalId: '12345',
+        publicId: 'A001',
+        name: 'Buddy',
+        status: 'available',
+        physical: {
+          breed: 'Golden Retriever',
+          ageDays: 1095, // 3 years
+          sex: 'Male',
+          sizeLabel: 'Large'
+        },
+        media: {
+          photos: [],
+          videos: []
+        },
+        attributes: {
+          raw: []
+        },
+        medical: {
+          microchips: []
+        },
+        content: {
+          description: 'A friendly dog'
+        },
+        admin: {},
+        source: {
+          syncedAt: '2024-01-01T00:00:00.000Z'
+        }
       })
     };
 
@@ -32,109 +44,69 @@ describe('normalizeDog', () => {
 
     expect(result).toMatchObject({
       id: 'test-dog-id',
-      'Internal-ID': '12345',
-      'ID': 'A001',
-      'Name': 'Buddy',
-      'Status': 'AVAILABLE',
-      'AgeYears': 3.5,
-      'AgeDisplay': '3 years',
-      'IsInCustody': true,
-      'IsAvailableForAdoption': true,
-      'IsHospice': false,
-      'IsEventDog': true,
-      'Breed': 'Golden Retriever',
-      'Size': 'Large',
-      'Gender': 'Male',
-      'Description': undefined,
-      'Photos': [],
-      'Treatments': []
+      internalId: '12345',
+      publicId: 'A001',
+      name: 'Buddy',
+      status: 'available',
+      physical: {
+        breed: 'Golden Retriever',
+        ageDays: 1095,
+        sex: 'Male',
+        sizeLabel: 'Large'
+      },
+      media: {
+        photos: [],
+        videos: []
+      },
+      attributes: {
+        raw: []
+      },
+      medical: {
+        microchips: []
+      },
+      content: {
+        description: 'A friendly dog'
+      }
     });
-    expect(result.MedicalHistory).toBeNull();
+
     // Check computed display fields
     expect(result.primaryPhotoUrl).toBeNull();
+    expect(result.ageDisplay).toBe('3 years');
     expect(result.statusDisplay).toMatchObject({
       text: 'Available',
       className: 'status-available'
     });
   });
 
-  it('should throw error for missing Internal-ID in all environments', () => {
+  it('should throw error for missing internalId in all environments', () => {
     const mockDoc = {
       id: 'test-dog-id',
       data: () => ({
-        // Missing Internal-ID
-        'Name': 'Buddy'
+        // Missing internalId
+        publicId: 'A001',
+        name: 'Buddy'
       })
     };
 
     expect(() => normalizeDog(mockDoc)).toThrow(
-      'Dog document test-dog-id missing required Internal-ID field'
+      'Dog document test-dog-id missing required internalId field'
     );
   });
 
   it('should throw error for missing required ETL fields', () => {
-
     const mockDoc = {
       id: 'test-dog-id',
       data: () => ({
-        'Internal-ID': '12345',
-        'Name': 'Buddy',
+        internalId: '12345',
+        publicId: 'A001',
+        name: 'Buddy',
         // Missing required ETL fields
-        'AgeYears': undefined,
-        'AgeDisplay': undefined,
-        'IsInCustody': undefined,
-        'IsAvailableForAdoption': undefined,
-        'IsHospice': undefined,
-        'IsEventDog': undefined
+        physical: undefined
       })
     };
 
     expect(() => normalizeDog(mockDoc)).toThrow(
-      'Dog document test-dog-id missing ETL-required fields: AgeYears, AgeDisplay, IsInCustody, IsAvailableForAdoption, IsHospice, IsEventDog. ETL schema contract violation - required fields must always be present.'
-    );
-  });
-
-  it('should throw error for missing some required ETL fields', () => {
-
-    const mockDoc = {
-      id: 'test-dog-id',
-      data: () => ({
-        'Internal-ID': '12345',
-        'Name': 'Buddy',
-        // Missing some required ETL fields
-        'AgeYears': undefined,
-        'AgeDisplay': '3 years',
-        'IsInCustody': true,
-        'IsAvailableForAdoption': undefined,
-        'IsHospice': false,
-        'IsEventDog': true
-      })
-    };
-
-    expect(() => normalizeDog(mockDoc)).toThrow(
-      'Dog document test-dog-id missing ETL-required fields: AgeYears, IsAvailableForAdoption. ETL schema contract violation - required fields must always be present.'
-    );
-  });
-
-  it('should throw error for missing required ETL fields in all environments', () => {
-    const mockDoc = {
-      id: 'test-dog-id',
-      data: () => ({
-        'Internal-ID': '12345',
-        'Name': 'Buddy',
-        'Status': 'AVAILABLE',
-        // Missing required ETL fields - should always throw
-        'AgeYears': undefined,
-        'AgeDisplay': undefined,
-        'IsInCustody': undefined,
-        'IsAvailableForAdoption': undefined,
-        'IsHospice': undefined,
-        'IsEventDog': undefined
-      })
-    };
-
-    expect(() => normalizeDog(mockDoc)).toThrow(
-      'Dog document test-dog-id missing ETL-required fields: AgeYears, AgeDisplay, IsInCustody, IsAvailableForAdoption, IsHospice, IsEventDog. ETL schema contract violation - required fields must always be present.'
+      'Dog document test-dog-id missing ETL-required fields: physical'
     );
   });
 
@@ -142,25 +114,39 @@ describe('normalizeDog', () => {
     const mockDoc = {
       id: 'test-dog-id',
       data: () => ({
-        'Internal-ID': '12345',
-        'Name': 'Buddy',
-        'Status': 'AVAILABLE',
-        'AgeYears': 2,
-        'AgeDisplay': '2 years',
-        'IsInCustody': true,
-        'IsAvailableForAdoption': true,
-        'IsHospice': false,
-        'IsEventDog': false,
-        // Missing optional fields - Photos/Treatments guaranteed by ETL so not tested here
-        'Breed': undefined,
-        'Size': undefined
+        internalId: '12345',
+        publicId: 'A001',
+        name: 'Buddy',
+        status: 'available',
+        physical: {
+          ageDays: 730, // 2 years
+          sex: 'Female'
+        },
+        media: {
+          photos: [],
+          videos: []
+        },
+        attributes: {
+          raw: []
+        },
+        medical: {
+          microchips: []
+        },
+        content: {
+          description: ''
+        },
+        admin: {},
+        source: {
+          syncedAt: '2024-01-01T00:00:00.000Z'
+        }
+        // Missing optional fields like foster, location, etc.
       })
     };
 
     const result = normalizeDog(mockDoc);
 
-    expect(result.Breed).toBeUndefined();
-    expect(result.Size).toBeUndefined();
-    // Photos and Treatments are guaranteed by ETL, so not tested as "missing"
+    expect(result.foster).toBeUndefined();
+    expect(result.location).toBeUndefined();
+    expect(result.admin.adoptionFeeGroup).toBeUndefined();
   });
 });

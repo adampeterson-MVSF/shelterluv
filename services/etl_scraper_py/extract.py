@@ -282,10 +282,23 @@ def _scrape_animals_concurrent(
                 try:
                     logger.debug(f"Scraping {animal_id} ({internal_id})...")
                     start_time = time.time()
-                    scraped = scraper.scrape_animal_record_summary(animal_id, internal_id)
+
+                    # Scrape summary page for basic info
+                    summary_data = scraper.scrape_animal_record_summary(animal_id, internal_id)
+
+                    # Scrape profile page for attributes
+                    try:
+                        profile_data = scraper.scrape_profile_only(animal_id)
+                        # Merge profile data into summary data, with profile data taking precedence for attributes
+                        summary_data.update(profile_data)
+                        logger.debug(f"Successfully scraped both summary and profile for {animal_id}")
+                    except Exception as profile_error:
+                        logger.warning(f"Profile scraping failed for {animal_id}, using summary data only: {profile_error}")
+                        # Continue with summary data only
+
                     end_time = time.time()
                     logger.info(f"Scraped {animal_id} in {end_time - start_time:.1f}s")
-                    scraped_map[internal_id] = scraped
+                    scraped_map[internal_id] = summary_data
                 except Exception as e:
                     logger.warning("Scrape failed for %s (%s): %s", animal_id, internal_id, e)
                     # Return minimal valid data instead of just error to prevent validation failures
@@ -308,10 +321,23 @@ def _scrape_animals_concurrent(
                     try:
                         logger.debug(f"Scraping {animal_id} ({internal_id}) in chunk...")
                         start_time = time.time()
-                        scraped = scraper.scrape_animal_record_summary(animal_id, internal_id)
+
+                        # Scrape summary page for basic info
+                        summary_data = scraper.scrape_animal_record_summary(animal_id, internal_id)
+
+                        # Scrape profile page for attributes
+                        try:
+                            profile_data = scraper.scrape_profile_only(animal_id)
+                            # Merge profile data into summary data, with profile data taking precedence for attributes
+                            summary_data.update(profile_data)
+                            logger.debug(f"Successfully scraped both summary and profile for {animal_id}")
+                        except Exception as profile_error:
+                            logger.warning(f"Profile scraping failed for {animal_id}, using summary data only: {profile_error}")
+                            # Continue with summary data only
+
                         end_time = time.time()
                         logger.info(f"Scraped {animal_id} in {end_time - start_time:.1f}s")
-                        chunk_results[internal_id] = scraped
+                        chunk_results[internal_id] = summary_data
                     except Exception as e:
                         logger.warning("Scrape failed for %s (%s): %s", animal_id, internal_id, e)
                         chunk_results[internal_id] = {"ScrapeError": str(e)}

@@ -109,25 +109,6 @@ function createAuthHelpers(authState) {
   return { hasRole, hasAnyRole, isAuthenticated, isForbidden, canViewDogs };
 }
 
-/**
- * Standalone helper functions for auth state checks.
- * Use these instead of open-coding state machine logic.
- */
-export function isAuthenticated(authState) {
-  return authState.kind === AUTH_STATE_KINDS.AUTHENTICATED;
-}
-
-export function isForbidden(authState) {
-  return authState.kind === AUTH_STATE_KINDS.FORBIDDEN;
-}
-
-export function canViewDogs(authState) {
-  return authState.kind === AUTH_STATE_KINDS.AUTHENTICATED;
-}
-
-export function shouldHideDogs(authState) {
-  return authState.kind === AUTH_STATE_KINDS.ANONYMOUS || authState.kind === AUTH_STATE_KINDS.FORBIDDEN;
-}
 
 export function AuthProvider({
   children,

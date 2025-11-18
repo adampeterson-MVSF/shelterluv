@@ -118,8 +118,10 @@ def from_shelterluv_api(animal_json: Dict[str, Any]) -> Dict[str, Any]:
 
     # Physical
     dog["physical"]["breed"] = animal_json.get("Breed", "")
-    dog["physical"]["ageDays"] = animal_json.get("Age", 0)
-    dog["physical"]["dob"] = _unix_to_datetime(animal_json.get("DOBUnixTime"))
+    # Calculate age from DOB instead of trusting the Age field directly
+    dob_unix = animal_json.get("DOBUnixTime")
+    dog["physical"]["ageDays"] = _calculate_age_days_from_dob(dob_unix)
+    dog["physical"]["dob"] = _unix_to_datetime(dob_unix)
     dog["physical"]["sex"] = _normalize_sex(animal_json.get("Sex", "Unknown"))
     dog["physical"]["sizeLabel"] = animal_json.get("Size", "")
     dog["physical"]["color"] = animal_json.get("Color", "")
@@ -173,7 +175,7 @@ def from_shelterluv_api(animal_json: Dict[str, Any]) -> Dict[str, Any]:
     dog["content"]["description"] = animal_json.get("Description", "")
 
     # Admin
-    dog["admin"]["adoptionFeeGroup"] = animal_json.get("AdoptionFeeGroup")
+    dog["admin"]["adoptionFeeGroup"] = _normalize_adoption_fee_group(animal_json.get("AdoptionFeeGroup"))
     dog["admin"]["litterGroupId"] = animal_json.get("LitterGroupId")
     dog["admin"]["previousIds"] = [
         {
@@ -219,7 +221,14 @@ def _to_number_or_none(value: Any) -> Optional[int]:
 
 
 def _normalize_status(status: str) -> str:
-    """Normalize status values."""
+    """Normalize status values from ShelterLuv API."""
+    if not status:
+        return "unknown"
+
+    # Clean and normalize the status string
+    status = status.strip().upper()
+
+    # Direct mappings for exact matches
     status_map = {
         "AVAILABLE": "available",
         "ADOPTED": "adopted",
@@ -227,7 +236,51 @@ def _normalize_status(status: str) -> str:
         "HOLD": "hold",
         "IN CUSTODY": "in_custody",
     }
-    return status_map.get(status.upper(), status.lower())
+
+    if status in status_map:
+        return status_map[status]
+
+    # Handle complex statuses with keywords
+    status_lower = status.lower()
+
+    # Check for available variations (including hospice)
+    if any(keyword in status_lower for keyword in ["available", "hospice"]):
+        return "available"
+
+    # Check for pending variations
+    if any(keyword in status_lower for keyword in ["pending", "unavailable"]):
+        return "pending"
+
+    # Check for adopted variations
+    if "adopted" in status_lower:
+        return "adopted"
+
+    # Check for hold variations
+    if "hold" in status_lower:
+        return "hold"
+
+    # Check for in custody variations
+    if any(keyword in status_lower for keyword in ["custody", "intake"]):
+        return "in_custody"
+
+    # Default to unknown for unrecognized statuses
+    return "unknown"
+
+
+def _normalize_adoption_fee_group(fee_group: Any) -> Optional[str]:
+    """Normalize adoption fee group from API response."""
+    if fee_group is None:
+        return None
+
+    if isinstance(fee_group, str):
+        return fee_group
+
+    if isinstance(fee_group, dict):
+        # Extract name from object like {"Id": 15667, "Name": "Seniors for Seniors Adoption", ...}
+        return fee_group.get("Name")
+
+    # For other types, convert to string
+    return str(fee_group)
 
 
 def _normalize_sex(sex: str) -> Literal["Male", "Female", "Unknown"]:
@@ -258,6 +311,21 @@ def _parse_weight(weight_str: Optional[str]) -> Optional[float]:
             return float(weight_str)
     except (ValueError, IndexError):
         return None
+
+
+def _calculate_age_days_from_dob(dob_unix: Optional[int]) -> int:
+    """Calculate age in days from Unix timestamp DOB."""
+    if not dob_unix:
+        return 0
+
+    try:
+        from datetime import datetime
+        dob = datetime.fromtimestamp(dob_unix)
+        now = datetime.now()
+        age_delta = now - dob
+        return max(0, age_delta.days)  # Ensure non-negative
+    except (ValueError, TypeError, OverflowError):
+        return 0
 
 
 def _normalize_altered(altered: Optional[str]) -> Optional[bool]:

@@ -10,13 +10,13 @@
 /**
  * Calculates number of days the dog has been at Muttville
  * @param {Dog} dog - Dog object
- * @returns {number} Number of days, or 0 if IntakeDate not available
+ * @returns {number} Number of days, or 0 if lastIntakeAt not available
  */
 export function daysAtMuttville(dog) {
-  if (!dog.IntakeDate) return 0;
+  if (!dog.lastIntakeAt) return 0;
 
   try {
-    const intakeDate = new Date(dog.IntakeDate);
+    const intakeDate = new Date(dog.lastIntakeAt);
     // Check if date is valid
     if (isNaN(intakeDate.getTime())) return 0;
 
@@ -35,5 +35,5 @@ export function daysAtMuttville(dog) {
  * @returns {string} ShelterLuv URL for the dog
  */
 export function getShelterLuvUrl(dog) {
-  return `https://new.shelterluv.com/animal/${dog.ID}`;
+  return `https://new.shelterluv.com/animal/${dog.publicId}`;
 }

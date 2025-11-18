@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Literal
 from dog_schema import from_shelterluv_api
 from errors import SchemaValidationError, ScraperError
 from foster_mapping import build_event_maps, build_foster_maps
-from schema import validate_dog_record_nested
+from schema import validate_dog_record
 
 MemosMode = Literal["none", "api"]
 
@@ -98,14 +98,24 @@ def _build_dog_records(
             # Start with API data transformed to new structured schema
             dog_record = from_shelterluv_api(animal)
 
-            # Apply scraped data selectively (API-first approach)
-            _apply_scraped_data(dog_record, scraped_map.get(str(internal_id), {}))
+            # Extract foster info from scraped data if available
+            scraped_data = scraped_map.get(str(internal_id), {})
+            scraped_foster_info = None
+            if any(key in scraped_data for key in ['foster_name', 'foster_person_id', 'foster_profile_url']):
+                scraped_foster_info = {
+                    k: v for k, v in scraped_data.items()
+                    if k in ['foster_name', 'foster_person_id', 'foster_profile_url']
+                }
+
+            # Apply scraped data selectively (API-first approach), excluding foster info
+            filtered_scraped_data = {k: v for k, v in scraped_data.items() if k not in ['foster_name', 'foster_person_id', 'foster_profile_url']}
+            _apply_scraped_data(dog_record, filtered_scraped_data)
 
             # Apply foster/event enrichment
-            _apply_foster_event_data(dog_record, foster_map.get(str(internal_id), {}), event_map.get(str(internal_id), {}))
+            _apply_foster_event_data(dog_record, foster_map.get(str(internal_id), {}), event_map.get(str(internal_id), {}), scraped_foster_info)
 
             # Validate against nested schema
-            validate_dog_record_nested(dog_record)
+            validate_dog_record(dog_record)
 
             dogs.append(dog_record)
 
@@ -167,15 +177,20 @@ def _apply_scraped_data(dog_record: Dict[str, Any], scraped_data: Dict[str, Any]
 def _apply_foster_event_data(
     dog_record: Dict[str, Any],
     foster_info: Dict[str, Any],
-    event_info: Dict[str, Any]
+    event_info: Dict[str, Any],
+    scraped_foster_info: Dict[str, Any] = None
 ) -> None:
     """Apply foster and event enrichment data."""
+    # Prioritize scraped foster info over API-derived foster info
+    effective_foster_info = scraped_foster_info or foster_info
+
     # Foster information - may override API AssociatedPerson if more complete
-    if foster_info:
+    if effective_foster_info:
         dog_record["foster"]["inFoster"] = True
-        if "FosterName" in foster_info:
-            # Parse name if available
-            name = foster_info["FosterName"]
+
+        # Handle scraped foster info format (foster_name, foster_person_id, etc.)
+        if "foster_name" in effective_foster_info:
+            name = effective_foster_info["foster_name"]
             if name:
                 # Simple name splitting - could be enhanced
                 name_parts = name.split()
@@ -186,10 +201,30 @@ def _apply_foster_event_data(
                     "outDate": None,
                 }
 
-        # Contact info (restricted fields)
-        if "FosterEmail" in foster_info:
-            if dog_record["foster"]["person"]:
-                dog_record["foster"]["person"]["email"] = foster_info["FosterEmail"]
-        if "FosterPhone" in foster_info:
-            if dog_record["foster"]["person"]:
-                dog_record["foster"]["person"]["phone"] = foster_info["FosterPhone"]
+        # Handle API format (FosterName, FosterEmail, etc.)
+        elif "FosterName" in effective_foster_info:
+            name = effective_foster_info["FosterName"]
+            if name:
+                # Simple name splitting - could be enhanced
+                name_parts = name.split()
+                dog_record["foster"]["person"] = {
+                    "firstName": " ".join(name_parts[:-1]) if len(name_parts) > 1 else name,
+                    "lastName": name_parts[-1] if len(name_parts) > 1 else "",
+                    "relationshipType": "Foster",
+                    "outDate": None,
+                }
+
+        # Contact info (restricted fields) - check both formats
+        email = effective_foster_info.get("FosterEmail") or effective_foster_info.get("email")
+        phone = effective_foster_info.get("FosterPhone") or effective_foster_info.get("phone")
+
+        if email and dog_record["foster"]["person"]:
+            dog_record["foster"]["person"]["email"] = email
+        if phone and dog_record["foster"]["person"]:
+            dog_record["foster"]["person"]["phone"] = phone
+
+        # Add person ID and profile URL if available from scraping
+        if "foster_person_id" in effective_foster_info and dog_record["foster"]["person"]:
+            dog_record["foster"]["person"]["personId"] = effective_foster_info["foster_person_id"]
+        if "foster_profile_url" in effective_foster_info and dog_record["foster"]["person"]:
+            dog_record["foster"]["person"]["profileUrl"] = effective_foster_info["foster_profile_url"]

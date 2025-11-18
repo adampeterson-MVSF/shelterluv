@@ -211,39 +211,7 @@ def extract_weight_history(page) -> List[Dict[str, Any]]:
         except Exception:
             pass
 
-        # Fall back to the original approach
-        try:
-            weight_table_selector = ".space-y-2 .align-middle table"
-            print(f"DEBUG: Trying weight table selector: {weight_table_selector}")
-            rows = extract_table_rows_as_dicts(
-                page,
-                weight_table_selector,
-                ["th:nth-child(1)", "th:nth-child(2)"]
-            )
-            print(f"DEBUG: Found {len(rows) if rows else 0} rows with specific selector")
-
-            if rows:
-                print(f"DEBUG: Processing {len(rows)} weight rows")
-                for i, row in enumerate(rows):
-                    print(f"DEBUG: Row {i}: {row}")
-                    # Try different possible column names
-                    weight_value = row.get("Weight", "") or row.get("col_0", "")
-                    date_value = row.get("Date", "") or row.get("col_1", "")
-                    weight_entry = {
-                        "weight": weight_value,
-                        "date": normalize_date_string(date_value),
-                        "unit": _extract_weight_unit(weight_value)
-                    }
-                    print(f"DEBUG: Weight entry: {weight_entry}")
-                    if weight_entry["weight"]:
-                        weight_history.append(weight_entry)
-
-                print(f"DEBUG: Final weight_history: {weight_history}")
-                return weight_history
-        except Exception as e:
-            print(f"DEBUG: Specific selector failed: {e}")
-
-        # Fall back to the original approach
+        # Fall back to CSS selector approach
         for table_sel in weight_table_selectors:
             try:
                 rows = extract_table_rows_as_dicts(

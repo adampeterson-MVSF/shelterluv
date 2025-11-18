@@ -170,52 +170,46 @@ def extract_weight_history(page) -> List[Dict[str, Any]]:
             ".medical-history .weight table"
         ]
 
-        # Try a more direct approach: find h2 with Weight text and navigate to table
+        # Try a more direct approach: find the table that contains weight data
         try:
-            # Find the h2 element containing "Weight"
-            weight_headers = page.locator("h2").filter({"hasText": "Weight"})
-            if weight_headers.count() > 0:
-                print("DEBUG: Found Weight h2 header")
-                # Get the parent div and find the table within it
-                parent_div = weight_headers.locator("xpath=ancestor::div[contains(@class, 'space-y-2')]")
-                if parent_div.count() > 0:
-                    weight_table = parent_div.locator("table")
-                    if weight_table.count() > 0:
-                        print("DEBUG: Found weight table in parent div")
-                        # Extract table data directly
-                        table_locator = parent_div.locator("table")
-                        rows_data = []
+            # Look for any table that has a row containing weight-like data (kg or lbs)
+            all_tables = page.locator("table")
+            for table_idx in range(all_tables.count()):
+                table = all_tables.nth(table_idx)
+                rows_locator = table.locator("tbody tr")
+                table_has_weight_data = False
 
-                        # Get all table rows
-                        rows_locator = table_locator.locator("tbody tr")
-                        for i in range(rows_locator.count()):
-                            row = rows_locator.nth(i)
-                            cells = row.locator("td")
-                            if cells.count() >= 2:
-                                weight_text = cells.nth(0).inner_text().strip()
-                                date_text = cells.nth(1).inner_text().strip()
-                                rows_data.append({
-                                    "Weight": weight_text,
-                                    "Date": date_text
-                                })
+                # Check first few rows for weight data
+                for row_idx in range(min(3, rows_locator.count())):
+                    row = rows_locator.nth(row_idx)
+                    cells = row.locator("td")
+                    if cells.count() >= 2:
+                        first_cell = cells.nth(0).inner_text().strip()
+                        # Check if first cell looks like weight (contains kg, lbs, or is a number)
+                        if ('kg' in first_cell.lower() or 'lbs' in first_cell.lower() or
+                            (first_cell.replace('.', '').replace(' ', '').isdigit() and len(first_cell) <= 5)):
+                            table_has_weight_data = True
+                            break
 
-                        print(f"DEBUG: Extracted {len(rows_data)} rows directly from table")
-                        if rows_data:
-                            for i, row in enumerate(rows_data):
-                                print(f"DEBUG: Direct Row {i}: {row}")
-                                weight_entry = {
-                                    "weight": row.get("Weight", ""),
-                                    "date": normalize_date_string(row.get("Date", "")),
-                                    "unit": _extract_weight_unit(row.get("Weight", ""))
-                                }
-                                print(f"DEBUG: Weight entry: {weight_entry}")
-                                if weight_entry["weight"]:
-                                    weight_history.append(weight_entry)
+                if table_has_weight_data:
+                    # Extract all rows from this table
+                    for row_idx in range(rows_locator.count()):
+                        row = rows_locator.nth(row_idx)
+                        cells = row.locator("td")
+                        if cells.count() >= 2:
+                            weight_text = cells.nth(0).inner_text().strip()
+                            date_text = cells.nth(1).inner_text().strip()
+                            weight_entry = {
+                                "weight": weight_text,
+                                "date": normalize_date_string(date_text),
+                                "unit": _extract_weight_unit(weight_text)
+                            }
+                            if weight_entry["weight"]:
+                                weight_history.append(weight_entry)
 
-                            print(f"DEBUG: Final weight_history: {weight_history}")
-                            return weight_history
-        except Exception as e:
-            print(f"DEBUG: Direct extraction failed: {e}")
+                    return weight_history
+        except Exception:
+            pass
 
         # Fall back to the original approach
         try:
@@ -252,28 +246,21 @@ def extract_weight_history(page) -> List[Dict[str, Any]]:
         # Fall back to the original approach
         for table_sel in weight_table_selectors:
             try:
-                print(f"DEBUG: Trying weight table selector: {table_sel}")
                 rows = extract_table_rows_as_dicts(
                     page,
                     table_sel,
                     ["th:nth-child(1)", "th:nth-child(2)", "th:nth-child(3)"]
                 )
-                print(f"DEBUG: Found {len(rows) if rows else 0} rows with selector {table_sel}")
 
                 if rows:
-                    print(f"DEBUG: Processing {len(rows)} weight rows")
-                    for i, row in enumerate(rows):
-                        print(f"DEBUG: Row {i}: {row}")
+                    for row in rows:
                         weight_entry = {
                             "weight": row.get("Weight", ""),
                             "date": normalize_date_string(row.get("Date", "")),
                             "unit": _extract_weight_unit(row.get("Weight", ""))
                         }
-                        print(f"DEBUG: Weight entry: {weight_entry}")
                         if weight_entry["weight"]:
                             weight_history.append(weight_entry)
-
-                    print(f"DEBUG: Final weight_history: {weight_history}")
                     break
 
             except Exception:

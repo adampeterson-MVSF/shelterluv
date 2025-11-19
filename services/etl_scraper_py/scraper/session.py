@@ -136,7 +136,8 @@ class ShelterLuvSession:
         try:
             # Start from dashboard (already logged in)
             self.page.goto("https://new.shelterluv.com/dashboard")
-            self.page.wait_for_load_state("networkidle")
+            # Wait for table row selector to be visible instead of networkidle
+            self.page.locator('[data-cy^="animal-row-"]').first.wait_for(timeout=15000)
 
             # Navigate to Animals section
             # Try multiple approaches for "Animals" menu

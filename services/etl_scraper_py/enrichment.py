@@ -4,6 +4,7 @@ Handles building foster mappings and enriching dog records with external data.
 """
 
 from typing import Any, Dict, List, Mapping
+from dog_types import Dog
 
 from flags import compute_derived_flags
 from foster_mapping import build_event_maps, build_foster_maps
@@ -11,22 +12,32 @@ from foster_mapping import build_event_maps, build_foster_maps
 # Import separated concerns
 from normalization import normalize_basic_fields
 from schema import (
+    _get_dog_schema_nested as _get_dog_schema,
+    validate_dog_record,
+)
+from dog_schema import _normalize_status
+from normalization import (
     _build_age_display,
-    _get_dog_schema,
     _normalize_age_years,
     _normalize_size,
-    _normalize_status,
-    validate_dog_record,
 )
 from schema_artifact import SCHEMA_ARTIFACT
 
 # Field ownership metadata for merge decisions
 _FIELD_OWNERSHIP = SCHEMA_ARTIFACT.get("fieldOwnership", {})
 
+# Get valid schema field names for validation
+_SCHEMA_PROPERTIES = SCHEMA_ARTIFACT.get("properties", {})
+
 
 def _is_missing(value: Any) -> bool:
     """Check if a value is considered missing/empty."""
     return value is None or value == "" or value == [] or value == {}
+
+
+def _is_valid_schema_field(field_name: str) -> bool:
+    """Check if a field name is valid according to the JSON schema."""
+    return field_name in _SCHEMA_PROPERTIES
 
 
 def build_dog_record(
@@ -70,7 +81,7 @@ def _merge_data_sources(
     event_info: Dict[str, Any] = None,
     memo_html: str = "",
     scraped_foster_info: Dict[str, Any] = None,
-) -> Dict[str, Any]:
+) -> Dog:
     """Merge all data sources into a single dict.
 
     Rules:
@@ -80,16 +91,28 @@ def _merge_data_sources(
     """
 
     # 1) Start with API as the base – this is the source of truth.
-    merged: Dict[str, Any] = dict(api_animal)
+    # Validate that API fields are valid schema fields
+    merged: Dog = {}
+    for field, value in api_animal.items():
+        if _is_valid_schema_field(field):
+            merged[field] = value
+        # Skip invalid fields silently - API might have extra fields
 
     # 2) Enrich with ETL-derived data (foster/events) – these don't exist in API.
     # Prioritize scraped foster info over API-derived foster info
     if scraped_foster_info:
-        merged.update(scraped_foster_info)
+        for field, value in scraped_foster_info.items():
+            if _is_valid_schema_field(field):
+                merged[field] = value
+            # Log invalid fields for debugging
     elif foster_info:
-        merged.update(foster_info)
+        for field, value in foster_info.items():
+            if _is_valid_schema_field(field):
+                merged[field] = value
     if event_info:
-        merged.update(event_info)
+        for field, value in event_info.items():
+            if _is_valid_schema_field(field):
+                merged[field] = value
 
     # 3) Use scraper as a patch layer, guided by fieldOwnership.
     for field, scraped_value in scraped.items():
@@ -100,6 +123,10 @@ def _merge_data_sources(
         owner_info = _FIELD_OWNERSHIP.get(field, {})
         owner = owner_info.get("ownership")
         api_value = merged.get(field)
+
+        if not _is_valid_schema_field(field):
+            # Skip fields that aren't in the schema
+            continue
 
         if owner == "scraper":
             # Scraper is canonical for these; API either doesn't have them
@@ -140,13 +167,13 @@ def _merge_data_sources(
             merged[field] = api_value
 
     # 6) MemosRawHTML: explicitly set from memo_html param (API or scrape).
-    if memo_html:
+    if memo_html and _is_valid_schema_field("MemosRawHTML"):
         merged["MemosRawHTML"] = memo_html
 
     return merged
 
 
-def _parse_structured_notes(dog: Dict[str, Any]) -> Dict[str, Any]:
+def _parse_structured_notes(dog: Dog) -> Dog:
     """Parse structured notes from raw HTML memos."""
     result = dict(dog)
 
@@ -186,7 +213,7 @@ def _parse_structured_notes(dog: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
-def _validate_and_filter(normalized: Dict[str, Any]) -> Dict[str, Any]:
+def _validate_and_filter(normalized: Dog) -> Dog:
     """Filter to schema keys and validate."""
     # Filter to allowed keys
     ALLOWED_KEYS = set(_get_dog_schema()["properties"].keys())

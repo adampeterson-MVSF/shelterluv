@@ -8,7 +8,7 @@ import {
   ErrorState
 } from '../components/PageStates';
 
-function DogList({ allDogs }) {
+function DogList({ allDogs, loadMore, hasMore, loading }) {
   return (
     <div className="page-container home-page">
       <div className="page-header">
@@ -21,12 +21,27 @@ function DogList({ allDogs }) {
       <div className="dogs-grid">
         {allDogs.map(dog => <DogCard key={dog.id} dog={dog} />)}
       </div>
+
+      {hasMore && (
+        <div className="load-more-container">
+          <button
+            onClick={loadMore}
+            disabled={loading}
+            className="load-more-button"
+          >
+            {loading ? 'Loading...' : 'Load More'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 DogList.propTypes = {
-  allDogs: PropTypes.array.isRequired
+  allDogs: PropTypes.array.isRequired,
+  loadMore: PropTypes.func.isRequired,
+  hasMore: PropTypes.bool.isRequired,
+  loading: PropTypes.bool.isRequired
 };
 
 /**
@@ -43,7 +58,7 @@ function Home() {
     shouldHideDogs: authState.kind === 'anonymous' || authState.kind === 'forbidden'
   };
 
-  const { allDogs, loading, error } = useDogs(authPermissions);
+  const { allDogs, loading, error, loadMore, hasMore } = useDogs(authPermissions);
 
   if (error) {
     const errorMessage = error?.message || error?.toString() || 'An error occurred loading dogs';
@@ -64,7 +79,7 @@ function Home() {
 
   return (
     <AuthGate>
-      <DogList allDogs={allDogs} />
+      <DogList allDogs={allDogs} loadMore={loadMore} hasMore={hasMore} loading={loading} />
     </AuthGate>
   );
 }

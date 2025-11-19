@@ -173,18 +173,3 @@ def _count_keywords_pure(text: str, keywords: List[str]) -> int:
     """Count how many keywords appear in text."""
     return sum(1 for keyword in keywords if keyword in text)
 
-
-# Backward compatibility: keep old function names that delegate to new ones
-def _clean_memo_html_pure(memos_html: str) -> str:
-    """Backward compatibility wrapper."""
-    return clean_memo_html(memos_html)
-
-
-def _split_memo_into_sections_pure(text: str) -> List[str]:
-    """Backward compatibility wrapper."""
-    return split_memo_into_sections(text)
-
-
-def _categorize_memo_section_pure(section_lower: str) -> str:
-    """Backward compatibility wrapper."""
-    return categorize_section(section_lower)

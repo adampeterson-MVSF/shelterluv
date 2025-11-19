@@ -1,12 +1,27 @@
 import PropTypes from 'prop-types';
+import { PawPrint, Scale, Clock, Mars, Venus, HelpCircle } from 'lucide-react';
+
+// Helper to select icon based on label or value
+function getIcon(label, value) {
+  if (label === 'Size') return <PawPrint color="#F4B400" />;
+  if (label === 'Weight') return <Scale color="#F4B400" />;
+  if (label === 'Age') return <Clock color="#F4B400" />;
+  if (label === 'Sex') {
+    if (value === 'Male') return <Mars color="#F4B400" />;
+    if (value === 'Female') return <Venus color="#F4B400" />;
+  }
+  return <HelpCircle color="#F4B400" />;
+}
 
 function Metric({ label, value }) {
   return (
     <div className="dog-metric">
-      <div className="dog-metric-icon" />
+      <div className="dog-metric-icon">
+        {getIcon(label, value)}
+      </div>
       <div className="dog-metric-text">
+        <span className="metric-value" style={{color: '#F4B400', fontSize: '1.5rem'}}>{value}</span>
         <span className="metric-label">{label}</span>
-        <span className="metric-value">{value}</span>
       </div>
     </div>
   );

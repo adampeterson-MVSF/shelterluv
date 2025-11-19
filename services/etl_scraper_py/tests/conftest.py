@@ -181,25 +181,25 @@ def parser():
         INTAKE_KEYWORDS,
         MEDICAL_KEYWORDS,
         PERSONALITY_KEYWORDS,
-        _categorize_memo_section_pure,
-        _clean_memo_html_pure,
+        categorize_section,
+        clean_memo_html,
         _count_keywords_pure,
-        _split_memo_into_sections_pure,
+        split_memo_into_sections,
     )
 
     # Create a simple object that wraps the pure functions
     class ParserWrapper:
         def _clean_memo_html(self, html):
-            return _clean_memo_html_pure(html)
+            return clean_memo_html(html)
 
         def _split_memo_into_sections(self, text):
-            return _split_memo_into_sections_pure(text)
+            return split_memo_into_sections(text)
 
         def _count_keywords(self, text, keywords):
             return _count_keywords_pure(text, keywords)
 
         def _categorize_memo_section(self, section_lower):
-            return _categorize_memo_section_pure(section_lower)
+            return categorize_section(section_lower)
 
         def _get_personality_keywords(self):
             return PERSONALITY_KEYWORDS

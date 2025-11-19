@@ -2,7 +2,7 @@
  * @typedef {import('../types/Dog.types').Dog} Dog
  */
 
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, startAfter } from 'firebase/firestore';
 import { db } from '../app';
 import { normalizeDog } from '../types/dogNormalize';
 import { isDogError, createFirestoreError, DOG_ERROR_CODES } from '../types/dogErrors';
@@ -40,15 +40,23 @@ function mapDogErrorToUnion(dogError) {
  */
 
 /**
- * Fetches all dogs from Firestore.
+ * Fetches dogs from Firestore with pagination support.
  * Fails on malformed documents - trusts ETL to provide schema-compliant data.
+ * @param {number} [limitCount=20] - Maximum number of dogs to fetch
+ * @param {Object} [startAfterDoc=null] - Document to start after for pagination
  * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<DogResult>} Result object with success/data or error
  */
-export async function getDogs(signal) {
+export async function getDogs(limitCount = 20, startAfterDoc = null, signal) {
   try {
     const dogsCollection = collection(db, 'dogs');
-    const dogsSnapshot = await getDocs(dogsCollection);
+    let dogsQuery = query(dogsCollection, orderBy('Name'), limit(limitCount));
+
+    if (startAfterDoc) {
+      dogsQuery = query(dogsCollection, orderBy('Name'), limit(limitCount), startAfter(startAfterDoc));
+    }
+
+    const dogsSnapshot = await getDocs(dogsQuery);
     const dogsList = [];
 
     for (const doc of dogsSnapshot.docs) {
@@ -62,7 +70,7 @@ export async function getDogs(signal) {
       dogsList.push(normalizedDog);
     }
 
-    return { success: true, data: dogsList };
+    return { success: true, data: dogsList, lastDoc: dogsSnapshot.docs[dogsSnapshot.docs.length - 1] || null };
   } catch (error) {
     // Map error to normalized union type
     const dogError = isDogError(error) ? error : createFirestoreError(error);

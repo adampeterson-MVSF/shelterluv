@@ -9,7 +9,7 @@ import re
 from datetime import datetime
 from typing import Any, Dict
 
-from schema import _normalize_status as normalize_status_from_schema
+from dog_schema import _normalize_status as normalize_status_from_schema
 
 
 def normalize_basic_fields(raw: Dict[str, Any]) -> Dict[str, Any]:

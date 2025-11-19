@@ -15,6 +15,126 @@ from schema import validate_dog_record
 MemosMode = Literal["none", "api"]
 
 
+def _convert_to_nested_schema_field_names(dog_record: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert from JSON schema field names (hyphenated) to nested schema field names (camelCase).
+    This is necessary because from_shelterluv_api creates records with JSON schema field names,
+    but validation and storage expect nested schema field names.
+    """
+    # Start with nested schema structure
+    nested_dog = {
+        "internalId": dog_record.get("Internal-ID", ""),
+        "publicId": dog_record.get("ID", ""),
+        "name": dog_record.get("Name", ""),
+        "type": "Dog",
+        "status": _normalize_status_for_nested(dog_record.get("Status", "UNKNOWN")),
+        "inFoster": False,
+        "lastIntakeAt": dog_record.get("IntakeDate"),
+        "lastUpdatedAt": None,
+        "physical": {
+            "breed": dog_record.get("Breed", ""),
+            "ageDays": 0,  # Would need to be calculated from DOB - placeholder
+            "dob": None,  # Would need to be parsed from API data
+            "sex": _normalize_sex_for_nested(dog_record.get("Gender", "Male")),
+            "sizeLabel": dog_record.get("Size", "UNKNOWN"),
+            "color": dog_record.get("Color", ""),
+            "pattern": dog_record.get("Pattern", ""),
+            "weightLbs": float(dog_record.get("Weight", 0)) if dog_record.get("Weight") else None,
+            "altered": None  # Would need to be derived from medical data
+        },
+        "location": {
+            "label": dog_record.get("Location", "")
+        },
+        "content": {
+            "description": dog_record.get("Description", "")
+        },
+        "admin": {
+            "caseManager": dog_record.get("CaseManager", ""),
+            "intakeDate": dog_record.get("IntakeDate", ""),
+            "stage": dog_record.get("Stage", ""),
+            "scrapeError": dog_record.get("ScrapeError", ""),
+            "adoptionPrice": dog_record.get("AdoptionPrice", ""),
+            "intakeType": dog_record.get("IntakeType", ""),
+            "intakeSubtype": dog_record.get("IntakeSubtype", ""),
+            "outcomeType": dog_record.get("OutcomeType", ""),
+            "outcomeSubtype": dog_record.get("OutcomeSubtype", ""),
+            "asilomarIntake": dog_record.get("AsilomarIntake", ""),
+            "asilomarOutcome": dog_record.get("AsilomarOutcome", ""),
+            "jurisdictionIntake": dog_record.get("JurisdictionIntake", ""),
+            "jurisdictionOutcome": dog_record.get("JurisdictionOutcome", ""),
+            "previousShelterId": dog_record.get("PreviousShelterId", ""),
+            "previousShelterType": dog_record.get("PreviousShelterType", ""),
+            "previousShelterIssuer": dog_record.get("PreviousShelterIssuer", "")
+        },
+        "foster": {
+            "inFoster": bool(dog_record.get("FosterName")),
+            "person": {
+                "firstName": dog_record.get("FosterName", "").split()[0] if dog_record.get("FosterName") else None,
+                "lastName": " ".join(dog_record.get("FosterName", "").split()[1:]) if dog_record.get("FosterName") and len(dog_record.get("FosterName", "").split()) > 1 else None,
+                "email": dog_record.get("FosterEmail"),
+                "phone": dog_record.get("FosterPhone"),
+                "personId": None,
+                "profileUrl": None
+            } if dog_record.get("FosterName") else None
+        },
+        "medical": {
+            "microchipNumber": dog_record.get("MicrochipNumber", ""),
+            "microchipIssuer": dog_record.get("MicrochipIssuer", ""),
+            "microchipImplantDate": dog_record.get("MicrochipImplantDate", ""),
+            "alteredBeforeArrival": dog_record.get("AlteredBeforeArrival", ""),
+            "alteredInCare": dog_record.get("AlteredInCare", ""),
+            "conditionAtIntake": dog_record.get("ConditionAtIntake", ""),
+            "rabiesTagNumber": dog_record.get("RabiesTagNumber", ""),
+            "microchipInfo": dog_record.get("MicrochipInfo", {}),
+            "rabiesTag": dog_record.get("RabiesTag", {}),
+            "microchips": []  # Will be populated from microchip data
+        },
+        "attributes": {
+            "raw": dog_record.get("Attributes", []),
+            "compatibility": {
+                "cat": "unknown",
+                "dog": "unknown",
+                "child": "unknown"
+            }
+        },
+        "media": {
+            "coverPhoto": dog_record.get("Photos", [None])[0] if dog_record.get("Photos") else None,
+            "photos": dog_record.get("Photos", [])
+        },
+        "source": {
+            "lastIntakeUnixTime": None,  # Would be populated from API if available
+            "lastUpdatedUnixTime": None,
+            "dobUnixTime": None,
+            "raw": {}  # Complete original API response for debugging
+        }
+    }
+
+    return nested_dog
+
+
+def _normalize_status_for_nested(status: str) -> str:
+    """Convert JSON schema status to nested schema status format."""
+    status_mapping = {
+        "AVAILABLE": "available",
+        "ADOPTED": "adopted",
+        "PENDING": "pending",
+        "HOLD": "hold",
+        "UNKNOWN": "unknown"
+    }
+    return status_mapping.get(status, "unknown")
+
+
+def _normalize_sex_for_nested(sex: str) -> str:
+    """Convert JSON schema sex to nested schema sex format."""
+    sex_mapping = {
+        "Male": "Male",
+        "Female": "Female",
+        "M": "Male",
+        "F": "Female"
+    }
+    return sex_mapping.get(sex, "Unknown")
+
+
 @dataclass
 class TransformConfig:
     """Configuration for the transform phase."""
@@ -114,6 +234,9 @@ def _build_dog_records(
             # Apply foster/event enrichment
             _apply_foster_event_data(dog_record, foster_map.get(str(internal_id), {}), event_map.get(str(internal_id), {}), scraped_foster_info)
 
+            # Convert to nested schema field names before validation
+            dog_record = _convert_to_nested_schema_field_names(dog_record)
+
             # Validate against nested schema
             validate_dog_record(dog_record)
 
@@ -131,6 +254,12 @@ def _apply_scraped_data(dog_record: Dict[str, Any], scraped_data: Dict[str, Any]
     if not scraped_data:
         return
 
+    # Initialize nested structures if they don't exist
+    if "attributes" not in dog_record:
+        dog_record["attributes"] = {"raw": [], "behavioral": [], "physical": []}
+    if "content" not in dog_record:
+        dog_record["content"] = {}
+
     # Attributes - scraper owned, API may have different format
     if "Attributes" in scraped_data:
         # Convert scraped attributes list to structured format
@@ -139,7 +268,7 @@ def _apply_scraped_data(dog_record: Dict[str, Any], scraped_data: Dict[str, Any]
             dog_record["attributes"]["raw"] = [
                 {
                     "attributeName": attr,
-                    "internalId": dog_record["internalId"],
+                    "internalId": dog_record["Internal-ID"],
                     "publish": "Yes",  # Assume scraped attributes are publishable
                 }
                 for attr in scraped_attrs
@@ -149,29 +278,35 @@ def _apply_scraped_data(dog_record: Dict[str, Any], scraped_data: Dict[str, Any]
     if "BehavioralAttributes" in scraped_data:
         behavioral_attrs = scraped_data["BehavioralAttributes"]
         if isinstance(behavioral_attrs, list):
+            # Initialize attributes.raw if not present
+            if "raw" not in dog_record["attributes"]:
+                dog_record["attributes"]["raw"] = []
             # Add to attributes.raw if not already present
             existing_names = {attr["attributeName"] for attr in dog_record["attributes"]["raw"]}
             for attr in behavioral_attrs:
                 if attr not in existing_names:
                     dog_record["attributes"]["raw"].append({
                         "attributeName": attr,
-                        "internalId": dog_record["internalId"],
+                        "internalId": dog_record["Internal-ID"],
                         "publish": "Yes",
                     })
 
     # Medical notes - enrich content
     if "MedicalNotes" in scraped_data and scraped_data["MedicalNotes"]:
-        if dog_record["content"]["description"]:
-            dog_record["content"]["description"] += f"\n\nMedical Notes: {scraped_data['MedicalNotes']}"
+        existing_description = dog_record.get("Description", "")
+        if existing_description:
+            dog_record["Description"] = f"{existing_description}\n\nMedical Notes: {scraped_data['MedicalNotes']}"
         else:
-            dog_record["content"]["description"] = scraped_data["MedicalNotes"]
+            dog_record["Description"] = scraped_data["MedicalNotes"]
 
     # Personality notes - enrich content
     if "PersonalityNotes" in scraped_data and scraped_data["PersonalityNotes"]:
-        if dog_record["content"]["description"]:
-            dog_record["content"]["description"] += f"\n\nAbout {dog_record['name']}: {scraped_data['PersonalityNotes']}"
+        existing_description = dog_record.get("Description", "")
+        dog_name = dog_record.get("Name", "the dog")
+        if existing_description:
+            dog_record["Description"] = f"{existing_description}\n\nAbout {dog_name}: {scraped_data['PersonalityNotes']}"
         else:
-            dog_record["content"]["description"] = scraped_data["PersonalityNotes"]
+            dog_record["Description"] = scraped_data["PersonalityNotes"]
 
 
 def _apply_foster_event_data(

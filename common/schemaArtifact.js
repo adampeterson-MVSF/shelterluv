@@ -9,8 +9,8 @@
 
 const SCHEMA_ARTIFACT = {
   "checksum": "b976bee0",
-  "generated_at": "2025-11-18T02:06:02.520Z",
-  "generator": "writers.js",
+  "generated_at": "2025-11-18T23:22:56.679Z",
+  "generator": "io.js",
   "version": "1.3.0",
   "title": "Dog",
   "requiredFields": [

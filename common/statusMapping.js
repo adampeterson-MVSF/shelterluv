@@ -36,9 +36,7 @@ export const STATUS_MAPPING = {
 };
 
 export function getStatusDisplay(status) {
-  // Handle both old uppercase and new lowercase status formats
-  const normalizedStatus = status?.toUpperCase();
-  return STATUS_MAPPING[normalizedStatus] || STATUS_MAPPING['UNKNOWN'];
+  return STATUS_MAPPING[status] || STATUS_MAPPING['UNKNOWN'];
 }
 
 export function isTerminalStatus(status) {

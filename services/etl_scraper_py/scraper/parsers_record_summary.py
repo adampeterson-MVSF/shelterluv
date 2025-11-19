@@ -239,9 +239,9 @@ class ShelterLuvRecordSummaryParsers:
         url = f"https://new.shelterluv.com/animal/{animal_id}"
         self.page.goto(url, timeout=30000)
         self.page.wait_for_load_state("domcontentloaded")
-        self.page.wait_for_timeout(2000)  # Wait for initial load
-        self.page.wait_for_load_state("networkidle")
-        self.page.wait_for_timeout(3000)  # Extra time for Livewire components
+
+        # Wait for Livewire components to be hydrated before parsing
+        self.page.wait_for_selector('[wire\\:id]', state='attached', timeout=10000)
 
         # Use the comprehensive XPath-based scraper
         try:

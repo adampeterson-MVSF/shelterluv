@@ -1,196 +1,159 @@
 """
-New structured Dog schema definition.
-This replaces the flat schema with nested, logical groupings.
+Dog schema definition using typed structure from JSON schema.
 """
 
 from typing import Any, Dict, List, Optional, Literal
 from datetime import datetime
+from dog_types import Dog
 
 
 class DogSchema:
     """Structured Dog schema with nested fields."""
 
     @staticmethod
-    def create_empty() -> Dict[str, Any]:
-        """Create an empty dog record with all nested structures initialized."""
+    def create_empty() -> Dog:
+        """Create an empty dog record with JSON schema field names initialized."""
         return {
-            # Identity
-            "internalId": "",
-            "publicId": "",
-            "name": "",
-            "type": "Dog",
+            # Required identity fields
+            "Internal-ID": "",
+            "ID": "",
+            "Name": "",
+            "Status": "UNKNOWN",
+            "AgeYears": 0.0,
+            "AgeDisplay": "",
+            "IsInCustody": False,
+            "IsAvailableForAdoption": False,
+            "IsHospice": False,
+            "IsEventDog": False,
+            "PersonalityNotes": "",
+            "IntakeNotes": "",
+            "MedicalNotes": "",
 
-            # Status & lifecycle
-            "status": "UNKNOWN",
-            "inFoster": False,
-            "lastIntakeAt": None,
-            "lastUpdatedAt": None,
-
-            # Physical
-            "physical": {
-                "breed": "",
-                "ageDays": 0,
-                "dob": None,
-                "sex": "Unknown",
-                "sizeLabel": "",
-                "color": "",
-                "pattern": "",
-                "weightLbs": None,
-                "altered": None,
-            },
-
-            # Location
-            "location": {
-                "raw": {},
-                "label": None,
-            },
-
-            # People / relationships
-            "foster": {
-                "inFoster": False,
-                "person": None,
-            },
-
-            # Media
-            "media": {
-                "coverPhoto": None,
-                "photos": [],
-                "videos": [],
-            },
-
-            # Attributes & tags
-            "attributes": {
-                "raw": [],
-                "compatibility": {},
-            },
-
-            # Medical / identification
-            "medical": {
-                "microchips": [],
-            },
-
-            # Content
-            "content": {
-                "description": "",
-            },
-
-            # Admin / misc
-            "admin": {
-                "adoptionFeeGroup": None,
-                "litterGroupId": None,
-                "previousIds": [],
-            },
-
-            # Source metadata
-            "source": {
-                "lastIntakeUnixTime": None,
-                "lastUpdatedUnixTime": None,
-                "dobUnixTime": None,
-                "raw": {},
-                "syncedAt": datetime.utcnow().isoformat(),
-            },
+            # Optional fields with defaults
+            "Breed": "",
+            "Size": "UNKNOWN",
+            "Gender": "Male",  # Default to avoid None
+            "Description": "",
+            "Photos": [],
+            "CaseManager": "",
+            "MemosRawHTML": "",
+            "MedicalHistory": {},
+            "AdoptionCategory": "",
+            "MedicalCategory": "",
+            "BehaviorCategory": "",
+            "VolunteerCategory": "",
+            "FullAnimalProfile": "",
+            "Treatments": [],
+            "IntakeDate": "",
+            "Location": "",
+            "Stage": "",
+            "Weight": "",
+            "FosterName": "",
+            "FosterPhone": "",
+            "FosterEmail": "",
+            "ScrapeError": "",
+            "Attributes": [],
+            "BehavioralAttributes": [],
+            "PhysicalAttributes": [],
+            "Species": "",
+            "Color": "",
+            "Pattern": "",
+            "DistinguishingMarks": "",
+            "AdoptionPrice": "",
+            "MicrochipNumber": "",
+            "MicrochipIssuer": "",
+            "MicrochipImplantDate": "",
+            "AlteredBeforeArrival": "",
+            "AlteredInCare": "",
+            "AgeGroup": "",
+            "EstBirthdate": "",
+            "IntakeType": "",
+            "IntakeSubtype": "",
+            "OutcomeType": "",
+            "OutcomeSubtype": "",
+            "AsilomarIntake": "",
+            "AsilomarOutcome": "",
+            "ConditionAtIntake": "",
+            "JurisdictionIntake": "",
+            "JurisdictionOutcome": "",
+            "RabiesTagNumber": "",
+            "EventHistory": [],
+            "WeightHistory": [],
+            "CategoryHistory": [],
+            "BehavioralAssessments": [],
+            "CompatibilityWarnings": [],
+            "AttachedDocuments": [],
+            "PreviousShelterId": "",
+            "PreviousShelterType": "",
+            "PreviousShelterIssuer": "",
+            "Disclaimers": [],
+            "WebsiteMemo": {},
+            "MicrochipInfo": {},
+            "RabiesTag": {},
+            "VaccinationHistory": [],
+            "TreatmentsDue": [],
+            "TreatmentHistory": [],
+            "Diagnoses": [],
+            "DiagnosticTests": [],
+            "PhysicalExams": [],
+            "Procedures": [],
+            "MedicalMemos": [],
         }
 
 
-def from_shelterluv_api(animal_json: Dict[str, Any]) -> Dict[str, Any]:
+def from_shelterluv_api(animal_json: Dict[str, Any]) -> Dog:
     """
-    Transform ShelterLuv API response into structured Dog schema.
+    Transform ShelterLuv API response into Dog schema with JSON field names.
 
     Args:
         animal_json: Raw animal data from ShelterLuv API
 
     Returns:
-        Structured dog record matching the new nested schema
+        Dog record matching the JSON schema structure
     """
     dog = DogSchema.create_empty()
 
-    # Identity
-    dog["internalId"] = animal_json.get("Internal-ID", "")
-    dog["publicId"] = animal_json.get("ID", "")
-    dog["name"] = animal_json.get("Name", "")
-    dog["type"] = animal_json.get("Type", "Dog")
+    # Identity - use JSON schema field names
+    dog["Internal-ID"] = animal_json.get("Internal-ID", "")
+    dog["ID"] = animal_json.get("ID", "")
+    dog["Name"] = animal_json.get("Name", "")
 
-    # Status & lifecycle
-    dog["status"] = _normalize_status(animal_json.get("Status", "UNKNOWN"))
-    dog["inFoster"] = animal_json.get("InFoster", False)
-    dog["lastIntakeAt"] = _unix_to_datetime(animal_json.get("LastIntakeUnixTime"))
-    dog["lastUpdatedAt"] = _unix_to_datetime(animal_json.get("LastUpdatedUnixTime"))
+    # Status
+    dog["Status"] = _normalize_status(animal_json.get("Status", "UNKNOWN"))
 
-    # Physical
-    dog["physical"]["breed"] = animal_json.get("Breed", "")
-    # Calculate age from DOB instead of trusting the Age field directly
+    # Basic info
+    dog["Breed"] = animal_json.get("Breed", "")
+    dog["Size"] = animal_json.get("Size", "UNKNOWN")
+    dog["Gender"] = _normalize_sex(animal_json.get("Sex", "Male"))
+    dog["Description"] = animal_json.get("Description", "")
+    dog["Photos"] = animal_json.get("Photos", [])
+    dog["IntakeDate"] = animal_json.get("IntakeDate", "")
+    dog["Location"] = animal_json.get("Location", "")
+    dog["Stage"] = animal_json.get("Stage", "")
+    dog["Weight"] = str(animal_json.get("CurrentWeightPounds", ""))
+
+    # Derived fields - calculate from API data
     dob_unix = animal_json.get("DOBUnixTime")
-    dog["physical"]["ageDays"] = _calculate_age_days_from_dob(dob_unix)
-    dog["physical"]["dob"] = _unix_to_datetime(dob_unix)
-    dog["physical"]["sex"] = _normalize_sex(animal_json.get("Sex", "Unknown"))
-    dog["physical"]["sizeLabel"] = animal_json.get("Size", "")
-    dog["physical"]["color"] = animal_json.get("Color", "")
-    dog["physical"]["pattern"] = animal_json.get("Pattern") or ""
-    dog["physical"]["weightLbs"] = _parse_weight(animal_json.get("CurrentWeightPounds"))
-    dog["physical"]["altered"] = _normalize_altered(animal_json.get("Altered"))
+    age_days = _calculate_age_days_from_dob(dob_unix)
+    dog["AgeYears"] = age_days / 365.25 if age_days else 0.0
+    dog["AgeDisplay"] = _calculate_age_display(age_days)
 
-    # Location
-    dog["location"]["raw"] = animal_json.get("CurrentLocation", {})
-    dog["location"]["label"] = _derive_location_label(animal_json.get("CurrentLocation"))
+    # Status flags - derive from available data
+    dog["IsInCustody"] = True  # Assume all API data is for dogs in custody
+    dog["IsAvailableForAdoption"] = dog["Status"] == "AVAILABLE"
+    dog["IsHospice"] = False  # Would need more logic to determine
+    dog["IsEventDog"] = False  # Would need more logic to determine
 
-    # People / relationships
+    # Notes - initialize as empty, will be filled by scraping
+    dog["PersonalityNotes"] = ""
+    dog["IntakeNotes"] = ""
+    dog["MedicalNotes"] = ""
+
+    # Foster information - derive from AssociatedPerson if available
     associated_person = animal_json.get("AssociatedPerson")
-    if associated_person:
-        dog["foster"]["inFoster"] = dog["inFoster"]
-        dog["foster"]["person"] = {
-            "firstName": associated_person.get("FirstName"),
-            "lastName": associated_person.get("LastName"),
-            "relationshipType": associated_person.get("RelationshipType"),
-            "outDate": _unix_to_datetime(associated_person.get("OutDateUnixTime")),
-        }
-
-    # Media
-    dog["media"]["photos"] = animal_json.get("Photos", [])
-    dog["media"]["videos"] = animal_json.get("Videos", [])
-    dog["media"]["coverPhoto"] = animal_json.get("CoverPhoto") or (
-        dog["media"]["photos"][0] if dog["media"]["photos"] else None
-    )
-
-    # Attributes
-    dog["attributes"]["raw"] = [
-        {
-            "attributeName": attr.get("AttributeName", ""),
-            "internalId": attr.get("Internal-ID", ""),
-            "publish": attr.get("Publish", "No"),
-        }
-        for attr in animal_json.get("Attributes", [])
-    ]
-
-    # Medical
-    dog["medical"]["microchips"] = [
-        {
-            "id": chip.get("Id", ""),
-            "issuer": chip.get("Issuer"),
-            "implantedAt": _unix_to_datetime(chip.get("ImplantUnixTime")),
-        }
-        for chip in animal_json.get("Microchips", [])
-    ]
-
-    # Content
-    dog["content"]["description"] = animal_json.get("Description", "")
-
-    # Admin
-    dog["admin"]["adoptionFeeGroup"] = _normalize_adoption_fee_group(animal_json.get("AdoptionFeeGroup"))
-    dog["admin"]["litterGroupId"] = animal_json.get("LitterGroupId")
-    dog["admin"]["previousIds"] = [
-        {
-            "idValue": prev_id.get("IdValue", ""),
-            "issuingShelter": prev_id.get("IssuingShelter"),
-            "type": prev_id.get("Type", ""),
-        }
-        for prev_id in animal_json.get("PreviousIds", [])
-    ]
-
-    # Source metadata
-    dog["source"]["lastIntakeUnixTime"] = _to_number_or_none(animal_json.get("LastIntakeUnixTime"))
-    dog["source"]["lastUpdatedUnixTime"] = _to_number_or_none(animal_json.get("LastUpdatedUnixTime"))
-    dog["source"]["dobUnixTime"] = _to_number_or_none(animal_json.get("DOBUnixTime"))
-    dog["source"]["raw"] = animal_json
+    if associated_person and associated_person.get("RelationshipType") == "Foster":
+        dog["FosterName"] = f"{associated_person.get('FirstName', '')} {associated_person.get('LastName', '')}".strip()
+        # Phone and email would need to be looked up separately
 
     return dog
 
@@ -243,12 +206,12 @@ def _normalize_status(status: str) -> str:
     # Handle complex statuses with keywords
     status_lower = status.lower()
 
-    # Check for available variations (including hospice)
-    if any(keyword in status_lower for keyword in ["available", "hospice"]):
+    # Check for available variations - strictly map Headquarters Available and Foster Available to AVAILABLE
+    if any(keyword in status_lower for keyword in ["headquarters available", "foster available", "available", "hospice"]):
         return "available"
 
-    # Check for pending variations
-    if any(keyword in status_lower for keyword in ["pending", "unavailable"]):
+    # Check for pending variations - keep all Pending... variants as PENDING
+    if "pending" in status_lower:
         return "pending"
 
     # Check for adopted variations
@@ -283,14 +246,43 @@ def _normalize_adoption_fee_group(fee_group: Any) -> Optional[str]:
     return str(fee_group)
 
 
-def _normalize_sex(sex: str) -> Literal["Male", "Female", "Unknown"]:
+def _normalize_sex(sex: str) -> Literal["Male", "Female"]:
     """Normalize sex values."""
     if sex.lower() in ["male", "m"]:
         return "Male"
     elif sex.lower() in ["female", "f"]:
         return "Female"
     else:
+        return "Male"  # Default fallback
+
+
+def _calculate_age_display(age_days: int) -> str:
+    """Calculate human-readable age display from days."""
+    if age_days == 0:
         return "Unknown"
+
+    years = age_days // 365
+    months = (age_days % 365) // 30
+    weeks = (age_days % 365) // 7
+    days = age_days % 7
+
+    if years > 0:
+        if months > 0:
+            return f"{years} years {months} months"
+        else:
+            return f"{years} years"
+    elif months > 0:
+        if weeks > 0:
+            return f"{months} months {weeks} weeks"
+        else:
+            return f"{months} months"
+    elif weeks > 0:
+        if days > 0:
+            return f"{weeks} weeks {days} days"
+        else:
+            return f"{weeks} weeks"
+    else:
+        return f"{days} days"
 
 
 def _parse_weight(weight_str: Optional[str]) -> Optional[float]:

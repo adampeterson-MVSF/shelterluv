@@ -76,6 +76,8 @@ function validateSchemaCompliance(documents) {
 
   documents.forEach((doc) => {
     const data = doc.data();
+
+    // Check required fields
     requiredFields.forEach(field => {
       if (!data.hasOwnProperty(field) || data[field] === null || data[field] === undefined) {
         errors.push({
@@ -84,6 +86,28 @@ function validateSchemaCompliance(documents) {
         });
       }
     });
+
+    // Additional type validation for AgeYears (potential string vs number confusion)
+    if (data.hasOwnProperty('AgeYears')) {
+      const ageYears = data.AgeYears;
+      if (typeof ageYears === 'string') {
+        errors.push({
+          documentId: doc.id,
+          field: 'AgeYears',
+          expectedType: 'number',
+          actualType: 'string',
+          value: ageYears
+        });
+      } else if (typeof ageYears !== 'number') {
+        errors.push({
+          documentId: doc.id,
+          field: 'AgeYears',
+          expectedType: 'number',
+          actualType: typeof ageYears,
+          value: ageYears
+        });
+      }
+    }
   });
 
   return errors;

@@ -27,11 +27,11 @@ def scrape_foster_info(page) -> Dict[str, Any]:
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(3000)  # Initial wait
 
-        # Wait for Livewire components to load by waiting for wire:id elements
+        # Wait for Livewire components to load, specifically the Foster div container
         try:
-            page.locator('[wire\\:id]').first.wait_for(timeout=10000)
+            page.locator('div.flex.items-center.text-body-2.gap-2').first.wait_for(timeout=10000)
         except:
-            pass  # Livewire components may not be present
+            pass  # Foster container may not be present
 
         # Wait for potential AJAX requests that load foster data
         page.wait_for_timeout(3000)

@@ -7,6 +7,8 @@ import { getDogs } from '../repositories/dogRepository';
  * @property {boolean} loading - Whether dogs are currently being fetched
  * @property {Error|null} error - Error if fetch failed, null otherwise
  * @property {function(): void} refetch - Function to manually trigger a fresh fetch
+ * @property {function(): void} loadMore - Function to load more dogs for pagination
+ * @property {boolean} hasMore - Whether there are more dogs to load
  */
 
 /**
@@ -21,35 +23,56 @@ import { getDogs } from '../repositories/dogRepository';
 export function useDogs(authPermissions, options = {}) {
   const { autoFetch = true } = options;
   const [allDogs, setAllDogs] = useState([]);
+  const [lastDoc, setLastDoc] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchDogs = useCallback(async (signal) => {
+  const fetchDogs = useCallback(async (signal, isLoadMore = false) => {
     setLoading(true);
     setError(null);
 
     try {
-      const result = await getDogs(signal);
+      const result = await getDogs(20, isLoadMore ? lastDoc : null, signal);
 
       if (result.success) {
-        setAllDogs(result.data);
+        if (isLoadMore) {
+          setAllDogs(prevDogs => [...prevDogs, ...result.data]);
+        } else {
+          setAllDogs(result.data);
+        }
+        setLastDoc(result.lastDoc);
+        setHasMore(result.data.length === 20); // If we got less than limit, no more data
         setError(null);
       } else {
         setError(result.error);
-        setAllDogs([]);
+        if (!isLoadMore) {
+          setAllDogs([]);
+        }
       }
     } catch (err) {
       setError(err);
-      setAllDogs([]);
+      if (!isLoadMore) {
+        setAllDogs([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lastDoc]);
 
   const refetch = useCallback(() => {
+    setLastDoc(null);
+    setHasMore(true);
     const controller = new AbortController();
     fetchDogs(controller.signal);
   }, [fetchDogs]);
+
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      const controller = new AbortController();
+      fetchDogs(controller.signal, true);
+    }
+  }, [fetchDogs, loading, hasMore]);
 
   // State machine for data fetching based on permissions
   useEffect(() => {
@@ -65,6 +88,8 @@ export function useDogs(authPermissions, options = {}) {
     } else if (authPermissions.shouldHideDogs) {
       // Clear stale data when not authenticated to prevent showing old data
       setAllDogs([]);
+      setLastDoc(null);
+      setHasMore(true);
       setLoading(false);
       setError(null);
     }
@@ -76,6 +101,8 @@ export function useDogs(authPermissions, options = {}) {
     allDogs,
     loading,
     error,
-    refetch
+    refetch,
+    loadMore,
+    hasMore
   };
 }

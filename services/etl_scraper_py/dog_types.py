@@ -4,12 +4,6 @@
 
 from typing import Dict, Any
 
-# NOTE:
-#   Dog is intentionally defined as a generic mapping. The canonical
-#   contract for fields, types, and required properties lives in
-#   common/schemas/dog.schema.json.
-#
-#   Runtime code should continue to validate payloads against the JSON
-#   Schema; this alias exists only to aid basic type checking.
-
+# Dog type alias for type checking and IDE support
+# The structure follows the JSON schema in common/schemas/dog.schema.json
 Dog = Dict[str, Any]

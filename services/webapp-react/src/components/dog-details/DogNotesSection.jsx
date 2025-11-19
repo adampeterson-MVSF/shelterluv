@@ -5,7 +5,8 @@ import {
   shapeMicrochipAttributes,
   shapeAlteredAttributes,
   shapeIntakeAttributes,
-  shapeAdoptionAttributes
+  shapeAdoptionAttributes,
+  checkMedicalInfo
 } from '../../types/dogDetailsHelpers';
 
 function AttributeSection({ title, items, keyPrefix }) {
@@ -29,6 +30,53 @@ AttributeSection.propTypes = {
   keyPrefix: PropTypes.string.isRequired
 };
 
+function PublishedAttributesSection({ allPublishedAttributes }) {
+  if (allPublishedAttributes.length === 0) return null;
+
+  return (
+    <div className="attributes-section">
+      <h3 className="attributes-section-title">Attributes</h3>
+      <ul className="attributes-list">
+        {allPublishedAttributes.map((attributeName, i) => (
+          <li key={`attribute-${i}`}>
+            {attributeName}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+PublishedAttributesSection.propTypes = {
+  allPublishedAttributes: PropTypes.array.isRequired
+};
+
+function DisclaimersSection({ disclaimers }) {
+  if (disclaimers.length === 0) return null;
+
+  return (
+    <div className="attributes-section">
+      <h3 className="attributes-section-title">Compatibility & Behavior</h3>
+      <ul className="attributes-list">
+        {disclaimers.map((disclaimer, i) => (
+          <li key={`disclaimer-${i}`}>
+            {disclaimer.title}
+            {disclaimer.content && (
+              <div style={{ marginLeft: '1em', marginTop: '0.5em', fontSize: '0.9em', color: '#666' }}>
+                {disclaimer.content}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+DisclaimersSection.propTypes = {
+  disclaimers: PropTypes.array.isRequired
+};
+
 function AttributesTab({ dog }) {
   const basicItems = shapeBasicAttributes(dog);
   const microchipItems = shapeMicrochipAttributes(dog);
@@ -39,6 +87,9 @@ function AttributesTab({ dog }) {
     .filter(attr => attr.publish === 'Yes')
     .map(attr => attr.attributeName);
 
+  // Get disclaimers/compatibility warnings from the Disclaimers field
+  const disclaimers = dog.Disclaimers || [];
+
   return (
     <>
       <ul className="attributes-list">
@@ -47,19 +98,8 @@ function AttributesTab({ dog }) {
         ))}
       </ul>
 
-      {/* All published attributes in a single bulleted list */}
-      {allPublishedAttributes.length > 0 && (
-        <div className="attributes-section">
-          <h3 className="attributes-section-title">Attributes</h3>
-          <ul className="attributes-list">
-            {allPublishedAttributes.map((attributeName, i) => (
-              <li key={`attribute-${i}`}>
-                {attributeName}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <PublishedAttributesSection allPublishedAttributes={allPublishedAttributes} />
+      <DisclaimersSection disclaimers={disclaimers} />
 
       <AttributeSection title="Microchip" items={microchipItems} keyPrefix="chip" />
       <AttributeSection title="Altered Status" items={alteredItems} keyPrefix="altered" />
@@ -142,49 +182,65 @@ PersonalityTab.propTypes = {
   dog: PropTypes.object.isRequired
 };
 
+function MicrochipSection({ microchips }) {
+  if (!microchips || microchips.length === 0) return null;
+
+  return (
+    <div className="medical-section">
+      <h3 className="section-title">🆔 Microchip Information</h3>
+      <div className="section-content">
+        <ul className="attributes-list">
+          {microchips.map((chip, index) => (
+            <li key={index}>
+              <strong>{chip.id}:</strong>
+              {chip.issuer && ` ${chip.issuer}`}
+              {chip.implantedAt && ` (Implanted: ${new Date(chip.implantedAt).toLocaleDateString()})`}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+MicrochipSection.propTypes = {
+  microchips: PropTypes.array
+};
+
+function MedicalNotesSection({ medicalNotes }) {
+  if (!medicalNotes || !medicalNotes.trim().length) return null;
+
+  return (
+    <div className="medical-section">
+      <h3 className="section-title">📋 Medical Notes</h3>
+      <div className="section-content">
+        <div style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+          {medicalNotes}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+MedicalNotesSection.propTypes = {
+  medicalNotes: PropTypes.string
+};
+
 function MedicalTab({ dog }) {
   const hasMicrochips = dog.medical?.microchips && dog.medical.microchips.length > 0;
-  const hasMedicalContent = dog.content?.description && (
-    dog.content.description.includes('Medical') ||
-    dog.content.description.includes('Vet') ||
-    dog.content.description.includes('vaccin')
-  );
+  const hasMedicalNotes = dog.MedicalNotes && dog.MedicalNotes.trim().length > 0;
 
-  if (!hasMicrochips && !hasMedicalContent) {
+  // Check for structured medical history data
+  const { hasMedicalHistory } = checkMedicalInfo(dog);
+
+  if (!hasMicrochips && !hasMedicalNotes && !hasMedicalHistory) {
     return <p className="notes-paragraph">No medical information available.</p>;
   }
 
   return (
     <div className="medical-notes">
-      {/* Microchip Information */}
-      {hasMicrochips && (
-        <div className="medical-section">
-          <h3 className="section-title">🆔 Microchip Information</h3>
-          <div className="section-content">
-            <ul className="attributes-list">
-              {dog.medical.microchips.map((chip, index) => (
-                <li key={index}>
-                  <strong>{chip.id}:</strong>
-                  {chip.issuer && ` ${chip.issuer}`}
-                  {chip.implantedAt && ` (Implanted: ${new Date(chip.implantedAt).toLocaleDateString()})`}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* Additional medical content */}
-      {hasMedicalContent && (
-        <div className="medical-section">
-          <h3 className="section-title">📋 Medical Notes</h3>
-          <div className="section-content">
-            <div style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-              {dog.content.description}
-              </div>
-          </div>
-        </div>
-      )}
+      <MicrochipSection microchips={dog.medical?.microchips} />
+      <MedicalNotesSection medicalNotes={dog.MedicalNotes} />
 
       {/* TODO: Add structured medical data sections when medical schema is expanded */}
 

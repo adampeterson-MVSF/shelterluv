@@ -67,15 +67,8 @@ def _convert_to_nested_schema_field_names(dog_record: Dict[str, Any]) -> Dict[st
             "previousShelterIssuer": dog_record.get("PreviousShelterIssuer", "")
         },
         "foster": {
-            "inFoster": bool(dog_record.get("FosterName")),
-            "person": {
-                "firstName": dog_record.get("FosterName", "").split()[0] if dog_record.get("FosterName") else None,
-                "lastName": " ".join(dog_record.get("FosterName", "").split()[1:]) if dog_record.get("FosterName") and len(dog_record.get("FosterName", "").split()) > 1 else None,
-                "email": dog_record.get("FosterEmail"),
-                "phone": dog_record.get("FosterPhone"),
-                "personId": None,
-                "profileUrl": None
-            } if dog_record.get("FosterName") else None
+            "inFoster": False,  # Will be updated by foster enrichment if dog is in foster care
+            "person": None  # Will be populated by foster enrichment if available
         },
         "medical": {
             "microchipNumber": dog_record.get("MicrochipNumber", ""),
@@ -332,8 +325,11 @@ def _apply_foster_event_data(
                 dog_record["foster"]["person"] = {
                     "firstName": " ".join(name_parts[:-1]) if len(name_parts) > 1 else name,
                     "lastName": name_parts[-1] if len(name_parts) > 1 else "",
-                    "relationshipType": "Foster",
                     "outDate": None,
+                    "email": None,
+                    "phone": None,
+                    "personId": None,
+                    "profileUrl": None,
                 }
 
         # Handle API format (FosterName, FosterEmail, etc.)
@@ -345,8 +341,11 @@ def _apply_foster_event_data(
                 dog_record["foster"]["person"] = {
                     "firstName": " ".join(name_parts[:-1]) if len(name_parts) > 1 else name,
                     "lastName": name_parts[-1] if len(name_parts) > 1 else "",
-                    "relationshipType": "Foster",
                     "outDate": None,
+                    "email": None,
+                    "phone": None,
+                    "personId": None,
+                    "profileUrl": None,
                 }
 
         # Contact info (restricted fields) - check both formats

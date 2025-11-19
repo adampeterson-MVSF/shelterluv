@@ -50,10 +50,10 @@ function mapDogErrorToUnion(dogError) {
 export async function getDogs(limitCount = 20, startAfterDoc = null, signal) {
   try {
     const dogsCollection = collection(db, 'dogs');
-    let dogsQuery = query(dogsCollection, orderBy('Name'), limit(limitCount));
+    let dogsQuery = query(dogsCollection, orderBy('name'), limit(limitCount));
 
     if (startAfterDoc) {
-      dogsQuery = query(dogsCollection, orderBy('Name'), limit(limitCount), startAfter(startAfterDoc));
+      dogsQuery = query(dogsCollection, orderBy('name'), limit(limitCount), startAfter(startAfterDoc));
     }
 
     const dogsSnapshot = await getDocs(dogsQuery);
@@ -65,9 +65,15 @@ export async function getDogs(limitCount = 20, startAfterDoc = null, signal) {
         return { success: false, data: null, error: { kind: 'cancelled', message: 'Request was cancelled' } };
       }
 
-      // Trust ETL - fail on malformed documents
-      const normalizedDog = normalizeDog(doc);
-      dogsList.push(normalizedDog);
+      try {
+        // Trust ETL - fail on malformed documents
+        const normalizedDog = normalizeDog(doc);
+        dogsList.push(normalizedDog);
+      } catch (error) {
+        console.error('[DogRepository] Failed to normalize dog:', doc.id, error);
+        // Continue with other dogs instead of failing the whole query
+        // This allows partial success when some documents are malformed
+      }
     }
 
     return { success: true, data: dogsList, lastDoc: dogsSnapshot.docs[dogsSnapshot.docs.length - 1] || null };

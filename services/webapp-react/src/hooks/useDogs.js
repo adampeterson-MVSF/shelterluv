@@ -94,7 +94,7 @@ export function useDogs(authPermissions, options = {}) {
       setError(null);
     }
     // 'loading' state: don't change data state
-  }, [authPermissions.canViewDogs, authPermissions.shouldHideDogs, autoFetch, fetchDogs]);
+  }, [authPermissions.canViewDogs, authPermissions.shouldHideDogs, autoFetch]);
 
 
   return {
